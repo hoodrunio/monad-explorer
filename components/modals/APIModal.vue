@@ -11,6 +11,10 @@ const props = defineProps({
 	show: Boolean,
 })
 
+// Temporary payment disable flag
+const paymentDisabled = ref(true)
+const maintenanceMessage = "Payment processing is temporarily disabled. Please check back later or contact support for assistance."
+
 const plans = reactive([
 	{
 		name: "Basic",
@@ -19,6 +23,7 @@ const plans = reactive([
 			annually: null,
 		},
 		stripe: {
+			// Temporarily disabled - original: monthly: null, annually: null
 			monthly: null,
 			annually: null,
 		},
@@ -44,8 +49,9 @@ const plans = reactive([
 			annually: 119,
 		},
 		stripe: {
-			monthly: "cN2dTe5ygb0V9DG6oo",
-			annually: "7sI8yU5ygd934jm001",
+			// Temporarily disabled - original: monthly: "cN2dTe5ygb0V9DG6oo", annually: "7sI8yU5ygd934jm001"
+			monthly: null,
+			annually: null,
 		},
 
 		requests: {
@@ -69,8 +75,9 @@ const plans = reactive([
 			annually: 119,
 		},
 		stripe: {
-			monthly: "fZe7uQ1i0glfdTW5km",
-			annually: "eVaaH2f8Qb0VbLOcMP",
+			// Temporarily disabled - original: monthly: "fZe7uQ1i0glfdTW5km", annually: "eVaaH2f8Qb0VbLOcMP"
+			monthly: null,
+			annually: null,
 		},
 
 		requests: {
@@ -94,8 +101,9 @@ const plans = reactive([
 			annually: 239,
 		},
 		stripe: {
-			monthly: "00g2aw4ucfhbbLObIM",
-			annually: "eVa02o1i05GBaHK9AF",
+			// Temporarily disabled - original: monthly: "00g2aw4ucfhbbLObIM", annually: "eVa02o1i05GBaHK9AF"
+			monthly: null,
+			annually: null,
 		},
 
 		requests: {
@@ -128,6 +136,12 @@ const getPaymentLink = () => {
 	<Modal :show="show" @onClose="emit('onClose')" width="700" disable-trap>
 		<Flex direction="column" gap="16">
 			<Text size="14" weight="600" color="primary">Monad API</Text>
+
+			<!-- Maintenance Notice -->
+			<Flex v-if="paymentDisabled" direction="column" gap="8" :class="$style.maintenance_notice">
+				<Icon name="info" size="16" color="warning" />
+				<Text size="13" weight="500" color="warning">{{ maintenanceMessage }}</Text>
+			</Flex>
 
 			<Flex gap="32" :class="$style.content">
 				<Flex direction="column" justify="between" gap="20" :class="$style.left">
@@ -221,23 +235,27 @@ const getPaymentLink = () => {
 
 						<Flex direction="column" align="center" gap="8">
 							<Button
-								:link="getPaymentLink() || 'https://docs.monad.xyz/api'"
+								:link="paymentDisabled ? 'https://docs.monad.xyz/api' : (getPaymentLink() || 'https://docs.monad.xyz/api')"
 								target="_blank"
 								type="primary"
 								size="small"
-								:disabled="!getPaymentLink() && plans[selectedPlan].name !== 'Basic'"
+								:disabled="paymentDisabled && plans[selectedPlan].name !== 'Basic'"
 								wide
 							>
 								<Text color="black">
 									{{
-										getPaymentLink() || plans[selectedPlan].name === "Basic"
+										paymentDisabled && plans[selectedPlan].name !== 'Basic'
+											? "View Documentation"
+											: plans[selectedPlan].name === "Basic"
 											? `Start with ${plans[selectedPlan].name}`
 											: "Not Available"
 									}}
 								</Text>
 							</Button>
 
-							<Text size="12" weight="500" color="tertiary">Secure payment via Stripe</Text>
+							<Text size="12" weight="500" color="tertiary">
+								{{ paymentDisabled ? "Payments temporarily disabled" : "Secure payment via Stripe" }}
+							</Text>
 						</Flex>
 					</Flex>
 				</Flex>
@@ -403,6 +421,14 @@ const getPaymentLink = () => {
 .check_icon {
 	width: 12px;
 	height: 12px;
+}
+
+.maintenance_notice {
+	background: rgba(255, 193, 7, 0.1);
+	border: 1px solid rgba(255, 193, 7, 0.3);
+	border-radius: 8px;
+	padding: 12px;
+	align-items: center;
 }
 
 @media (max-width: 800px) {
