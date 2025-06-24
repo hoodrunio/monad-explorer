@@ -51,6 +51,11 @@ const riskLevel = computed(() => {
 const formatPercentage = (value) => {
   return `${value.toFixed(1)}%`
 }
+
+const formatDiversityScore = (value) => {
+  // Convert decimal value to percentage (multiply by 100) then format with 1 decimal place
+  return `${(value * 100).toFixed(1)}%`
+}
 </script>
 
 <template>
@@ -109,7 +114,7 @@ const formatPercentage = (value) => {
         <Flex align="center" justify="between">
           <Text size="12" color="tertiary">Infrastructure Diversity</Text>
           <Text size="14" weight="600" color="primary">
-            {{ centralizationData.infrastructureDiversity.toFixed(3) }}
+            {{ formatDiversityScore(centralizationData.infrastructureDiversity) }}
           </Text>
         </Flex>
         
