@@ -22,7 +22,7 @@ useHead({
 	meta: [
 		{
 			name: "description",
-			content: "Monad validator network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
+			content: "Monad network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
 		},
 		{
 			property: "og:title",
@@ -30,15 +30,15 @@ useHead({
 		},
 		{
 			property: "og:description",
-			content: "Monad validator network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
+			content: "Monad network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
 		},
 		{
 			name: "twitter:title",
-			content: "Analytics - Monad Explorer",
+			content: "Monad",
 		},
 		{
 			name: "twitter:description",
-			content: "Monad validator network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
+			content: "Monad FDN",
 		},
 		{
 			name: "twitter:card",
@@ -193,7 +193,7 @@ watch(
 		<!-- Ecosystem Tab -->
 		<Flex v-if="activeTab === 'ecosystem'" direction="column" gap="20">
 			<Flex direction="column" gap="16">
-				<Text size="14" weight="600" color="primary">Monad Validator Network Distribution</Text>
+				<Text size="14" weight="600" color="primary">Monad Network Distribution</Text>
 				<MonadGeoMap :class="$style.chart" />
 			</Flex>
 

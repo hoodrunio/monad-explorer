@@ -6,10 +6,6 @@ import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.v
 /** Services */
 import { parseRedirectQueryError } from "@/services/notifications"
 
-/** Store */
-import { useAppStore } from "@/store/app.store"
-const appStore = useAppStore()
-
 const route = useRoute()
 const router = useRouter()
 
@@ -18,7 +14,7 @@ definePageMeta({
 })
 
 useHead({
-	title: "Monad Explorer - Validator Network Monitoring",
+	title: "Monad Explorer - Network Monitoring",
 	link: [
 		{
 			rel: "canonical",
@@ -28,11 +24,11 @@ useHead({
 	meta: [
 		{
 			name: "description",
-			content: "Comprehensive validator network monitoring and analytics for the Monad blockchain ecosystem.",
+			content: "Comprehensive network monitoring and analytics for the Monad blockchain ecosystem.",
 		},
 		{
 			property: "og:title",
-			content: "Monad Explorer - Validator Network Monitoring",
+			content: "Monad Explorer - Network Monitoring",
 		},
 		{
 			property: "og:description",
@@ -48,12 +44,12 @@ useHead({
 		},
 		{
 			name: "twitter:title",
-			content: "Monad Explorer - Validator Network Monitoring",
+			content: "Monad",
 		},
 		{
 			name: "twitter:description",
 			content:
-				"Monitor validator performance, network health, consensus efficiency and geographic distribution in real-time.",
+				"Monitor FDN.",
 		},
 		{
 			name: "twitter:card",

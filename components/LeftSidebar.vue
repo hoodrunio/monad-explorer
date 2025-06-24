@@ -222,7 +222,7 @@ const handleOnClose = () => {
 					<Flex align="center" gap="8">
 						<Icon name="globe" size="14" :color="head?.synced ? 'brand' : 'red'" />
 						<Text size="13" weight="600" color="secondary">
-							Validator Network
+							Network
 						</Text>
 					</Flex>
 
