@@ -44,6 +44,23 @@ const getCountryCoordinates = (countryName) => {
 		"Romania": [24.9668, 45.9432],
 		"Poland": [19.1343, 51.9194],
 		"South Korea": [127.7669, 35.9078],
+		"Australia": [133.7751, -25.2744],
+		"Canada": [-106.3468, 56.1304],
+		"Netherlands": [5.2913, 52.1326],
+		"United Kingdom": [-3.4360, 55.3781],
+		"Austria": [14.5501, 47.5162],
+		"India": [20.5937, 78.9629],
+		"Thailand": [100.9925, 15.8700],
+		"Slovakia": [19.6990, 48.6690],
+		"Chile": [-71.5430, -35.6751],
+		"Hong Kong": [114.1694, 22.3193],
+		"Norway": [8.4689, 60.4720],
+		"New Zealand": [174.8860, -40.9006],
+		"Malta": [14.3754, 35.9375],
+		"Brazil": [-51.9253, -14.2350],
+		"South Africa": [22.9375, -30.5595],
+		"Nigeria": [8.6753, 9.0820],
+		"Czech Republic": [15.4730, 49.8175],
 	}
 	
 	// Try exact match first
@@ -59,6 +76,61 @@ const getCountryCoordinates = (countryName) => {
 	}
 	
 	return [0, 0] // Default coordinates
+}
+
+// Map API country names to GeoJSON country names
+const mapApiCountryToGeoJson = (apiCountryName) => {
+	const countryMappings = {
+		"United States": "USA",
+		"The Netherlands": "Netherlands",
+		"Netherlands": "Netherlands", 
+		"United Kingdom": "England", // Note: GeoJSON uses "England" instead of "United Kingdom"
+		"South Korea": "South Korea",
+		"Hong Kong": null, // Hong Kong doesn't exist as separate country in GeoJSON
+		"Czechia": "Czech Republic",
+		"Czech Republic": "Czech Republic",
+		"Russia": "Russia",
+		"Germany": "Germany",
+		"Finland": "Finland",
+		"Sweden": "Sweden",
+		"Japan": "Japan",
+		"Lithuania": "Lithuania",
+		"Singapore": null, // Singapore doesn't exist as separate country in GeoJSON
+		"Spain": "Spain",
+		"Ireland": "Ireland",
+		"France": "France",
+		"Argentina": "Argentina",
+		"Romania": "Romania",
+		"Poland": "Poland",
+		"Australia": "Australia",
+		"Canada": "Canada",
+		"Austria": "Austria",
+		"India": "India",
+		"Thailand": "Thailand",
+		"Slovakia": "Slovakia",
+		"Chile": "Chile",
+		"Norway": "Norway",
+		"New Zealand": "New Zealand",
+		"Malta": null, // Malta doesn't exist as separate country in GeoJSON
+		"Brazil": "Brazil",
+		"South Africa": "South Africa",
+		"Nigeria": "Nigeria",
+	}
+	
+	// Check for exact match first
+	if (countryMappings.hasOwnProperty(apiCountryName)) {
+		return countryMappings[apiCountryName]
+	}
+	
+	// Check for partial matches
+	for (const [apiName, geoJsonName] of Object.entries(countryMappings)) {
+		if (apiCountryName.includes(apiName) || apiName.includes(apiCountryName)) {
+			return geoJsonName
+		}
+	}
+	
+	// If no mapping found, return the original name
+	return apiCountryName
 }
 
 const chartEl = ref()
@@ -241,6 +313,7 @@ const processMapData = async () => {
 					// Extract country from location string (e.g., "Falkenstein, Germany" -> "Germany")
 					const locationParts = item.location.split(', ')
 					const country = locationParts[locationParts.length - 1]
+					// For city view, we use the original country name for coordinates
 					const coordinates = getCountryCoordinates(country)
 					const projection = d3.geoMercator()
 						.center([0, 40])
@@ -254,7 +327,8 @@ const processMapData = async () => {
 						amount: item.validatorCount,
 						x: coords[0],
 						y: coords[1],
-						coordinates: coordinates
+						coordinates: coordinates,
+						originalCountry: country
 					}
 				})
 			}
@@ -262,13 +336,35 @@ const processMapData = async () => {
 			// Process topology data for country-level aggregation (for country view)
 			if (topologyData.value?.data?.geographicDistribution && geoMap.value) {
 				const countryValidatorCounts = {}
+				const unmappedCountries = new Set()
 				
 				// Aggregate validators by country
 				Object.entries(topologyData.value.data.geographicDistribution).forEach(([location, count]) => {
 					const locationParts = location.split(', ')
-					const country = locationParts[locationParts.length - 1]
-					countryValidatorCounts[country] = (countryValidatorCounts[country] || 0) + count
+					const country = locationParts[locationParts.length - 1].trim() // Trim whitespace
+					const mappedCountry = mapApiCountryToGeoJson(country)
+					
+					// Debug logging for United States
+					if (country === 'United States') {
+						console.log('Mapping United States to:', mappedCountry)
+					}
+					
+					// Only count if the country maps to a valid GeoJSON country (not null)
+					if (mappedCountry) {
+						countryValidatorCounts[mappedCountry] = (countryValidatorCounts[mappedCountry] || 0) + count
+					} else {
+						unmappedCountries.add(country)
+					}
 				})
+
+				// Log unmapped countries for debugging
+				if (unmappedCountries.size > 0) {
+					console.warn('Countries not mapped to GeoJSON:', Array.from(unmappedCountries))
+				}
+
+				// Debug: Log the final country validator counts
+				console.log('Country validator counts:', countryValidatorCounts)
+				console.log('Total validators in country mapping:', Object.values(countryValidatorCounts).reduce((sum, count) => sum + count, 0))
 
 				// Map country data to geo features
 				geoMap.value = geoMap.value.map((feature) => ({
