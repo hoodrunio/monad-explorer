@@ -200,7 +200,7 @@ const lastUpdate = () => {
 
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph"><u>Termination by You</u></Text>
-				<Text :class="$style.section_paragraph">You may terminate your account and subscription at any time by providing us with 30 days' prior notice. This can be done by following the instructions provided on the website or by contacting our support team at <a href="mailto:celenium@pklabs.me" :class="$style.link">celenium@pklabs.me</a>. Upon termination, you will lose access to all Services provided through the Website, and any data associated with your account may be deleted.</Text>
+				<Text :class="$style.section_paragraph">You may terminate your account and subscription at any time by providing us with 30 days' prior notice. This can be done by following the instructions provided on the website or by contacting our support team at <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a>. Upon termination, you will lose access to all Services provided through the Website, and any data associated with your account may be deleted.</Text>
 				<Text :class="$style.section_paragraph"><u>Termination by Us</u></Text>
 				<Text :class="$style.section_paragraph">We reserve the right to terminate or suspend your account and access to the Services, with or without notice, for any reason, including but not limited to, if you violate these Terms, engage in fraudulent or illegal activities, or if we cease to provide the Services. In the event of a termination initiated by us, we will provide you with 30 days' prior notice, except in cases of violations of these Terms, fraudulent or illegal activities, or other urgent circumstances.</Text>
 				<Text :class="$style.section_paragraph"><u>Effects of Termination</u></Text>
@@ -241,7 +241,7 @@ const lastUpdate = () => {
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph">These Terms do not create any relationship of association, partnership, joint venture or agency between us and you. Neither we nor you will have any right or authority to assume, create or incur any liability or obligation of any kind against or in the name of the other party. You shall not, under any circumstances, represent that you are an agent of the Company and you shall take all reasonable precautions to avoid any perception that such relationship exists. These Terms set forth the entire agreement and understanding between us and you with respect to the subject matter in these Terms. These Terms merge all previous discussions and negotiations between us and you and supersede them.</Text>
 				<Text :class="$style.section_paragraph">A person who is not a party to these Terms shall not have any rights whatsoever under these Terms or to enforce these Terms.</Text>
-				<Text :class="$style.section_paragraph">For support, contact us at <a href="mailto:support@monad.xyz" :class="$style.link">support@monad.xyz</a>.</Text>
+				<Text :class="$style.section_paragraph">For support, contact us at <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a>.</Text>
 			</Flex>
 		</Flex>
 	</Flex>

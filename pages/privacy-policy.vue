@@ -54,7 +54,7 @@ useHead({
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph">PK Labs AG is the controller for the processing under this Privacy Policy unless we tell you otherwise in an individual case.</Text>
 
-				<Text :class="$style.section_paragraph">For any matters, relating to data protection and to exercise your rights under Section 13, you may contact <a href="mailto:monad@pklabs.me" :class="$style.link">monad@pklabs.me</a> in writing by e-mail or letter to the following address: PK Labs AG, Gartenstrasse 6, Zug 6300, Switzerland</Text>
+				<Text :class="$style.section_paragraph">For any matters, relating to data protection and to exercise your rights under Section 13, you may contact <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a> in writing by e-mail or letter to the following address: Hoodrun AG, Gartenstrasse 6, Zug 6300, Switzerland</Text>
 			</Flex>
 		</Flex>
 
@@ -409,11 +409,9 @@ useHead({
 
 				<ul>
 					<li>EU General Data Protection Regulation: <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=uriserv:OJ.L_.2016.119.01.0001.01.ENG" target="_blank" :class="$style.link">https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=uriserv:OJ.L_.2016.119.01.0001.01.ENG</a></li>
-					<li>Swiss Federal Act on Data Protection: <a href="https://www.admin.ch/opc/en/classified-compilation/19920153/index.html" target="_blank" :class="$style.link">https://www.admin.ch/opc/en/classified-compilation/19920153/index.html</a></li>
-					<li>Swiss Ordinance to the Federal Act on Data Protection: <a href="https://www.admin.ch/opc/en/classified-compilation/19930159/index.html" target="_blank" :class="$style.link">https://www.admin.ch/opc/en/classified-compilation/19930159/index.html</a></li>
 				</ul>
 
-				<Text :class="$style.section_paragraph">Please do not hesitate to contact us if you have any questions regarding this Privacy Policy by contacting us at <a href="mailto:monad@pklabs.me" :class="$style.link">monad@pklabs.me</a>.</Text>
+				<Text :class="$style.section_paragraph">Please do not hesitate to contact us if you have any questions regarding this Privacy Policy by contacting us at <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a>.</Text>
 			</Flex>
 		</Flex>
 	</Flex>

@@ -59,7 +59,7 @@ To use `pm2`, use an `ecosystem.config.js`:
 module.exports = {
 	apps: [
 		{
-			name: "CeleniumInterface",
+			name: "MonadExplorer",
 			port: "3000",
 			exec_mode: "cluster",
 			instances: "max",
