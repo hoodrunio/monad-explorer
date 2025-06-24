@@ -24,8 +24,12 @@ const props = defineProps({
 const handleError = () => navigateTo("/")
 
 onMounted(async () => {
-	const runtimeConfig = useRuntimeConfig()
-	amp.init(runtimeConfig.public.AMP)
+	try {
+		const runtimeConfig = useRuntimeConfig()
+		amp.init(runtimeConfig.public.AMP)
+	} catch (error) {
+		console.warn("Error page initialization:", error)
+	}
 })
 
 const handleBack = () => {

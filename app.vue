@@ -17,7 +17,6 @@ import { useNodeStore } from "@/store/node.store"
 import { useAppStore } from "@/store/app.store"
 import { useBookmarksStore } from "@/store/bookmarks.store"
 import { useSettingsStore } from "@/store/settings.store"
-import { useEnumStore } from "@/store/enums.store"
 import { useLegalStore } from "@/store/legal.store"
 import { useNotificationsStore } from "@/store/notifications.store"
 import { useActivityStore } from "@/store/activity.store"
@@ -25,7 +24,6 @@ const nodeStore = useNodeStore()
 const appStore = useAppStore()
 const bookmarksStore = useBookmarksStore()
 const settingsStore = useSettingsStore()
-const enumStore = useEnumStore()
 const legalStore = useLegalStore()
 const notificationsStore = useNotificationsStore()
 const activityStore = useActivityStore()
@@ -94,8 +92,6 @@ onMounted(async () => {
 
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
-
-	await enumStore.init()
 
 	legalStore.init()
 	if (!legalStore.isAccepted()) {
