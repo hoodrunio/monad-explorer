@@ -40,7 +40,7 @@ export const useBookmarksStore = defineStore("bookmarks", () => {
 		target.value[target.value.findIndex((b) => b.data.hash === hash)].alias = alias
 	}
 
-	const getTargetRef = (type, data) => {
+	const getTargetRef = (type, _) => {
 		switch (type) {
 			case "transaction":
 			case "tx":

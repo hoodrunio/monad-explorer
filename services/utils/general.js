@@ -85,6 +85,11 @@ export const isMobile = () => {
 		userAgent = navigator.userAgent
 	}
 
+	// Handle undefined userAgent during SSR
+	if (!userAgent) {
+		return false
+	}
+
 	return (
 		REGEX_MOBILE1.test(userAgent) ||
 		REGEX_MOBILE2.test(userAgent.slice(0, 4)) ||

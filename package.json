@@ -1,8 +1,8 @@
 {
-	"name": "celestia-explorer",
+	"name": "monad-explorer",
 	"version": "1.16.0",
 	"packageManager": "pnpm@8.7.4",
-	"homepage": "https://celenium.io/",
+	"homepage": "https://monad.hoodscan.io/",
 	"license": "MIT",
 	"type": "module",
 	"scripts": {

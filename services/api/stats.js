@@ -1,5 +1,5 @@
 /** Services */
-import { nodeStatsURL, quoteServiceURL, tvlServiceURL, useServerURL } from "@/services/config"
+import { quoteServiceURL, tvlServiceURL, useServerURL } from "@/services/config"
 
 export const fetchGeneralStats = async ({ name }) => {
 	try {
