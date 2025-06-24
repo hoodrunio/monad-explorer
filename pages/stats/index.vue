@@ -10,6 +10,10 @@ import CentralizationRiskWidget from "@/components/widgets/CentralizationRiskWid
 import ValidatorEventsWidget from "@/components/widgets/ValidatorEventsWidget.vue"
 import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.vue"
 
+/** Stats Components */
+import MonadGeoMap from "@/components/modules/stats/MonadGeoMap.vue"
+import MonadDistributionChart from "@/components/modules/stats/MonadDistributionChart.vue"
+
 /** Services */
 import { capitilize } from "@/services/utils"
 
@@ -57,6 +61,10 @@ const tabs = ref([
 	},
 	{
 		name: "geographic",
+		visible: true,
+	},
+	{
+		name: "ecosystem",
 		visible: true,
 	},
 ])
@@ -181,6 +189,22 @@ watch(
 				<ValidatorNetworkSummary />
 			</Flex>
 		</Flex>
+
+		<!-- Ecosystem Tab -->
+		<Flex v-if="activeTab === 'ecosystem'" direction="column" gap="20">
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Monad Validator Network Distribution</Text>
+				<MonadGeoMap :class="$style.chart" />
+			</Flex>
+
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Infrastructure Analysis</Text>
+				<Flex gap="16" :class="$style.grid_2">
+					<MonadDistributionChart type="provider" />
+					<MonadDistributionChart type="geographic" />
+				</Flex>
+			</Flex>
+		</Flex>
 	</Flex>
 </template>
 
@@ -230,6 +254,12 @@ watch(
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
+}
+
+.chart {
+	width: 100%;
+	max-width: 1000px;
+	aspect-ratio: 16 / 10;
 }
 
 @media (max-width: 768px) {

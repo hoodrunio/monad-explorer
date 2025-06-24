@@ -50,6 +50,7 @@ export const fetchGeographicDistribution = () => {
 
 		return useFetch(url.href, {
 			key: "geographic_distribution",
+			server: false,
 		})
 	} catch (error) {
 		console.error(error)
@@ -62,6 +63,7 @@ export const fetchNetworkTopology = () => {
 
 		return useFetch(url.href, {
 			key: "network_topology",
+			server: false,
 		})
 	} catch (error) {
 		console.error(error)
@@ -74,6 +76,7 @@ export const fetchCentralizationRisks = () => {
 
 		return useFetch(url.href, {
 			key: "centralization_risks",
+			server: false,
 		})
 	} catch (error) {
 		console.error(error)

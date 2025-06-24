@@ -78,6 +78,12 @@ const mainLinks = reactive([
 				queryParam: { tab: "geographic" },
 				show: true,
 			},
+			{
+				name: "Ecosystem Analysis",
+				path: "/stats?tab=ecosystem",
+				queryParam: { tab: "ecosystem" },
+				show: true,
+			},
 		],
 	},
 ])

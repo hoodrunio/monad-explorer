@@ -50,6 +50,7 @@ export const fetchValidatorInfrastructure = (id) => {
 
 		return useFetch(encodeURI(url.href), {
 			key: "validator_infrastructure",
+			server: false,
 		})
 	} catch (error) {
 		console.error(error)
