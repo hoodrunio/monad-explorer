@@ -2,23 +2,44 @@
 import { ref, computed } from 'vue'
 
 /** API */
-// This would fetch from the /validators/stats endpoint
-const validatorStats = ref({
-  totalValidators: 150,
-  activeValidators: 142,
-  averageUptimeScore: 95.7,
-  averageQcParticipationRate: 92.3,
-  averageBlockProposalRatio: 0.67,
-  totalConsensusRounds: 12457,
-  averageReputationScore: 87.2
+import { fetchNetworkSummary } from "@/services/api/main"
+
+const { data: summaryData, pending: isLoading, error } = await fetchNetworkSummary()
+
+const validatorStats = computed(() => {
+  if (!summaryData.value?.summary) {
+    // Fallback data while loading
+    return {
+      uniqueValidators: 0,
+      eventTypes: 0,
+      activeDays: 0,
+      totalProposals: 0,
+      successfulProposals: 0,
+      blockSuccessRate: 0,
+      totalParticipations: 0,
+      successfulParticipations: 0,
+      qcSuccessRate: 0,
+      avgNetworkParticipationRate: 0
+    }
+  }
+  
+  const summary = summaryData.value.summary
+  return {
+    uniqueValidators: summary.unique_validators || 0,
+    eventTypes: summary.event_types || 0,
+    activeDays: summary.active_days || 0,
+    totalProposals: summary.block_proposal_metrics?.total_proposals || 0,
+    successfulProposals: summary.block_proposal_metrics?.successful_proposals || 0,
+    blockSuccessRate: summary.block_proposal_metrics?.success_rate || 0,
+    totalParticipations: summary.qc_participation_metrics?.total_participations || 0,
+    successfulParticipations: summary.qc_participation_metrics?.successful_participations || 0,
+    qcSuccessRate: summary.qc_participation_metrics?.success_rate || 0,
+    avgNetworkParticipationRate: summary.qc_participation_metrics?.avg_network_participation_rate || 0
+  }
 })
 
 const formatPercentage = (value) => {
   return `${value.toFixed(1)}%`
-}
-
-const formatRatio = (value) => {
-  return (value * 100).toFixed(1) + '%'
 }
 </script>
 
@@ -27,62 +48,63 @@ const formatRatio = (value) => {
     <Flex direction="column" gap="16">
       <Text size="14" weight="600" color="primary">Network Statistics</Text>
       
-      <Flex direction="column" gap="12">
-        <!-- Total/Active Validators -->
-        <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Total Validators</Text>
-          <Text size="14" weight="600" color="primary">
-            {{ validatorStats.totalValidators }}
-          </Text>
-        </Flex>
-        
+      <Flex v-if="isLoading" direction="column" gap="12">
+        <Text size="12" color="tertiary">Loading network statistics...</Text>
+      </Flex>
+      
+      <Flex v-else-if="error" direction="column" gap="12">
+        <Text size="12" color="red">Error loading statistics</Text>
+      </Flex>
+      
+      <Flex v-else direction="column" gap="12">
+        <!-- Validator Info -->
         <Flex align="center" justify="between">
           <Text size="12" color="tertiary">Active Validators</Text>
-          <Text size="14" weight="600" color="green">
-            {{ validatorStats.activeValidators }}
+          <Text size="14" weight="600" color="primary">
+            {{ validatorStats.uniqueValidators }}
+          </Text>
+        </Flex>
+        
+        <Flex align="center" justify="between">
+          <Text size="12" color="tertiary">Event Types</Text>
+          <Text size="14" weight="600" color="primary">
+            {{ validatorStats.eventTypes }}
           </Text>
         </Flex>
         
         <!-- Divider -->
         <div :class="$style.divider"></div>
         
-        <!-- Performance Metrics -->
+        <!-- Block Metrics -->
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Avg Uptime Score</Text>
+          <Text size="12" color="tertiary">Block Success Rate</Text>
           <Text size="14" weight="600" color="primary">
-            {{ formatPercentage(validatorStats.averageUptimeScore) }}
+            {{ formatPercentage(validatorStats.blockSuccessRate) }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Avg QC Participation</Text>
+          <Text size="12" color="tertiary">Total Proposals</Text>
           <Text size="14" weight="600" color="primary">
-            {{ formatPercentage(validatorStats.averageQcParticipationRate) }}
-          </Text>
-        </Flex>
-        
-        <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Avg Block Proposal</Text>
-          <Text size="14" weight="600" color="primary">
-            {{ formatRatio(validatorStats.averageBlockProposalRatio) }}
+            {{ validatorStats.totalProposals.toLocaleString() }}
           </Text>
         </Flex>
         
         <!-- Divider -->
         <div :class="$style.divider"></div>
         
-        <!-- Network Activity -->
+        <!-- QC Metrics -->
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Consensus Rounds</Text>
+          <Text size="12" color="tertiary">QC Success Rate</Text>
           <Text size="14" weight="600" color="primary">
-            {{ validatorStats.totalConsensusRounds.toLocaleString() }}
+            {{ formatPercentage(validatorStats.qcSuccessRate) }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Avg Reputation</Text>
+          <Text size="12" color="tertiary">Network Participation</Text>
           <Text size="14" weight="600" color="primary">
-            {{ validatorStats.averageReputationScore.toFixed(1) }}
+            {{ formatPercentage(validatorStats.avgNetworkParticipationRate) }}
           </Text>
         </Flex>
       </Flex>

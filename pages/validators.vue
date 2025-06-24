@@ -1,46 +1,43 @@
 <script setup>
 /** UI */
 import Button from "@/components/ui/Button.vue"
-import Tooltip from "@/components/ui/Tooltip.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
 
 /** Services */
-import { capitilize, comma, numToPercent, shareOfTotalString, splitAddress } from "@/services/utils"
+import { capitilize, comma, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchValidators, fetchValidatorsCount } from "@/services/api/validator"
+import { fetchValidatorRankings } from "@/services/api/validator"
 
-/** Store */
-import { useAppStore } from "@/store/app.store"
-const appStore = useAppStore()
+const route = useRoute()
+const router = useRouter()
 
 useHead({
-	title: "Validators - Celestia Explorer",
+	title: "Validators - Monad Explorer",
 	link: [
 		{
 			rel: "canonical",
-			href: "https://celenium.io/validators",
+			href: "/validators",
 		},
 	],
 	meta: [
 		{
 			name: "description",
 			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
+				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
 		},
 		{
 			property: "og:title",
-			content: "Validators - Celestia Explorer",
+			content: "Validators - Monad Explorer",
 		},
 		{
 			property: "og:description",
 			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
+				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
 		},
 		{
 			property: "og:url",
-			content: `https://celenium.io/validators`,
+			content: "/validators",
 		},
 		{
 			property: "og:image",
@@ -48,12 +45,12 @@ useHead({
 		},
 		{
 			name: "twitter:title",
-			content: "Validators - Celestia Explorer",
+			content: "Validators - Monad Explorer",
 		},
 		{
 			name: "twitter:description",
 			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
+				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
 		},
 		{
 			name: "twitter:card",
@@ -61,138 +58,124 @@ useHead({
 		},
 		{
 			name: "twitter:image",
-			content: "https://celenium.io/img/seo/validators.png",
+			content: "/img/seo/validators.png",
 		},
 	],
 })
 
-const route = useRoute()
-const router = useRouter()
-
 const isLoading = ref(false)
 const validators = ref([])
-const validatorsStats = ref({})
-const totalVotingPower = computed(() => appStore.lastHead?.total_voting_power)
 
-const getValidatorsStats = async () => {
-	isLoading.value = true
+// Time window options
+const timeWindows = ref([
+	{ label: "7 Days", value: "7d" },
+	{ label: "30 Days", value: "30d" },
+])
+const selectedTimeWindow = ref(route.query.window || "7d")
 
-	const { data } = await fetchValidatorsCount()
-	validatorsStats.value = data.value
+// Sort options 
+const sortOptions = ref([
+	{ label: "Uptime Score", value: "uptime_score" },
+	{ label: "QC Participation", value: "qc_participation_rate" },
+	{ label: "Block Proposals", value: "block_proposal_ratio" },
+])
+const selectedSort = ref(route.query.sortBy || "uptime_score")
 
-	isLoading.value = false
-}
-
-const getActiveValidators = async () => {
-	isLoading.value = true
-
-	const { data } = await fetchValidators({
-		limit: 20,
-		offset: (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
-
-const getInactiveValidators = async () => {
-	isLoading.value = true
-
-	const { data } = await fetchValidators({
-		jailed: false,
-		limit: 20,
-		offset: validatorsStats.value.active + (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
-
-const getJailedValidators = async () => {
-	isLoading.value = true
-
-	const { data } = await fetchValidators({
-		jailed: true,
-		limit: 20,
-		offset: (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
+// Pagination
+const page = ref(route.query.page ? parseInt(route.query.page) : 1)
+const limit = ref(50)
+const totalValidators = ref(0)
+const pages = computed(() => Math.max(1, Math.ceil(totalValidators.value / limit.value)))
 
 const getValidators = async () => {
-	switch (activeTab.value) {
-		case "active":
-			getActiveValidators()
-			break
-		case "inactive":
-			getInactiveValidators()
-			break
-		case "jailed":
-			getJailedValidators()
-			break
-		default:
-			break
+	isLoading.value = true
+
+	try {
+		const { data } = await fetchValidatorRankings({
+			limit: limit.value,
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value
+		})
+
+		if (data.value?.data) {
+			validators.value = data.value.data.map(validator => ({
+				rank: validator.rank || 0,
+				validatorId: validator.validator_id || '',
+				name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+				uptimeScore: validator.metrics?.uptime_score || 0,
+				qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+				blockProposalRatio: validator.metrics?.block_proposal_ratio || 0,
+				provider: validator.infrastructure?.provider || 'Unknown',
+				location: validator.infrastructure?.location || 'Unknown',
+				blocksProposed: validator.details?.blocks_proposed || 0,
+				totalBlockOpportunities: validator.details?.total_block_opportunities || 0,
+				qcParticipations: validator.details?.qc_participations || 0,
+				totalQcOpportunities: validator.details?.total_qc_opportunities || 0
+			}))
+			// For pagination, we'll use the returned data length as an estimate
+			totalValidators.value = Math.max(data.value.data.length, page.value * limit.value)
+		}
+	} catch (error) {
+		console.error('Error fetching validators:', error)
+	} finally {
+		isLoading.value = false
 	}
 }
 
-/** Pagination */
-const page = ref(route.query.page ? parseInt(route.query.page) : 1)
-const pages = computed(() => Math.max(1, Math.ceil(validatorsStats.value[activeTab.value.toLowerCase()] / 20)))
-
 const handleNext = () => {
 	if (page.value === pages.value) return
-
 	page.value += 1
 }
 
 const handlePrev = () => {
 	if (page.value === 1) return
-
 	page.value -= 1
 }
 
-/** Tabs */
-const tabs = ref(["active", "inactive", "jailed"])
-const activeTab = ref(
-	route.query.status && tabs.value.filter((tab) => tab === route.query.status).length > 0 ? route.query.status.toLowerCase() : "active",
-)
-const dropdownItems = computed(() => tabs.value.filter((tab) => tab !== activeTab.value))
+const formatPercentage = (value) => {
+	return `${value.toFixed(1)}%`
+}
 
+const getPerformanceColor = (score) => {
+	if (score >= 99) return 'green'
+	if (score >= 95) return 'yellow'
+	return 'red'
+}
+
+// Initialize data
+await getValidators()
+
+// Update URL and refetch when parameters change
+watch([page, selectedSort, selectedTimeWindow], async () => {
+	await getValidators()
+	
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value
+		} 
+	})
+})
+
+// Handle URL query changes
 watch(
 	() => route.query,
 	() => {
-		if (route.query.status) activeTab.value = route.query.status
-	},
-)
-
-await getValidatorsStats()
-await getValidators()
-
-/** Refetch validators */
-watch(
-	() => page.value,
-	async () => {
-		getValidators()
-
-		router.replace({ query: { status: activeTab.value, page: page.value } })
-	},
-)
-
-watch(
-	() => activeTab.value,
-	async () => {
-		page.value = 1
-
-		getValidators()
-
-		router.replace({ query: { status: activeTab.value, page: page.value } })
+		if (route.query.page) page.value = parseInt(route.query.page)
+		if (route.query.sortBy) selectedSort.value = route.query.sortBy
+		if (route.query.window) selectedTimeWindow.value = route.query.window
 	},
 )
 
 onMounted(() => {
-	router.replace({ query: { status: activeTab.value, page: page.value } })
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value
+		} 
+	})
 })
 </script>
 
@@ -201,7 +184,7 @@ onMounted(() => {
 		<Flex align="end" justify="between" :class="$style.breadcrumbs">
 			<Breadcrumbs
 				:items="[
-					{ link: '/', name: 'Explore' },
+					{ link: '/', name: 'Dashboard' },
 					{ link: '/validators', name: `Validators` },
 				]"
 			/>
@@ -215,10 +198,11 @@ onMounted(() => {
 				</Flex>
 
 				<Flex align="center" gap="6">
+					<!-- Time Window Selector -->
 					<Dropdown>
 						<template #trigger="{ isOpen }">
 							<Button type="secondary" size="mini">
-								{{ capitilize(activeTab) }}
+								{{ timeWindows.find(tw => tw.value === selectedTimeWindow)?.label }}
 								<Icon
 									name="chevron"
 									size="16"
@@ -232,7 +216,41 @@ onMounted(() => {
 						</template>
 
 						<template #popup>
-							<DropdownItem v-for="item in dropdownItems" @click="activeTab = item"> {{ capitilize(item) }} </DropdownItem>
+							<DropdownItem 
+								v-for="window in timeWindows" 
+								:key="window.value"
+								@click="selectedTimeWindow = window.value"
+							> 
+								{{ window.label }} 
+							</DropdownItem>
+						</template>
+					</Dropdown>
+
+					<!-- Sort Selector -->
+					<Dropdown>
+						<template #trigger="{ isOpen }">
+							<Button type="secondary" size="mini">
+								Sort: {{ sortOptions.find(so => so.value === selectedSort)?.label }}
+								<Icon
+									name="chevron"
+									size="16"
+									color="secondary"
+									:style="{
+										transform: `rotate(${!isOpen ? '0' : '180deg'})`,
+										transition: 'all 200ms ease',
+									}"
+								/>
+							</Button>
+						</template>
+
+						<template #popup>
+							<DropdownItem 
+								v-for="option in sortOptions" 
+								:key="option.value"
+								@click="selectedSort = option.value"
+							> 
+								{{ option.label }} 
+							</DropdownItem>
 						</template>
 					</Dropdown>
 
@@ -264,95 +282,80 @@ onMounted(() => {
 					<table>
 						<thead>
 							<tr>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Voting Power</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Outgoing Rewards</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Commissions</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Rate</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Max Rate</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Max Change Rate</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>QC Participation</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Block Proposals</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Provider</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 							</tr>
 						</thead>
 
 						<tbody>
-							<tr v-for="v in validators">
+							<tr v-for="validator in validators" :key="validator.validatorId">
 								<td style="width: 1px">
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center" gap="6">
+									<Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
+								</td>
+								<td style="width: 1px">
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Flex direction="column" gap="2">
 											<Text size="13" weight="600" color="primary" mono>
-												{{ v.moniker ? v.moniker : splitAddress(v.address?.hash) }}
+												{{ validator.name }}
+											</Text>
+											<Text size="11" color="tertiary">
+												{{ shortHex(validator.validatorId) }}
 											</Text>
 										</Flex>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="start" justify="center" direction="column" gap="4">
-											<Tooltip position="start" delay="400">
-												<Text size="12" weight="600" color="primary">{{ comma(v.voting_power) }}</Text>
-
-												<template #content>
-													<Flex v-if="activeTab === 'active'" align="center" justify="between" gap="8">
-														<Text size="12" weight="600" color="tertiary">Staking Share</Text>
-														<Text size="12" weight="600" color="primary"
-															>{{ shareOfTotalString(v.voting_power, totalVotingPower) }}%</Text
-														>
-													</Flex>
-												</template>
-											</Tooltip>
-
-											<Text v-if="activeTab === 'active'" size="12" weight="600" color="tertiary"
-												>{{ shareOfTotalString(v.voting_power, totalVotingPower) }}%</Text
-											>
-										</Flex>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
+											{{ formatPercentage(validator.uptimeScore) }}
+										</Text>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<AmountInCurrency
-											:amount="{ value: v.rewards }"
-											:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-										/>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="13" weight="600" color="primary">
+											{{ formatPercentage(validator.qcParticipationRate) }}
+										</Text>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<AmountInCurrency
-											:amount="{ value: v.commissions }"
-											:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-										/>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="13" weight="600" color="primary">
+											{{ formatPercentage(validator.blockProposalRatio) }}
+										</Text>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.rate) }}</Text>
-										</Flex>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="12" color="secondary">
+											{{ validator.provider }}
+										</Text>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.max_rate) }}</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.max_change_rate) }}</Text>
-										</Flex>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="12" color="tertiary">
+											{{ validator.location }}
+										</Text>
 									</NuxtLink>
 								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-				<Flex v-else direction="column" gap="20" align="center" :class="$style.empty">
+				<Flex v-else-if="!isLoading" direction="column" gap="20" align="center" :class="$style.empty">
 					<Flex direction="column" gap="8" align="center">
 						<Text size="13" weight="600" color="secondary"> No validators found </Text>
-						<Text size="12" weight="400" color="tertiary"> Try to select another status </Text>
+						<Text size="12" weight="400" color="tertiary"> Try adjusting the time window or sort options </Text>
 					</Flex>
+				</Flex>
+				<Flex v-else direction="column" gap="20" align="center" :class="$style.empty">
+					<Text size="13" weight="600" color="secondary"> Loading validators... </Text>
 				</Flex>
 			</Flex>
 		</Flex>

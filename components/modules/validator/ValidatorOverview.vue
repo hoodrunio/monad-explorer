@@ -29,20 +29,28 @@ const props = defineProps({
 		type: Object,
 		required: true,
 	},
+	history: {
+		type: Object,
+		default: null,
+	},
+	infrastructure: {
+		type: Object,
+		default: null,
+	},
 })
 
 const tabs = ref([
 	{
-		name: "Delegators",
-		icon: "address",
+		name: "Performance",
+		icon: "bar-chart",
 	},
 	{
-		name: "Proposed Blocks",
-		icon: "block",
+		name: "Infrastructure",
+		icon: "server",
 	},
 	{
-		name: "Jails",
-		icon: "grid",
+		name: "History",
+		icon: "clock",
 	},
 ])
 const preselectedTab = route.query.tab && tabs.value.map((tab) => tab.name).includes(route.query.tab) ? route.query.tab : tabs.value[0].name
@@ -139,29 +147,33 @@ onMounted(() => {
 })
 
 const validatorStatus = computed(() => {
-	let res = {
-		name: "",
-		color: "",
-		description: "",
-	}
-
-	if (!props.validator.jailed) {
-		if (uptime.value?.slice(-1)[0].signed) {
-			res.name = "Active"
-			res.color = "var(--validator-active)"
-			res.description = "This validator is in the active set and can|propose or sign blocks and receive rewards".split("|")
-		} else {
-			res.name = "Inactive"
-			res.color = "var(--validator-inactive)"
-			res.description = "This validator is not in the active set and cannot|propose or sign blocks and earn rewards".split("|")
+	const uptime = validatorMetrics.value.uptimeScore
+	
+	if (uptime >= 99) {
+		return {
+			name: "Excellent",
+			color: "var(--green)",
+			description: ["Validator performing exceptionally well", "with excellent uptime and participation"]
+		}
+	} else if (uptime >= 95) {
+		return {
+			name: "Good",
+			color: "var(--brand)",
+			description: ["Validator performing well", "with good uptime and participation"]
+		}
+	} else if (uptime >= 90) {
+		return {
+			name: "Warning",
+			color: "var(--yellow)",
+			description: ["Validator performance needs attention", "uptime below optimal levels"]
 		}
 	} else {
-		res.name = "Jailed"
-		res.color = "var(--validator-jailed)"
-		res.description = "This validator is jailed|and cannot propose or sign blocks".split("|")
+		return {
+			name: "Poor",
+			color: "var(--red)",
+			description: ["Validator performance is poor", "immediate attention required"]
+		}
 	}
-
-	return res
 })
 
 const parsedContacts = computed(() => {
@@ -239,6 +251,78 @@ watch(
 const handleDelegate = () => {
 	modalsStore.open("staking")
 }
+
+// Computed properties for validator data
+const validatorMetrics = computed(() => {
+	return {
+		uptimeScore: props.validator.metrics?.uptime_score || 0,
+		qcParticipationRate: props.validator.metrics?.qc_participation_rate || 0,
+		blockProposalRatio: props.validator.metrics?.block_proposal_ratio || 0,
+	}
+})
+
+const validatorDetails = computed(() => {
+	return {
+		totalBlockOpportunities: props.validator.details?.total_block_opportunities || 0,
+		blocksProposed: props.validator.details?.blocks_proposed || 0,
+		blocksSkipped: props.validator.details?.blocks_skipped || 0,
+		totalQcOpportunities: props.validator.details?.total_qc_opportunities || 0,
+		qcParticipations: props.validator.details?.qc_participations || 0,
+	}
+})
+
+const infrastructureDetails = computed(() => {
+	if (!props.infrastructure?.data?.location) return null
+	
+	const location = props.infrastructure.data.location
+	return {
+		validatorName: location.validatorName || 'Unknown',
+		provider: location.isp || 'Unknown',
+		location: `${location.city || 'Unknown'}, ${location.country || 'Unknown'}`,
+		ip: location.ip || 'Unknown',
+		hostname: location.hostname || 'Unknown',
+		port: location.port || 'Unknown',
+		timezone: location.timezone || 'Unknown',
+		latitude: location.latitude || 0,
+		longitude: location.longitude || 0,
+		lastUpdated: location.lastUpdated || null,
+	}
+})
+
+const performanceHistory = computed(() => {
+	if (!props.history?.history) return []
+	
+	return props.history.history.map(entry => ({
+		hour: entry.hour,
+		uptimeScore: entry.metrics?.uptime_score || 0,
+		qcParticipationRate: entry.metrics?.qc_participation_rate || 0,
+		blockProposalRatio: entry.metrics?.block_proposal_ratio || 0,
+		blockOpportunities: entry.activity?.block_opportunities || 0,
+		blocksProposed: entry.activity?.blocks_proposed || 0,
+		qcOpportunities: entry.activity?.qc_opportunities || 0,
+		qcParticipations: entry.activity?.qc_participations || 0,
+	}))
+})
+
+const formatPercentage = (value) => {
+	return `${value.toFixed(1)}%`
+}
+
+const getPerformanceColor = (score) => {
+	if (score >= 99) return 'green'
+	if (score >= 95) return 'brand'
+	if (score >= 90) return 'yellow'
+	return 'red'
+}
+
+const formatDateTime = (dateString) => {
+	if (!dateString) return 'Unknown'
+	try {
+		return new Date(dateString).toLocaleString()
+	} catch {
+		return 'Invalid date'
+	}
+}
 </script>
 
 <template>
@@ -247,7 +331,7 @@ const handleDelegate = () => {
 			<Flex align="center" gap="8">
 				<Icon name="validator" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					Validator <Text color="secondary">{{ validator.moniker }}</Text>
+					{{ validator.infrastructure?.validator_name || shortHex(validator.validator_id) }}
 				</Text>
 			</Flex>
 
@@ -264,23 +348,13 @@ const handleDelegate = () => {
 				<Flex direction="column" gap="24" :class="$style.main">
 					<Flex direction="column" gap="8" :class="$style.key_value">
 						<Flex align="center" justify="between">
-							<Text v-if="validator.moniker" size="13" weight="600" color="primary">{{ validator.moniker }} </Text>
-							<Text v-else size="13" weight="600" color="primary">Validator</Text>
-
-							<Tooltip position="start" textAlign="left" delay="200">
-								<Text size="13" weight="600" :style="{ color: validatorStatus.color }"> {{ validatorStatus.name }} </Text>
-
-								<template #content>
-									<Flex direction="column" gap="4">
-										<Text v-for="s in validatorStatus.description" color="secondary">{{ s }}</Text>
-									</Flex>
-								</template>
-							</Tooltip>
+							<Text size="13" weight="600" color="primary">Validator ID</Text>
 						</Flex>
 						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="tertiary"> {{ splitAddress(validator.address.hash) }} </Text>
-
-							<CopyButton :text="validator.address.hash" />
+							<Text size="12" weight="600" color="tertiary" mono selectable> 
+								{{ shortHex(validator.validator_id) }} 
+							</Text>
+							<CopyButton :text="validator.validator_id" />
 						</Flex>
 					</Flex>
 
@@ -422,7 +496,7 @@ const handleDelegate = () => {
 				</Flex>
 			</Flex>
 
-			<Flex direction="column" gap="4" wide :class="$style.txs_wrapper">
+			<Flex direction="column" gap="4" wide :class="$style.tabs_section">
 				<Flex align="center" justify="between" :class="$style.tabs_wrapper">
 					<Flex gap="4" :class="$style.tabs">
 						<Flex
@@ -438,57 +512,115 @@ const handleDelegate = () => {
 					</Flex>
 				</Flex>
 
-				<Flex direction="column" justify="center" gap="8" :class="[$style.table, isRefetching && $style.disabled]">
-					<template v-if="activeTab === 'Delegators'">
-						<DelegatorsTable v-if="delegators.length" :delegators="delegators" :validator="validator" />
-
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No delegators </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator does not have any {{ page === 1 ? "" : "more" }} delegators
-							</Text>
+				<Flex direction="column" gap="16" :class="$style.tab_content">
+					<!-- Performance Tab -->
+					<template v-if="activeTab === 'Performance'">
+						<Flex direction="column" gap="12">
+							<Text size="14" weight="600" color="primary">Current Performance</Text>
+							
+							<div :class="$style.metrics_grid">
+								<div :class="$style.metric_card">
+									<Text size="11" color="tertiary">Uptime Score</Text>
+									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
+										{{ formatPercentage(validatorMetrics.uptimeScore) }}
+									</Text>
+								</div>
+								
+								<div :class="$style.metric_card">
+									<Text size="11" color="tertiary">QC Participation</Text>
+									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
+										{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
+									</Text>
+								</div>
+								
+								<div :class="$style.metric_card">
+									<Text size="11" color="tertiary">Block Proposals</Text>
+									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
+										{{ formatPercentage(validatorMetrics.blockProposalRatio) }}
+									</Text>
+								</div>
+							</div>
 						</Flex>
 					</template>
 
-					<template v-if="activeTab === 'Proposed Blocks'">
-						<BlocksTable v-if="blocks.length" :blocks="blocks" />
-
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No blocks </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator did not propose any {{ page === 1 ? "" : "more" }} blocks
-							</Text>
+					<!-- Infrastructure Tab -->
+					<template v-if="activeTab === 'Infrastructure'">
+						<Flex v-if="infrastructureDetails" direction="column" gap="12">
+							<Text size="14" weight="600" color="primary">Infrastructure Details</Text>
+							
+							<Flex direction="column" gap="8">
+								<Flex align="center" justify="between">
+									<Text size="12" weight="600" color="tertiary">Hostname</Text>
+									<Text size="12" weight="600" color="secondary" mono>
+										{{ infrastructureDetails.hostname }}
+									</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="12" weight="600" color="tertiary">IP Address</Text>
+									<Text size="12" weight="600" color="secondary" mono>
+										{{ infrastructureDetails.ip }}
+									</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="12" weight="600" color="tertiary">Port</Text>
+									<Text size="12" weight="600" color="secondary">
+										{{ infrastructureDetails.port }}
+									</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="12" weight="600" color="tertiary">Timezone</Text>
+									<Text size="12" weight="600" color="secondary">
+										{{ infrastructureDetails.timezone }}
+									</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="12" weight="600" color="tertiary">Last Updated</Text>
+									<Text size="12" weight="600" color="secondary">
+										{{ formatDateTime(infrastructureDetails.lastUpdated) }}
+									</Text>
+								</Flex>
+							</Flex>
+						</Flex>
+						
+						<Flex v-else direction="column" gap="8" align="center" :class="$style.empty">
+							<Text size="13" weight="600" color="secondary">No infrastructure data available</Text>
 						</Flex>
 					</template>
 
-					<template v-if="activeTab === 'Jails'">
-						<JailsTable v-if="jails.length" :jails="jails" />
-
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No penalties </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator doesn't have any {{ page === 1 ? "" : "more" }} penalties
-							</Text>
+					<!-- History Tab -->
+					<template v-if="activeTab === 'History'">
+						<Flex v-if="performanceHistory.length" direction="column" gap="12">
+							<Text size="14" weight="600" color="primary">Performance History (24h)</Text>
+							
+							<div :class="$style.history_table">
+								<div :class="$style.history_header">
+									<Text size="11" weight="600" color="tertiary">Time</Text>
+									<Text size="11" weight="600" color="tertiary">Uptime</Text>
+									<Text size="11" weight="600" color="tertiary">QC Rate</Text>
+									<Text size="11" weight="600" color="tertiary">Blocks</Text>
+								</div>
+								
+								<div v-for="entry in performanceHistory.slice(0, 10)" :key="entry.hour" :class="$style.history_row">
+									<Text size="11" color="secondary">{{ new Date(entry.hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</Text>
+									<Text size="11" weight="600" :color="getPerformanceColor(entry.uptimeScore)">
+										{{ formatPercentage(entry.uptimeScore) }}
+									</Text>
+									<Text size="11" weight="600" :color="getPerformanceColor(entry.qcParticipationRate)">
+										{{ formatPercentage(entry.qcParticipationRate) }}
+									</Text>
+									<Text size="11" color="secondary">{{ entry.blocksProposed }}/{{ entry.blockOpportunities }}</Text>
+								</div>
+							</div>
+						</Flex>
+						
+						<Flex v-else direction="column" gap="8" align="center" :class="$style.empty">
+							<Text size="13" weight="600" color="secondary">No performance history available</Text>
 						</Flex>
 					</template>
-
-					<!-- Pagination -->
-					<Flex align="center" gap="6" :class="$style.pagination">
-						<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left-stop" size="12" color="primary" />
-						</Button>
-						<Button @click="handlePrev" type="secondary" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left" size="12" color="primary" />
-						</Button>
-
-						<Button type="secondary" size="mini" disabled>
-							<Text size="12" weight="600" color="primary">Page {{ page }}</Text>
-						</Button>
-
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="handleNextCondition">
-							<Icon name="arrow-right" size="12" color="primary" />
-						</Button>
-					</Flex>
 				</Flex>
 			</Flex>
 		</Flex>
@@ -498,72 +630,38 @@ const handleDelegate = () => {
 <style module>
 .header {
 	height: 40px;
-
 	border-radius: 8px 8px 4px 4px;
 	background: var(--card-background);
+	padding: 0 16px;
+}
 
-	padding: 0 12px;
+.content {
+	min-height: 400px;
 }
 
 .data {
 	min-width: 384px;
-
 	border-radius: 4px 4px 4px 8px;
 	background: var(--card-background);
-
-	.main {
-		padding: 16px;
-
-		& .key_value {
-			max-width: 100%;
-		}
-	}
-
-	.memo {
-		max-width: 352px;
-		text-overflow: ellipsis;
-		overflow: hidden;
-	}
-
-	.uptime_wrapper {
-		max-width: 384px;
-		flex-wrap: wrap;
-	}
-
-	.uptime {
-		/* width: 10px;
-		height: 10px; */
-		width: 0.6rem;
-		height: 0.6rem;
-
-		border-radius: 2px;
-		cursor: pointer;
-
-		margin-right: 0.35rem;
-		margin-bottom: 0.35rem;
-	}
-
-	.horizontal_divider {
-		width: 100%;
-		height: 2px;
-		background: var(--op-5);
-
-		margin-top: 4px;
-		margin-bottom: 4px;
-	}
 }
 
-.txs_wrapper {
+.main {
+	padding: 16px;
+}
+
+.key_value {
+	max-width: 100%;
+}
+
+.tabs_section {
 	min-width: 0;
 }
 
 .tabs_wrapper {
 	min-height: 44px;
 	overflow-x: auto;
-
 	border-radius: 4px;
 	background: var(--card-background);
-
 	padding: 0 8px;
 }
 
@@ -571,19 +669,21 @@ const handleDelegate = () => {
 	display: none;
 }
 
+.tabs {
+	display: flex;
+	gap: 4px;
+}
+
 .tab {
 	height: 28px;
-
 	cursor: pointer;
 	border-radius: 6px;
-
 	padding: 0 8px;
-
 	transition: all 0.1s ease;
+	white-space: nowrap;
 
 	& span {
 		color: var(--txt-tertiary);
-
 		transition: all 0.1s ease;
 	}
 
@@ -602,66 +702,123 @@ const handleDelegate = () => {
 	}
 }
 
-.table {
-	height: 100%;
-
-	border-radius: 4px 4px 8px 4px;
+.tab_content {
 	background: var(--card-background);
+	border-radius: 4px;
+	padding: 16px;
+	min-height: 300px;
 }
 
-.table.disabled {
-	opacity: 0.5;
-	pointer-events: none;
+.metrics_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 12px;
+}
+
+.metric_card {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px;
+	border: 1px solid var(--op-8);
+	border-radius: 6px;
+	background: var(--op-3);
+}
+
+.history_table {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.history_header {
+	display: grid;
+	grid-template-columns: 80px 80px 80px 1fr;
+	gap: 12px;
+	padding: 8px 12px;
+	background: var(--op-5);
+	border-radius: 4px 4px 0 0;
+}
+
+.history_row {
+	display: grid;
+	grid-template-columns: 80px 80px 80px 1fr;
+	gap: 12px;
+	padding: 8px 12px;
+	background: var(--op-3);
+	border-bottom: 1px solid var(--op-5);
+
+	&:last-child {
+		border-radius: 0 0 4px 4px;
+	}
+
+	&:hover {
+		background: var(--op-8);
+	}
 }
 
 .empty {
-	flex: 1;
-
-	padding-top: 16px;
-	padding-bottom: 16px;
+	padding: 40px 20px;
+	text-align: center;
 }
 
-.pagination {
-	padding: 0 16px 16px 16px;
+.memo {
+	max-width: 352px;
+	text-overflow: ellipsis;
+	overflow: hidden;
 }
 
-@media (max-width: 800px) {
+.uptime_wrapper {
+	max-width: 384px;
+	flex-wrap: wrap;
+}
+
+.uptime {
+	/* width: 10px;
+	height: 10px; */
+	width: 0.6rem;
+	height: 0.6rem;
+
+	border-radius: 2px;
+	cursor: pointer;
+
+	margin-right: 0.35rem;
+	margin-bottom: 0.35rem;
+}
+
+.horizontal_divider {
+	width: 100%;
+	height: 2px;
+	background: var(--op-5);
+
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.btn {
+	margin-left: 4px;
+}
+
+@media (max-width: 768px) {
 	.content {
 		flex-direction: column;
 	}
 
 	.data {
 		min-width: initial;
-
-		border-radius: 4px;
+		border-radius: 8px;
 	}
 
-	.table {
-		border-radius: 4px 4px 8px 8px;
+	.metrics_grid {
+		grid-template-columns: 1fr;
 	}
-}
-
-@media (max-width: 550px) {
-	.header {
-		height: initial;
-		flex-direction: column;
-		gap: 12px;
-
-		padding: 12px 0;
-	}
-}
-
-@media (max-width: 400px) {
-	.tabs_wrapper {
-		overflow-x: auto;
-
-		&::-webkit-scrollbar {
-			display: none;
-		}
-	}
-
-	.hint {
-		display: none;
+	
+	.history_header,
+	.history_row {
+		grid-template-columns: 60px 60px 60px 1fr;
+		gap: 8px;
+		padding: 6px 8px;
 	}
 }
 </style>
+

@@ -30,7 +30,7 @@ const handleBack = () => {
 }
 
 const getGithubIssueLink = computed(() => {
-	let link = `https://github.com/celenium-io/celenium-interface/issues/new?labels=bug&title=[${error.value.statusCode}] ${
+	let link = `https://github.com/monad-labs/monad-explorer/issues/new?labels=bug&title=[${error.value.statusCode}] ${
 		error.value.statusMessage || error.value.message
 	}`
 
@@ -75,7 +75,7 @@ const getGithubIssueLink = computed(() => {
 				</Button>
 				<Button v-else link="/" type="secondary" size="small" style="width: fit-content">
 					<Icon name="arrow-back" size="12" color="secondary" />
-					Back to Explorer
+					Back to Dashboard
 				</Button>
 
 				<Text size="12" weight="500" color="tertiary">or</Text>

@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/vue"
 
 /** Services */
-import Socket from "@/services/api/socket"
+import { fetchHead } from "@/services/api/main"
 import amp from "@/services/amp"
 import { watchForUpdate } from "@/services/version"
 
@@ -12,9 +12,6 @@ import ModalsManager from "@/components/modals/ModalsManager.vue"
 import CommandMenu from "@/components/cmd/CommandMenu.vue"
 
 /** API */
-import { fetchGasPrice } from "@/services/api/gas"
-import { fetchHead } from "@/services/api/main"
-import { fetchLatestBlocks } from "@/services/api/block"
 
 /** Store */
 import { useNodeStore } from "@/store/node.store"
@@ -43,9 +40,7 @@ settingsStore.$subscribe((mutation, state) => {
 legalStore.$subscribe((mutation, state) => {
 	localStorage.setItem("legal", JSON.stringify(state.legal))
 })
-activityStore.$subscribe((mutation, state) => {
-	localStorage.setItem("rollups_ranking", JSON.stringify(state.rollups_ranking))
-})
+// No activity state to persist for validator monitoring
 
 let watchInterval = null
 
@@ -78,7 +73,7 @@ onMounted(async () => {
 							icon: "menu",
 							callback: () => {
 								window
-									.open(`https://github.com/celenium-io/celenium-interface/releases/tag/v${newVersion}`, "_blank")
+									.open(`https://github.com/monad-labs/monad-explorer/releases/tag/v${newVersion}`, "_blank")
 									.focus()
 							},
 						},
@@ -101,17 +96,8 @@ onMounted(async () => {
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
 
-	const data = await fetchLatestBlocks({ limit: 100 })
-	appStore.latestBlocks = data
-	appStore.isLatestBlocksLoaded = true
-
 	const head = await fetchHead()
 	if (head) appStore.lastHead = head
-
-	Socket.init()
-
-	const gasPrice = await fetchGasPrice()
-	appStore.gas = gasPrice
 
 	await enumStore.init()
 
@@ -153,9 +139,7 @@ onMounted(async () => {
 		})
 	}
 
-	window.onbeforeunload = function () {
-		Socket.close()
-	}
+
 })
 
 onBeforeUnmount(() => {

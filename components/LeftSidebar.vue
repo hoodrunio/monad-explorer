@@ -37,45 +37,20 @@ const mainLinks = reactive([
 		children: [
 			{
 				name: "All Validators",
-				path: "/validators?status=all&page=1",
-				queryParam: { status: "all" },
+				path: "/validators?window=7d&sortBy=uptime_score",
+				queryParam: { window: "7d" },
 				show: true,
 			},
 			{
-				name: "Active",
-				path: "/validators?status=active&page=1",
-				queryParam: { status: "active" },
+				name: "Top Performers",
+				path: "/validators?window=7d&sortBy=uptime_score",
+				queryParam: { sortBy: "uptime_score" },
 				show: true,
 			},
 			{
-				name: "Poor Performance",
-				path: "/validators?status=inactive&page=1",
-				queryParam: { status: "inactive" },
-				show: true,
-			},
-		],
-	},
-	{
-		icon: "zap",
-		name: "Events",
-		path: "/events",
-		children: [
-			{
-				name: "Recent Events",
-				path: "/events?type=recent",
-				queryParam: { type: "recent" },
-				show: true,
-			},
-			{
-				name: "Block Proposals",
-				path: "/events?type=block_proposal",
-				queryParam: { type: "block_proposal" },
-				show: true,
-			},
-			{
-				name: "QC Participation",
-				path: "/events?type=qc_participation",
-				queryParam: { type: "qc_participation" },
+				name: "QC Leaders",
+				path: "/validators?window=7d&sortBy=qc_participation_rate",
+				queryParam: { sortBy: "qc_participation_rate" },
 				show: true,
 			},
 		],
@@ -92,15 +67,15 @@ const mainLinks = reactive([
 				show: true,
 			},
 			{
-				name: "Geographic Distribution",
-				path: "/stats?tab=geographic",
-				queryParam: { tab: "geographic" },
+				name: "Validator Performance",
+				path: "/stats?tab=validators",
+				queryParam: { tab: "validators" },
 				show: true,
 			},
 			{
-				name: "Consensus Metrics",
-				path: "/stats?tab=consensus",
-				queryParam: { tab: "consensus" },
+				name: "Geographic Distribution",
+				path: "/stats?tab=geographic",
+				queryParam: { tab: "geographic" },
 				show: true,
 			},
 		],
@@ -110,29 +85,14 @@ const mainLinks = reactive([
 const isNetworkLinksCollapsed = ref(false)
 const networkLinks = reactive([
 	{
-		icon: "earth",
-		name: "Network Topology",
-		path: "/network/topology",
-	},
-	{
-		icon: "shield",
-		name: "Centralization Risks",
-		path: "/network/risks",
-	},
-	{
-		icon: "server",
-		name: "Infrastructure",
-		path: "/network/infrastructure",
+		icon: "bookmark",
+		name: "Bookmarks",
+		path: "/bookmarks",
 	},
 ])
 
 const isToolsLinkCollapsed = ref(false)
 const toolsLinks = reactive([
-	{
-		icon: "search",
-		name: "Validator Search",
-		path: "/validators/search",
-	},
 	{
 		icon: "download",
 		name: "Export Data",
@@ -146,11 +106,6 @@ const toolsLinks = reactive([
 		callback: () => {
 			modalsStore.open("settings")
 		},
-	},
-	{
-		icon: "bookmark",
-		name: "Bookmarks",
-		path: "/bookmarks",
 	},
 ])
 

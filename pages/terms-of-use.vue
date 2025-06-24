@@ -6,7 +6,7 @@ import { DateTime } from "luxon"
 import { TERMS_OF_USE_DATE } from "@/services/constants/legal.js"
 
 useHead({
-	title: "Terms of Use",
+	title: "Terms of Use - Monad Explorer",
 })
 
 /**

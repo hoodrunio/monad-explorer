@@ -1,6 +1,62 @@
 /** Services */
 import { useServerURL } from "@/services/config"
 
+// New Monad-specific endpoints
+export const fetchValidatorRankings = ({ limit, sortBy, window } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/validators/rankings`)
+
+		if (limit) url.searchParams.append("limit", limit)
+		if (sortBy) url.searchParams.append("sortBy", sortBy)
+		if (window) url.searchParams.append("window", window)
+
+		return useFetch(url.href, {
+			key: "validator_rankings",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+export const fetchValidatorByID = (id) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/validators/${id}`)
+
+		return useFetch(encodeURI(url.href), {
+			key: "validator_by_id",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+export const fetchValidatorHistory = ({ id, hours = 24 }) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/validators/${id}/history`)
+
+		if (hours) url.searchParams.append("hours", hours)
+
+		return useFetch(encodeURI(url.href), {
+			key: "validator_history",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+export const fetchValidatorInfrastructure = (id) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/dns/validator-infrastructure/${id}`)
+
+		return useFetch(encodeURI(url.href), {
+			key: "validator_infrastructure",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+// Legacy endpoints (keeping for compatibility but may not be needed)
 export const fetchValidators = ({ jailed = false, limit, offset, sort }) => {
 	try {
 		const url = new URL(`${useServerURL()}/validators`)
@@ -24,18 +80,6 @@ export const fetchValidatorsCount = () => {
 
 		return useFetch(url.href, {
 			key: "validators_count",
-		})
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchValidatorByID = (id) => {
-	try {
-		const url = new URL(`${useServerURL()}/validators/${id}`)
-
-		return useFetch(encodeURI(url.href), {
-			key: "validator_by_id",
 		})
 	} catch (error) {
 		console.error(error)

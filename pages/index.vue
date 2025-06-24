@@ -1,7 +1,6 @@
 <script setup>
 /** Components */
 import Widgets from "@/components/widgets/Widgets.vue"
-import RecentEventsTable from "@/components/data/RecentEventsTable.vue"
 import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.vue"
 
 /** Services */
@@ -49,12 +48,12 @@ useHead({
 		},
 		{
 			name: "twitter:title",
-			content: "ValidatorWatch - Validator Network Monitoring",
+			content: "Monad Explorer - Validator Network Monitoring",
 		},
 		{
 			name: "twitter:description",
 			content:
-				"ValidatorWatch allows you to monitor validator performance, network health, consensus efficiency and geographic distribution in real-time.",
+				"Monitor validator performance, network health, consensus efficiency and geographic distribution in real-time.",
 		},
 		{
 			name: "twitter:card",
@@ -77,11 +76,12 @@ onBeforeMount(async () => {
 
 <template>
 	<Flex direction="column" wide :class="$style.wrapper">
+		<!-- API-Aligned Widget Sections -->
 		<Widgets :class="$style.widgets" />
 
+		<!-- Validator Rankings Table -->
 		<Flex direction="column" gap="40" :class="$style.main">
-			<div :class="$style.tables">
-				<RecentEventsTable />
+			<div :class="$style.table_section">
 				<ValidatorNetworkSummary />
 			</div>
 		</Flex>
@@ -100,22 +100,11 @@ onBeforeMount(async () => {
 
 .main {
 	max-width: 100%;
-
 	margin-top: 40px;
 }
 
-.tables {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(486px, 1fr));
-	gap: 20px;
-
+.table_section {
 	max-width: 100%;
-}
-
-@media (max-width: 1024px) {
-	.tables {
-		grid-template-columns: 100%;
-	}
 }
 
 @media (max-width: 500px) {
