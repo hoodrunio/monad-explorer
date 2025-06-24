@@ -10,8 +10,6 @@ import { watchForUpdate } from "@/services/version"
 import ModalsManager from "@/components/modals/ModalsManager.vue"
 import CommandMenu from "@/components/cmd/CommandMenu.vue"
 
-/** API */
-
 /** Store */
 import { useNodeStore } from "@/store/node.store"
 import { useAppStore } from "@/store/app.store"
