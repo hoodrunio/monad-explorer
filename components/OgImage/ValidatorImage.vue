@@ -29,7 +29,7 @@ const bgStyles = computed(() => {
 			<div :style="{ display: 'flex', alignItems: 'center' }">
 				<span :style="{ fontSize: '60px', color: 'rgba(255,255,255, 0.9)' }">validator</span>
 				<span :style="{ fontSize: '60px', color: 'rgba(255,255,255, 0.3)' }">('</span>
-				<span :style="{ fontSize: '40px', color: '#FF8351' }"> celestiavaloper•••{{ validator.address.hash.slice(-4) }} </span>
+				<span :style="{ fontSize: '40px', color: '#FF8351' }"> validator••••{{ validator.address.hash.slice(-4) }} </span>
 				<span :style="{ fontSize: '60px', color: 'rgba(255,255,255, 0.3)' }">')</span>
 			</div>
 
@@ -39,7 +39,7 @@ const bgStyles = computed(() => {
 
 			<div :style="{ display: 'flex', gap: '12px' }">
 				<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.3)' }">Voting Power: </span>
-				<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.6)' }">{{ abbreviate(validator.voting_power) }} TIA</span>
+				<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.6)' }">{{ abbreviate(validator.voting_power) }} MON</span>
 			</div>
 		</div>
 		<div :style="{ display: 'flex', flexDirection: 'column', gap: '24px' }">

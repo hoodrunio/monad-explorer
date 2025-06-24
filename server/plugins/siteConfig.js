@@ -1,8 +1,7 @@
 const origins = [
-	"https://mocha.celenium.io/",
-	"https://arabica.celenium.io/",
-	"https://mocha-4.celenium.io/",
-	"https://mammoth.celenium.io/",
+	"https://monad.hoodscan.io/",
+	"https://testnet.monad.hoodscan.io/",
+	"https://dev.monad.hoodscan.io/",
 ]
 
 export default defineNitroPlugin((nitroApp) => {

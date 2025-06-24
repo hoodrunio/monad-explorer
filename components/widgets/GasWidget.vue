@@ -26,7 +26,7 @@ const gasPrice = computed(() => appStore.gas)
 						<Text color="tertiary" height="140">
 							Each gas price level is the percentage of transactions in which gas price was set below a specified value</Text
 						>
-						<Text color="tertiary">Values in UTIA</Text>
+						<Text color="tertiary">Values in gwei</Text>
 					</Flex>
 				</template>
 			</Tooltip>

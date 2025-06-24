@@ -127,7 +127,7 @@ const getPaymentLink = () => {
 <template>
 	<Modal :show="show" @onClose="emit('onClose')" width="700" disable-trap>
 		<Flex direction="column" gap="16">
-			<Text size="14" weight="600" color="primary">Celenium API</Text>
+			<Text size="14" weight="600" color="primary">Monad API</Text>
 
 			<Flex gap="32" :class="$style.content">
 				<Flex direction="column" justify="between" gap="20" :class="$style.left">
@@ -221,7 +221,7 @@ const getPaymentLink = () => {
 
 						<Flex direction="column" align="center" gap="8">
 							<Button
-								:link="getPaymentLink() || 'https://api-docs.celenium.io'"
+								:link="getPaymentLink() || 'https://docs.monad.xyz/api'"
 								target="_blank"
 								type="primary"
 								size="small"
@@ -323,7 +323,7 @@ const getPaymentLink = () => {
 					</Flex>
 
 					<Button
-						link="https://api-plans.celenium.io"
+						link="https://docs.monad.xyz/api"
 						target="_blank"
 						type="secondary"
 						size="small"

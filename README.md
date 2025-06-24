@@ -1,16 +1,47 @@
-### Official Deployment
+# Monad Explorer
 
--   Production: [celenium.io](https://celenium.io)
--   Development: [dev.celenium.io](https://dev.celenium.io)
+-   Production: [monad.hoodscan.io](https://monad.hoodscan.io)
+-   Testnet: [dev.monad.hoodscan.io](https://monad.testnet.hoodscan.io)
 
-### Local Setup
+A blockchain explorer and analytics platform for Monad, a high-performance EVM-compatible blockchain.
 
-Clone the repository and run on the root folder:
+## Setup
 
+Make sure to install the dependencies:
+
+```bash
+# pnpm
+pnpm install
 ```
-pnpm i
+
+## Development Server
+
+Start the development server on `http://localhost:3000`:
+
+```bash
+# pnpm
 pnpm dev
 ```
+
+## Production
+
+Build the application for production:
+
+```bash
+# pnpm
+pnpm build
+```
+
+Locally preview production build:
+
+```bash
+# pnpm
+pnpm preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+name: "MonadExplorer",
 
 ### Node.js Server
 

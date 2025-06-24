@@ -108,7 +108,7 @@ const getResultMetadata = (target) => {
 
 		case "address":
 			metadata.type = target.type
-			metadata.title = target.result.celestials?.name || target.result.alias || target.result.hash
+							metadata.title = target.result.alias || target.result.hash
 			metadata.routerLink = `/address/${target.bookmark ? target.result.id : target.result.hash}`
 			break
 

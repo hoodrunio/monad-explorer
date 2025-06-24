@@ -7,7 +7,7 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
 
 /** Services */
-import { tia, splitAddress } from "@/services/utils"
+import { mon, splitAddress } from "@/services/utils"
 
 /** API */
 import { fetchTxEvents } from "@/services/api/tx"
@@ -161,7 +161,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">spent</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 					</Flex>
 					<!-- Event: coin_received -->
@@ -181,7 +181,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA
+							{{ mon(event.data.amount.replace("wei", "")) }} MON
 						</Text>
 					</Flex>
 					<!-- Event: delegate -->
@@ -223,7 +223,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">sent</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">to</Text>
@@ -297,7 +297,7 @@ watch(
 							<Text size="12" weight="500" color="secondary">paid</Text>
 
 							<Text size="12" weight="500" color="primary" mono no-wrap>
-								{{ tia(event.data.fee.replace("utia", "")) }} TIA</Text
+								{{ mon(event.data.fee.replace("wei", "")) }} MON</Text
 							>
 
 							<Text size="12" weight="500" color="secondary">fee</Text>
@@ -343,7 +343,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Withdrawal</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">from</Text>
@@ -365,7 +365,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Commission</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA
+							{{ mon(event.data.amount.replace("wei", "")) }} MON
 						</Text>
 					</Flex>
 					<!-- Event: proposer_reward -->
@@ -387,7 +387,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received rewards</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: rewards -->
@@ -409,7 +409,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received rewards</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: commission -->
@@ -429,7 +429,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received commission of</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: coinbase -->
@@ -449,13 +449,13 @@ watch(
 						<Text size="12" weight="500" color="secondary">received</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: mint -->
 					<Flex v-else-if="event.type === 'mint'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was minted</Text>
@@ -463,7 +463,7 @@ watch(
 					<!-- Event: burn -->
 					<Flex v-else-if="event.type === 'burn'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was burned</Text>
@@ -471,7 +471,7 @@ watch(
 					<!-- Event: unbond -->
 					<Flex v-else-if="event.type === 'unbond'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">will unbond from</Text>
@@ -503,7 +503,7 @@ watch(
 					<!-- Event: redelegate -->
 					<Flex v-else-if="event.type === 'redelegate'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">will redelegate from</Text>
@@ -549,7 +549,7 @@ watch(
 					<!-- Event: complete_unbonding -->
 					<Flex v-else-if="event.type === 'complete_unbonding'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was unbonded from</Text>
@@ -583,7 +583,7 @@ watch(
 					<!-- Event: complete_redelegation -->
 					<Flex v-else-if="event.type === 'complete_redelegation'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was redelegated from</Text>
@@ -651,7 +651,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Unbonding</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">from</Text>

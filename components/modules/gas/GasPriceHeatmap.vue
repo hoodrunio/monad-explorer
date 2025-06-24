@@ -99,7 +99,7 @@ onMounted(async () => {
 								<Flex direction="column" gap="8">
 									<Flex align="center" gap="12" justify="between" wide>
 										<Text color="secondary">Gas Price</Text>
-										<Text color="primary">{{ parseFloat(hour.value).toFixed(4) }} UTIA</Text>
+										<Text color="primary">{{ parseFloat(hour.value).toFixed(4) }} gwei</Text>
 									</Flex>
 									<Flex align="center" gap="12" justify="between" wide>
 										<Text color="secondary">Time</Text>

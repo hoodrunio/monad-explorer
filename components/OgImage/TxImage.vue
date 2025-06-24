@@ -3,7 +3,7 @@
 import { DateTime } from "luxon"
 
 /** Services */
-import { tia, comma } from "@/services/utils"
+import { mon, comma } from "@/services/utils"
 
 defineOptions({
 	inheritAttrs: false,
@@ -80,8 +80,8 @@ const messages = computed(() => [...new Set(props.tx.message_types)])
 			<div class="flex flex-col" :style="{ gap: '24px' }">
 				<div :style="{ display: 'flex', gap: '12px' }">
 					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.3)' }">Fee: </span>
-					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.6)' }">{{ tia(tx.fee) }} </span>
-					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.3)' }">TIA</span>
+					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.6)' }">{{ mon(tx.fee) }} </span>
+					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.3)' }">MON</span>
 				</div>
 				<div :style="{ display: 'flex', gap: '12px' }">
 					<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.3)' }">Block: </span>

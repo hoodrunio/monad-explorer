@@ -7,7 +7,7 @@ import { DateTime } from "luxon"
 import DiffChip from "@/components/modules/stats/DiffChip.vue"
 
 /** Services */
-import { abbreviate, comma, formatBytes, tia, truncateDecimalPart } from "@/services/utils"
+import { abbreviate, comma, formatBytes, mon, truncateDecimalPart } from "@/services/utils"
 
 /** API */
 import { fetchSeries, fetchSeriesCumulative, fetchTVS } from "@/services/api/stats"
@@ -203,18 +203,12 @@ const buildChart = (chart, data, color) => {
 		switch (props.series.units) {
 			case "bytes":
 				return formatBytes(value)
-			case "utia":
-				if (props.series.name === "gas_price") {
-					return `${truncateDecimalPart(value, 4)} UTIA`
-				}
-
-				return `${tia(value, 2)} TIA`
-			case "seconds":
-				return `${truncateDecimalPart(value / 1_000, 3)}s`
+			case "gwei":
+				return `${truncateDecimalPart(value, 4)} gwei`
 			case "usd":
 				return `${abbreviate(value)} $`
 			default:
-				return comma(value)
+				return `${mon(value, 2)} MON`
 		}
 	}
 
@@ -394,12 +388,12 @@ watch(
 					{{ `~${Math.round(prevTotal)}s previous ${period.title.replace("Last ", "")}` }}
 				</Text>
 			</Flex>
-			<Flex v-else-if="series.units === 'utia'" align="end" gap="10" justify="start" wide>
+			<Flex v-else-if="series.units === 'gwei'" align="end" gap="10" justify="start" wide>
 				<Text size="16" weight="600" color="primary">
-					{{ series.name === "gas_price" ? `${currentTotal.toFixed(4)} UTIA` : `${tia(currentTotal, 2)} TIA` }}
+					{{ series.name === "gas_price" ? `${currentTotal.toFixed(4)} gwei` : `${truncateDecimalPart(currentTotal, 4)} gwei` }}
 				</Text>
 				<Text size="14" weight="600" color="tertiary">
-					{{ series.name === "gas_price" ? `${prevTotal.toFixed(4)} UTIA` : `${tia(prevTotal, 2)} TIA` }}
+					{{ series.name === "gas_price" ? `${prevTotal.toFixed(4)} gwei` : `${truncateDecimalPart(prevTotal, 4)} gwei` }}
 				</Text>
 			</Flex>
 			<Flex v-else-if="series.units === 'usd'" align="end" gap="10" justify="start" wide>

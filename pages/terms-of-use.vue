@@ -36,9 +36,8 @@ const lastUpdate = () => {
 
 		<Flex :class="$style.section">
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Welcome to Celenium, provided by PK Labs AG, Gartenstrasse 6, 6300 Zug, Switzerland, (“Company”, “we”, “us”, or “our”). When we refer to “user”, "you" or "your" we mean you, the person accessing or using our website. The following Terms of Use (“<b>Terms</b>”), together with any documents which are expressly incorporated by reference govern your access to and use of <a href="https://celenium.io" :class="$style.link">https://celenium.io</a> (hereinafter the "<b>Website</b>”).</Text>
-				<Text :class="$style.section_paragraph">By using the Website and/or clicking “Accept,” or using and/or accessing any of our interfaces, applications, products and/or other services, you agree to these Terms and the general disclaimer on our website and to the privacy policy under this <a href="https://celenium.io/privacy-policy" :class="$style.link">https://celenium.io/privacy-policy</a>. If you are not in agreement with these Terms, you may not access our Website.</Text>
-				<Text :class="$style.section_paragraph">We reserve the right, at our sole discretion, to change, modify, add or remove portions of these Terms at any time. Your continued use of the Website following the posting of revised Terms means that you accept and agree to the changes. It is your responsibility to check these Terms periodically for changes.</Text>
+				<Text :class="$style.section_paragraph">Welcome to Monad Explorer, a blockchain explorer and analytics platform for the Monad network. When we refer to "user", "you" or "your" we mean you, the person accessing or using our website. These Terms govern your access to and use of <a href="https://monad.hoodscan.io" :class="$style.link">https://monad.hoodscan.io</a> (hereinafter the "<b>Website</b>").</Text>
+				<Text :class="$style.section_paragraph">Please read these Terms carefully before using our Website. We may revise and update these Terms from time to time at our sole discretion. All changes are effective immediately when we post them and apply to all access to and use of the Website thereafter. Your continued use of the Website following the posting of revised Terms means that you accept and agree to the changes. You are expected to check this page from time to time so you are aware of any changes, as they are binding on you. We may also post changes to our privacy policy under this <a href="https://monad.hoodscan.io/privacy-policy" :class="$style.link">https://monad.hoodscan.io/privacy-policy</a>. If you are not in agreement with these Terms, you may not access our Website.</Text>
 			</Flex>
 		</Flex>
 
@@ -46,10 +45,11 @@ const lastUpdate = () => {
 			<Text :class="$style.section_title">1. Services</Text>
 
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Through the Website, we offer various services (the “<b>Services</b>”), including the following:</Text>
+				<Text :class="$style.section_paragraph">Through the Website, we offer various services (the "<b>Services</b>"), including the following:</Text>
 
 				<ul>
-					<li>Celenium API: access to an API, which allows clients to retrieve all indexed data from the Celestia network.</li>
+					<li>Monad Explorer: access to a blockchain explorer for the Monad network.</li>
+					<li>Monad API: access to an API which allows clients to retrieve all indexed data from the Monad network.</li>
 				</ul>
 			</Flex>
 		</Flex>
@@ -71,7 +71,7 @@ const lastUpdate = () => {
 			<Text :class="$style.section_title">3. Fees</Text>
 
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Some of the Services may be subject to fees (the “<b>Fees</b>”). Payments of the Fees are processed through a third-party payment service provider (i.e. Stripe).</Text>
+				<Text :class="$style.section_paragraph">Some of the Services may be subject to fees (the "<b>Fees</b>"). Payments of the Fees are processed through a third-party payment service provider (i.e. Stripe).</Text>
 				<Text :class="$style.section_paragraph">The Fees and/or subscription terms are displayed on the Website.</Text>
 			</Flex>
 		</Flex>
@@ -81,7 +81,7 @@ const lastUpdate = () => {
 
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph">The Content is provided for general information purposes only. We do not warrant the accuracy, completeness or usefulness of the Content. Any reliance you place on such information is strictly at your own risk. Nothing in the Content should be used or relied upon as legal, financial, tax or other advice, or as an instruction or solicitation of action by any person.</Text>
-				<Text :class="$style.section_paragraph">The Website may contain links to websites and content that is controlled or operated by third parties (“<b>Third Party Links</b>”). The Company is providing these Third Party Links to you only for convenience and the inclusion of any Third Party Links on the Website does not imply any endorsement by the Company of the Third Party Links and/or their operators. The Company is not responsible for any and all content contained in or associated with the Third Party Links.</Text>
+				<Text :class="$style.section_paragraph">The Website may contain links to websites and content that is controlled or operated by third parties ("<b>Third Party Links</b>"). The Company is providing these Third Party Links to you only for convenience and the inclusion of any Third Party Links on the Website does not imply any endorsement by the Company of the Third Party Links and/or their operators. The Company is not responsible for any and all content contained in or associated with the Third Party Links.</Text>
 			</Flex>
 		</Flex>
 
@@ -145,16 +145,16 @@ const lastUpdate = () => {
 					<li>accessing the Website if the laws of your country of residence and/or citizenship prohibit you from doing so in accordance with these Terms;</li>
 					<li>a citizen, or resident of, or located in, or a legal entity or similar formed or incorporated within or subject to the laws of any jurisdiction in which the use of the Services is prohibited, restricted or unauthorised in any form or manner whether in full or in part under the laws, regulatory requirements or rules in such jurisdiction;</li>
 					<li>a Sanctioned Entity and/or a Sanctioned Person (as defined below) and/or an entity or person acting on behalf of a Sanctioned Entity or Sanctioned Person;</li>
-					<li>are not participating from, or are a national or resident of, any of the countries embargoed or restricted by, including without limitation, the Swiss State Secretariat for Economic Affairs (SECO) (“Prohibited Jurisdictions”); and</li>
+					<li>are not participating from, or are a national or resident of, any of the countries embargoed or restricted by, including without limitation, the Swiss State Secretariat for Economic Affairs (SECO) ("Prohibited Jurisdictions"); and</li>
 					<li>transacting with any Sanctioned Person or Sanctioned Entity or any person in any Prohibited Jurisdiction.</li>
 				</ul>
 
 				<Text :class="$style.section_paragraph">You further agree that you shall at all times, in all your activities in connection with the Website and the Services and the Company, comply with all regulations, laws and legislation, including, without limitation, Anti-Money Laundering Laws and Sanctions, applicable to you.</Text>
 				<Text :class="$style.section_paragraph">For the purposes of this clause, the following words shall have the following meanings:</Text>
-				<Text :class="$style.section_paragraph">“Anti-Money Laundering Laws” means, any Swiss anti-money laundering act, laws or regulation, in each case, as amended from time to time and all other similar laws, rules, and regulations of any jurisdiction applicable to you or us.</Text>
-				<Text :class="$style.section_paragraph">“Sanctioned Entity” means (i) a country or a government of a country, (ii) an agency of the government of a country, (iii) an organization directly or indirectly controlled by a country or its government, or (iv) a person resident in or determined to be resident in a country, in each case, that is subject to a country Sanctions program administered and enforced by Switzerland (SECO), any governmental body of any other relevant jurisdiction.</Text>
-				<Text :class="$style.section_paragraph">“Sanctioned Person” means (i) any person listed in any sanctions-related list of designated Persons maintained by any governmental body or (ii) a person named on the list of Specially Designated Nationals maintained by Swiss SECO’s Overall List of Sanctioned Individuals, or any governmental body of any other relevant jurisdiction, in each case as amended, supplemented or substituted from time to time.</Text>
-				<Text :class="$style.section_paragraph">“Sanctions” means economic or financial sanctions or trade embargoes imposed, administered or enforced from time to time by Switzerland and any governmental body of any other relevant jurisdiction.</Text>
+				<Text :class="$style.section_paragraph">"Anti-Money Laundering Laws" means, any Swiss anti-money laundering act, laws or regulation, in each case, as amended from time to time and all other similar laws, rules, and regulations of any jurisdiction applicable to you or us.</Text>
+				<Text :class="$style.section_paragraph">"Sanctioned Entity" means (i) a country or a government of a country, (ii) an agency of the government of a country, (iii) an organization directly or indirectly controlled by a country or its government, or (iv) a person resident in or determined to be resident in a country, in each case, that is subject to a country Sanctions program administered and enforced by Switzerland (SECO), any governmental body of any other relevant jurisdiction.</Text>
+				<Text :class="$style.section_paragraph">"Sanctioned Person" means (i) any person listed in any sanctions-related list of designated Persons maintained by any governmental body or (ii) a person named on the list of Specially Designated Nationals maintained by Swiss SECO's Overall List of Sanctioned Individuals, or any governmental body of any other relevant jurisdiction, in each case as amended, supplemented or substituted from time to time.</Text>
+				<Text :class="$style.section_paragraph">"Sanctions" means economic or financial sanctions or trade embargoes imposed, administered or enforced from time to time by Switzerland and any governmental body of any other relevant jurisdiction.</Text>
 			</Flex>
 		</Flex>
 
@@ -162,7 +162,7 @@ const lastUpdate = () => {
 			<Text :class="$style.section_title">9. Intellectual property rights</Text>
 
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">By using our Website you do not gain any rights thereto. All right, title, and interest in and to our Website, including all modifications, improvements, and enhancements made thereto, and all proprietary rights therein, as well as any products, materials and content prepared by you shall be and remain the Company’s sole and exclusive property. There are no implied licenses under these Terms, and any rights not expressly granted to you hereunder are reserved by the Company.</Text>
+				<Text :class="$style.section_paragraph">By using our Website you do not gain any rights thereto. All right, title, and interest in and to our Website, including all modifications, improvements, and enhancements made thereto, and all proprietary rights therein, as well as any products, materials and content prepared by you shall be and remain the Company's sole and exclusive property. There are no implied licenses under these Terms, and any rights not expressly granted to you hereunder are reserved by the Company.</Text>
 				<Text :class="$style.section_paragraph">If you want to use, reproduce, modify, distribute, or store any copyrights and trademarks of the Company for any purpose, applicants need prior written permission from the Company.</Text>
 				<Text :class="$style.section_paragraph">The name of the Company, its logo, and all related names, logos, product and service names, designs and slogans are trademarks of the Company or its affiliates or licensors. You must not use such marks without the prior written permission of the Company. We are the owner or licensee of all intellectual property rights in the Website and its entire content. This includes in particular but without limitation, page headers, texts, graphics, logos, images, digital downloads and the selection and arrangement of the same. You agree not to take any action(s) inconsistent with such ownership interests.</Text>
 			</Flex>
@@ -191,7 +191,7 @@ const lastUpdate = () => {
 			<Text :class="$style.section_title">12. Indemnification</Text>
 
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You agree to indemnify and hold us and our affiliates, and their officers, directors, employees, agents, suppliers, and licensors harmless from and against any and all claims, damages, losses, liabilities, costs and expenses (including, but not limited to, court costs and reasonable attorneys’ fees) arising out of or in connection with any breach of these Terms by you or your participation in the Website and/or the Services.</Text>
+				<Text :class="$style.section_paragraph">You agree to indemnify and hold us and our affiliates, and their officers, directors, employees, agents, suppliers, and licensors harmless from and against any and all claims, damages, losses, liabilities, costs and expenses (including, but not limited to, court costs and reasonable attorneys' fees) arising out of or in connection with any breach of these Terms by you or your participation in the Website and/or the Services.</Text>
 			</Flex>
 		</Flex>
 
@@ -231,7 +231,7 @@ const lastUpdate = () => {
 			<Text :class="$style.section_title">16. Governing law and jurisdiction</Text>
 
 			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">These Terms and any dispute or claim arising out of or in any way relating to this Agreement or its formation (including non-contractual disputes or claims) shall be governed by and construed in accordance with substantive Swiss law under the exclusion of the conflicts of law rules. The application of the United Nations Convention for Contracts for the International Sales of Goods (“CISG”) is hereby expressly excluded. You and we irrevocably submit to the exclusive jurisdiction of the ordinary courts of the canton of Zug, Switzerland for the purpose of hearing and determining any dispute or claim (including non-contractual disputes or claims) arising out of these Terms or its subject matter or formation.</Text>
+				<Text :class="$style.section_paragraph">These Terms and any dispute or claim arising out of or in any way relating to this Agreement or its formation (including non-contractual disputes or claims) shall be governed by and construed in accordance with substantive Swiss law under the exclusion of the conflicts of law rules. The application of the United Nations Convention for Contracts for the International Sales of Goods ("CISG") is hereby expressly excluded. You and we irrevocably submit to the exclusive jurisdiction of the ordinary courts of the canton of Zug, Switzerland for the purpose of hearing and determining any dispute or claim (including non-contractual disputes or claims) arising out of these Terms or its subject matter or formation.</Text>
 			</Flex>
 		</Flex>
 
@@ -241,7 +241,7 @@ const lastUpdate = () => {
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph">These Terms do not create any relationship of association, partnership, joint venture or agency between us and you. Neither we nor you will have any right or authority to assume, create or incur any liability or obligation of any kind against or in the name of the other party. You shall not, under any circumstances, represent that you are an agent of the Company and you shall take all reasonable precautions to avoid any perception that such relationship exists. These Terms set forth the entire agreement and understanding between us and you with respect to the subject matter in these Terms. These Terms merge all previous discussions and negotiations between us and you and supersede them.</Text>
 				<Text :class="$style.section_paragraph">A person who is not a party to these Terms shall not have any rights whatsoever under these Terms or to enforce these Terms.</Text>
-				<Text :class="$style.section_paragraph">For support, contact us at <a href="mailto:celenium@pklabs.me" :class="$style.link">celenium@pklabs.me</a>.</Text>
+				<Text :class="$style.section_paragraph">For support, contact us at <a href="mailto:support@monad.xyz" :class="$style.link">support@monad.xyz</a>.</Text>
 			</Flex>
 		</Flex>
 	</Flex>

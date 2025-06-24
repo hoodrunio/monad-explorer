@@ -3,7 +3,7 @@
 import { DateTime } from "luxon"
 
 /** Services */
-import { tia, comma } from "@/services/utils"
+import { comma, mon } from "@/services/utils"
 
 defineOptions({
 	inheritAttrs: false,
@@ -32,11 +32,11 @@ const bgStyles = computed(() => {
 			<div :style="{ display: 'flex', alignItems: 'center' }">
 				<span :style="{ fontSize: '70px', color: 'rgba(255,255,255, 0.9)' }">addr</span>
 				<span :style="{ fontSize: '70px', color: 'rgba(255,255,255, 0.3)' }">('</span>
-				<span :style="{ fontSize: '70px', color: '#FF8351' }"> celestia•••{{ address.hash.slice(-4) }} </span>
+				<span :style="{ fontSize: '70px', color: '#FF8351' }"> 0x••••{{ address.hash.slice(-4) }} </span>
 				<span :style="{ fontSize: '70px', color: 'rgba(255,255,255, 0.3)' }">')</span>
 			</div>
 
-			<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.7)' }"> {{ comma(tia(address.balance.spendable)) }} TIA </span>
+			<span :style="{ fontSize: '40px', color: 'rgba(255,255,255, 0.7)' }"> {{ comma(mon(address.balance.spendable)) }} MON </span>
 
 			<div :style="{ display: 'flex', flexDirection: 'column', gap: '24px' }">
 				<div :style="{ display: 'flex', gap: '12px' }">

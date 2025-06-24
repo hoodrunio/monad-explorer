@@ -29,7 +29,7 @@ const props = defineProps({
 	},
 })
 
-const displayCurrency = ref("TIA")
+const displayCurrency = ref("MON")
 
 const defaultAmount = {
 	unit: "utia",
@@ -115,6 +115,40 @@ const calculatedAmount = computed(() => {
 	}
 
 	return finalAmount
+})
+
+const finalAmount = computed(() => ({
+	amount: {
+		value: props.amount.value,
+		unit: "wei",
+		currency: "MON",
+	},
+	styles: {
+		amount: { size: "13", weight: "600", color: "primary", ...props.styles?.amount },
+		currency: { size: "11", weight: "600", color: "tertiary", ...props.styles?.currency },
+	},
+}))
+
+const formatDisplay = () => {
+	if (finalAmount.value.amount.unit === "wei") {
+		const formatted = parseFloat(formatValue(finalAmount.value.amount.value, 18))
+
+		if (finalAmount.value.amount.currency === "MON") {
+			return comma(formatted, " ")
+		}
+
+		return comma(formatted, " ")
+	}
+
+	return comma(finalAmount.value.amount.value, " ")
+}
+
+const currencyTitle = computed(() => {
+	if (displayCurrency.value === "MON") {
+		return displayCurrency.value
+	}
+
+	return displayCurrency.value
 })
 </script>
 

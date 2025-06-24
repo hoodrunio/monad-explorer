@@ -79,10 +79,10 @@ const handleChangeTheme = (target) => {
 						</NuxtLink>
 
 						<Flex align="center" gap="8" :class="$style.socials">
-							<a href="https://twitter.com/celenium_io" target="_blank">
+							<a href="https://twitter.com/monad_xyz" target="_blank">
 								<Icon name="twitter" size="14" color="tertiary" />
 							</a>
-							<a href="https://github.com/celenium-io" target="_blank">
+							<a href="https://github.com/monad-labs" target="_blank">
 								<Icon name="github" size="14" color="tertiary" />
 							</a>
 							<a href="https://discord.com/channels/846362414039695391/1168936555302355005" target="_blank">
@@ -98,71 +98,56 @@ const handleChangeTheme = (target) => {
 					</Flex>
 
 					<Flex wrap="wrap" :class="$style.content">
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="500" color="tertiary">General</Text>
-							<NuxtLink to="/">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Browse</Text>
-							</NuxtLink>
-							<NuxtLink to="/txs">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Transactions</Text>
-							</NuxtLink>
-							<NuxtLink to="/blocks">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Blocks</Text>
-							</NuxtLink>
-							<NuxtLink to="/addresses">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Addresses</Text>
-							</NuxtLink>
+						<Flex direction="column" gap="16">
+							<Text size="13" weight="600" color="secondary"> Community </Text>
+
+							<Flex direction="column" gap="8">
+								<a href="https://twitter.com/monad_xyz" target="_blank">
+									<Text size="12" weight="500" color="tertiary"> Twitter </Text>
+								</a>
+								<a href="https://github.com/monad-labs" target="_blank">
+									<Text size="12" weight="500" color="tertiary"> GitHub </Text>
+								</a>
+							</Flex>
 						</Flex>
 
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="500" color="tertiary">Modular</Text>
-							<NuxtLink to="/rollups">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Rollups</Text>
-							</NuxtLink>
-							<NuxtLink to="/namespaces">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Namespaces</Text>
-							</NuxtLink>
-							<NuxtLink to="/validators">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Validators</Text>
-							</NuxtLink>
+						<Flex direction="column" gap="16">
+							<Text size="13" weight="600" color="secondary"> Network </Text>
+
+							<Flex direction="column" gap="8">
+								<NuxtLink to="/">
+									<Text size="12" weight="500" color="tertiary"> Mainnet </Text>
+								</NuxtLink>
+								<NuxtLink to="https://testnet.monad.hoodscan.io">
+									<Text size="12" weight="500" color="tertiary"> Testnet </Text>
+								</NuxtLink>
+							</Flex>
 						</Flex>
 
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="500" color="tertiary">Tools</Text>
-							<NuxtLink to="https://terminal.celenium.io">
-								<Flex align="center" gap="6">
-									<Text size="13" weight="500" color="secondary" :class="$style.link_text">Terminal</Text>
-									<Icon name="arrow-narrow-up-right-circle" size="12" color="tertiary" />
-								</Flex>
-							</NuxtLink>
-							<NuxtLink to="/faucet">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Faucet</Text>
-							</NuxtLink>
-							<NuxtLink to="/blobstream">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Blobstream</Text>
-							</NuxtLink>
-							<NuxtLink to="/calculators/savings">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Cost Savings</Text>
-							</NuxtLink>
-							<NuxtLink to="/gas">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Gas Tracker</Text>
-							</NuxtLink>
-							<NuxtLink to="/bookmarks">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Bookmarks</Text>
-							</NuxtLink>
+						<Flex direction="column" gap="16">
+							<Text size="13" weight="600" color="secondary"> Resources </Text>
+
+							<Flex direction="column" gap="8">
+								<NuxtLink to="/terms-of-use" target="_blank">
+									<Text size="12" weight="500" color="tertiary"> Terms of Use </Text>
+								</NuxtLink>
+								<NuxtLink to="/privacy-policy" target="_blank">
+									<Text size="12" weight="500" color="tertiary"> Privacy Policy </Text>
+								</NuxtLink>
+								<NuxtLink to="https://docs.monad.xyz" target="_blank">
+									<Text size="12" weight="500" color="tertiary"> Documentation </Text>
+								</NuxtLink>
+							</Flex>
 						</Flex>
 
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="500" color="tertiary">Resources</Text>
-							<NuxtLink to="https://api-plans.celenium.io" target="_blank">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">API</Text>
-							</NuxtLink>
-							<NuxtLink to="https://docs.celenium.io" target="_blank">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Documentation</Text>
-							</NuxtLink>
-							<NuxtLink to="https://hubble.celenium.io" target="_blank">
-								<Text size="13" weight="500" color="secondary" :class="$style.link_text">Hubble</Text>
-							</NuxtLink>
+						<Flex direction="column" gap="16">
+							<Text size="13" weight="600" color="secondary"> Balance </Text>
+
+							<Flex align="center" gap="6">
+								<a href="https://monad.hoodscan.io/address/0x1234567890123456789012345678901234567890" target="_blank">
+									<Text size="12" weight="600" color="secondary"> MON </Text>
+								</a>
+							</Flex>
 						</Flex>
 					</Flex>
 				</Flex>

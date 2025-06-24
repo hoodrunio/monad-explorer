@@ -279,7 +279,7 @@ onBeforeUnmount(() => {
 					>
 						<Flex align="center" gap="16">
 							<Text size="12" weight="600" color="secondary">Price</Text>
-							<Text size="12" weight="600" color="primary"> {{ tooltipText.toFixed(6) }} UTIA</Text>
+							<Text size="12" weight="600" color="primary"> {{ tooltipText.toFixed(6) }} gwei</Text>
 						</Flex>
 					</Flex>
 				</div>

@@ -364,9 +364,7 @@ const rawSettingsActions = [
 				title: "Mainnet",
 				subtitle: "Network",
 				runText: "Switch to Mainnet",
-				callback: () => {
-					window.open("https://celenium.io", "_blank")
-				},
+				callback: openMainnet,
 			},
 			{
 				id: id(),
@@ -1129,6 +1127,18 @@ const runBounce = () => {
 	setTimeout(() => {
 		bounce.value = false
 	}, 150)
+}
+
+const openMainnet = () => {
+	window.open("https://monad.hoodscan.io", "_blank")
+}
+
+const openTestnet = () => {
+	window.open("https://testnet.monad.hoodscan.io", "_blank")
+}
+
+const openDocs = () => {
+	window.open("https://docs.monad.xyz", "_blank")
 }
 </script>
 
