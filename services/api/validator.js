@@ -2,13 +2,14 @@
 import { useServerURL } from "@/services/config"
 
 // New Monad-specific endpoints
-export const fetchValidatorRankings = ({ limit, sortBy, window } = {}) => {
+export const fetchValidatorRankings = ({ limit, sortBy, window, page } = {}) => {
 	try {
 		const url = new URL(`${useServerURL()}/api/validators/rankings`)
 
 		if (limit) url.searchParams.append("limit", limit)
 		if (sortBy) url.searchParams.append("sortBy", sortBy)
 		if (window) url.searchParams.append("window", window)
+		if (page) url.searchParams.append("page", page)
 
 		return useFetch(url.href, {
 			key: "validator_rankings",

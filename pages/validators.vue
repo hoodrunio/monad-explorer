@@ -83,9 +83,12 @@ const selectedSort = ref(route.query.sortBy || "uptime_score")
 
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
-const limit = ref(200)
+const limit = ref(50)
 const totalValidators = ref(0)
-const pages = computed(() => Math.max(1, Math.ceil(totalValidators.value / limit.value)))
+const totalPages = ref(1)
+const hasNextPage = ref(false)
+const hasPrevPage = ref(false)
+const pages = computed(() => totalPages.value || 1)
 
 const getValidators = async () => {
 	isLoading.value = true
@@ -94,7 +97,8 @@ const getValidators = async () => {
 		const { data } = await fetchValidatorRankings({
 			limit: limit.value,
 			sortBy: selectedSort.value,
-			window: selectedTimeWindow.value
+			window: selectedTimeWindow.value,
+			page: page.value
 		})
 
 		if (data.value?.data) {
@@ -102,6 +106,7 @@ const getValidators = async () => {
 				rank: validator.rank || 0,
 				validatorId: validator.validator_id || '',
 				name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+				stake: validator.stake || 0,
 				uptimeScore: validator.metrics?.uptime_score || 0,
 				qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
 				blockProposalRatio: validator.metrics?.block_proposal_ratio || 0,
@@ -112,8 +117,15 @@ const getValidators = async () => {
 				qcParticipations: validator.details?.qc_participations || 0,
 				totalQcOpportunities: validator.details?.total_qc_opportunities || 0
 			}))
-			// For pagination, we'll use the returned data length as an estimate
-			totalValidators.value = Math.max(data.value.data.length, page.value * limit.value)
+
+			// Handle pagination metadata
+			if (data.value?.pagination) {
+				const pagination = data.value.pagination
+				totalValidators.value = parseInt(pagination.total_count || 0)
+				totalPages.value = pagination.total_pages || 1
+				hasNextPage.value = pagination.has_next_page || false
+				hasPrevPage.value = pagination.has_prev_page || false
+			}
 		}
 	} catch (error) {
 		console.error('Error fetching validators:', error)
@@ -123,12 +135,12 @@ const getValidators = async () => {
 }
 
 const handleNext = () => {
-	if (page.value === pages.value) return
+	if (!hasNextPage.value) return
 	page.value += 1
 }
 
 const handlePrev = () => {
-	if (page.value === 1) return
+	if (!hasPrevPage.value) return
 	page.value -= 1
 }
 
@@ -256,10 +268,10 @@ onMounted(() => {
 
 					<!-- Pagination -->
 					<Flex align="center" gap="6">
-						<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
+						<Button @click="page = 1" type="secondary" size="mini" :disabled="!hasPrevPage">
 							<Icon name="arrow-left-stop" size="12" color="primary" />
 						</Button>
-						<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
+						<Button type="secondary" @click="handlePrev" size="mini" :disabled="!hasPrevPage">
 							<Icon name="arrow-left" size="12" color="primary" />
 						</Button>
 
@@ -267,10 +279,10 @@ onMounted(() => {
 							<Text size="12" weight="600" color="primary"> {{ page }} of {{ pages }} </Text>
 						</Button>
 
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="page === pages">
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasNextPage">
 							<Icon name="arrow-right" size="12" color="primary" />
 						</Button>
-						<Button @click="page = pages" type="secondary" size="mini" :disabled="page === pages">
+						<Button @click="page = pages" type="secondary" size="mini" :disabled="!hasNextPage">
 							<Icon name="arrow-right-stop" size="12" color="primary" />
 						</Button>
 					</Flex>
@@ -284,10 +296,10 @@ onMounted(() => {
 							<tr>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
+								<th><Text size="12" weight="600" color="tertiary" noWrap>Stake</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>QC Participation</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Block Proposals</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Provider</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 							</tr>
 						</thead>
@@ -311,6 +323,13 @@ onMounted(() => {
 								</td>
 								<td>
 									<NuxtLink :to="`/validator/${validator.validatorId}`">
+										<Text size="13" weight="600" color="primary">
+											{{ comma(validator.stake) }}
+										</Text>
+									</NuxtLink>
+								</td>
+								<td>
+									<NuxtLink :to="`/validator/${validator.validatorId}`">
 										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
 											{{ formatPercentage(validator.uptimeScore) }}
 										</Text>
@@ -327,13 +346,6 @@ onMounted(() => {
 									<NuxtLink :to="`/validator/${validator.validatorId}`">
 										<Text size="13" weight="600" color="primary">
 											{{ formatPercentage(validator.blockProposalRatio) }}
-										</Text>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
-										<Text size="12" color="secondary">
-											{{ validator.provider }}
 										</Text>
 									</NuxtLink>
 								</td>
