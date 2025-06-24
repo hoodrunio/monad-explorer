@@ -26,9 +26,85 @@ const handleChangeChartView = () => {
 	}
 }
 
-// Simple country name to coordinates mapping for major countries
-const getCountryCoordinates = (countryName) => {
-	const coordinates = {
+// Enhanced coordinate mapping with both countries and specific cities for better accuracy
+const getLocationCoordinates = (locationString) => {
+	// First try to match specific cities for more accuracy
+	const cityCoordinates = {
+		// Major cities mentioned in the API
+		"Tokyo, Japan": [139.6917, 35.6895],
+		"Stockholm, Sweden": [18.0686, 59.3293],
+		"Helsinki, Finland": [24.9384, 60.1699],
+		"Falkenstein, Germany": [12.3711, 50.4774],
+		"Singapore, Singapore": [103.8198, 1.3521],
+		"New York, United States": [-74.0060, 40.7128],
+		"Montreal, Canada": [-73.5673, 45.5017],
+		"Buenos Aires, Argentina": [-58.3816, -34.6037],
+		"Warsaw, Poland": [21.0122, 52.2297],
+		"Vilnius, Lithuania": [25.2797, 54.6872],
+		"Melbourne, Australia": [144.9631, -37.8136],
+		"North Sydney, Australia": [151.2073, -33.8406],
+		"Vienna, Austria": [16.3738, 48.2082],
+		"Mumbai, India": [72.8777, 19.0760],
+		"Madrid, Spain": [-3.7038, 40.4168],
+		"Amsterdam, Netherlands": [4.9041, 52.3676],
+		"Amsterdam, The Netherlands": [4.9041, 52.3676],
+		"London, United Kingdom": [-0.1276, 51.5074],
+		"Oslo, Norway": [10.7522, 59.9139],
+		"Moscow, Russia": [37.6176, 55.7558],
+		"Frankfurt am Main, Germany": [8.6821, 50.1109],
+		"Hong Kong, Hong Kong": [114.1694, 22.3193],
+		"Seoul, South Korea": [126.9780, 37.5665],
+		"Bangkok, Thailand": [100.5018, 13.7563],
+		"Prague, Czechia": [14.4378, 50.0755],
+		"Dublin, Ireland": [-6.2603, 53.3498],
+		"Paris, France": [2.3522, 48.8566],
+		"Bucharest, Romania": [26.1025, 44.4268],
+		"São Paulo, Brazil": [-46.6333, -23.5505],
+		"Cape Town, South Africa": [18.4241, -33.9249],
+		"Auckland, New Zealand": [174.7633, -36.8485],
+		"Wattrelos, France": [3.2117, 50.7017],
+		"Strasbourg, France": [7.7521, 48.5734],
+		"Gravelines, France": [2.1253, 50.9872],
+		"Roubaix, France": [3.1717, 50.6942],
+		"Lille, France": [3.0573, 50.6292],
+		"Draper, United States": [-111.8638, 40.5246],
+		"Bluffdale, United States": [-111.9391, 40.4897],
+		"Pittsburgh, United States": [-79.9959, 40.4406],
+		"Dallas, United States": [-96.7970, 32.7767],
+		"Scottsdale, United States": [-111.9261, 33.4942],
+		"Metairie, United States": [-90.1531, 29.9841],
+		"St Louis, United States": [-90.1994, 38.6270],
+		"Portland, United States": [-122.6765, 45.5152],
+		"Boston, United States": [-71.0589, 42.3601],
+		"Manassas, United States": [-77.4750, 38.7509],
+		"Secaucus, United States": [-74.0565, 40.7895],
+		"Waldbrunn, Germany": [8.7500, 49.4167],
+		"Frankfurt, Germany": [8.6821, 50.1109],
+		"Munich, Germany": [11.5820, 48.1351],
+		"Limburg an der Lahn, Germany": [8.0636, 50.3836],
+		"Nuremberg, Germany": [11.0767, 49.4521],
+		"Haarlem, The Netherlands": [4.6368, 52.3874],
+		"St Petersburg, Russia": [30.3351, 59.9311],
+		"Tsuen Wan, Hong Kong": [114.1095, 22.3700],
+		"Mitake, Japan": [139.1333, 35.7833],
+		"Valletta, Malta": [14.5146, 35.8989],
+		"Klosterneuburg, Austria": [16.3256, 48.3072],
+		"Jaipur, India": [75.7873, 26.9124],
+		"Welling, United Kingdom": [0.1072, 51.4642],
+		"Isando, South Africa": [28.2167, -26.1333],
+		"Barueri, Brazil": [-46.8767, -23.5114],
+		"Lagos, Nigeria": [3.3792, 6.5244],
+		"Bratislava, Slovakia": [17.1077, 48.1486],
+		"Santiago, Chile": [-70.6693, -33.4489],
+	}
+	
+	// Check for exact city match first
+	if (cityCoordinates[locationString]) {
+		return cityCoordinates[locationString]
+	}
+	
+	// Fall back to country coordinates
+	const countryCoordinates = {
 		"Germany": [10.4515, 51.1657],
 		"Finland": [25.7482, 61.9241],
 		"Sweden": [18.6435, 60.1282],
@@ -47,6 +123,7 @@ const getCountryCoordinates = (countryName) => {
 		"Australia": [133.7751, -25.2744],
 		"Canada": [-106.3468, 56.1304],
 		"Netherlands": [5.2913, 52.1326],
+		"The Netherlands": [5.2913, 52.1326],
 		"United Kingdom": [-3.4360, 55.3781],
 		"Austria": [14.5501, 47.5162],
 		"India": [20.5937, 78.9629],
@@ -61,16 +138,20 @@ const getCountryCoordinates = (countryName) => {
 		"South Africa": [22.9375, -30.5595],
 		"Nigeria": [8.6753, 9.0820],
 		"Czech Republic": [15.4730, 49.8175],
+		"Czechia": [15.4730, 49.8175],
 	}
 	
-	// Try exact match first
-	if (coordinates[countryName]) {
-		return coordinates[countryName]
+	// Extract country from location string and try country coordinates
+	const locationParts = locationString.split(', ')
+	const country = locationParts[locationParts.length - 1]
+	
+	if (countryCoordinates[country]) {
+		return countryCoordinates[country]
 	}
 	
-	// Try partial match
-	for (const [country, coords] of Object.entries(coordinates)) {
-		if (countryName.includes(country) || country.includes(countryName)) {
+	// Try partial match in country coordinates
+	for (const [countryName, coords] of Object.entries(countryCoordinates)) {
+		if (country.includes(countryName) || countryName.includes(country)) {
 			return coords
 		}
 	}
@@ -253,10 +334,21 @@ const buildChart = async (chart) => {
 			.duration(700)
 			.attr("fill", (d) => (d.amount ? countryColor(+d.amount) : "transparent"))
 	} else if (chartView.value === "cities") {
+		// Calculate city coordinates using the same projection as the map
+		const citiesWithCoords = validatorLocationData.value.map(item => {
+			const coords = projection(item.coordinates)
+			
+			return {
+				...item,
+				x: coords[0],
+				y: coords[1]
+			}
+		})
+
 		cities = g
 			.append("g")
 			.selectAll("cities")
-			.data(validatorLocationData.value)
+			.data(citiesWithCoords)
 			.enter()
 			.append("circle")
 			.attr("transform", (d) => `translate(${d.x}, ${d.y})`)
@@ -308,25 +400,17 @@ const processMapData = async () => {
 	try {
 		if (!isLoading.value && !hasError.value && geographicData.value && topologyData.value) {
 			// Process geographic distribution data (for city view)
+			// Store raw data without calculating coordinates yet - we'll do that in buildChart
 			if (geographicData.value?.data?.distribution) {
 				validatorLocationData.value = geographicData.value.data.distribution.map(item => {
-					// Extract country from location string (e.g., "Falkenstein, Germany" -> "Germany")
+					// Use the full location string for more precise coordinates
+					const coordinates = getLocationCoordinates(item.location)
 					const locationParts = item.location.split(', ')
 					const country = locationParts[locationParts.length - 1]
-					// For city view, we use the original country name for coordinates
-					const coordinates = getCountryCoordinates(country)
-					const projection = d3.geoMercator()
-						.center([0, 40])
-						.scale(chartEl.value?.wrapper ? chartEl.value.wrapper.getBoundingClientRect().width * 0.15 : 150)
-						.translate([300, 200]) // Default values
-					
-					const coords = projection(coordinates)
 					
 					return {
 						name: item.location,
 						amount: item.validatorCount,
-						x: coords[0],
-						y: coords[1],
 						coordinates: coordinates,
 						originalCountry: country
 					}
