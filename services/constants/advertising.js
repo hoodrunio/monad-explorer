@@ -1,57 +1,30 @@
 const advertisements = [
 	{
-		name: 'celenium_api',
+		name: 'monad_api',
 		modal: 'api',
 		icon: 'slash',
-		header: 'Try out Celenium API',
-		body: 'The power of Celestia: Scalable, Secure and Modular Blockchain.',
+		header: 'Try out Monad API',
+		body: 'Explore the power of Monad: Fast, Scalable and EVM-compatible Blockchain.',
 		footer: 'Get started',
-		weight: 0.4,
+		weight: 0.5,
 	},
 	{
-		name: 'faucet',
-		internalLink: '/faucet',
-		icon: 'drop',
-		header: 'Celenium Faucet',
-		body: 'Free testnet TIA for the Celestia Mocha network!',
-		footer: 'Get Tokens',
-		weight: 0.2,
-  },
-  {
-		name: 'celestials',
-		link: 'https://celestials.id/?utm_source=celenium_banner',
-		icon: 'celestials',
-		header: 'Celestials ID',
-		body: 'Celestia Modular usernames with unique, generative artworks',
-		footer: 'Pick your id',
-		weight: 0.2,
-	},
-	{
-		name: 'lumina',
-		modal: 'lightNode',
-		icon: 'lumina',
-		header: 'Your Own Node',
-		body: 'Easily launch a node right in your browser or on your phone.',
-		footer: 'Run Light Node',
-		weight: 0.2,
-	},
-	{
-		name: 'celestia_update',
-		link: 'https://blog.celestia.org/ginger/',
+		name: 'monad_docs',
+		link: 'https://docs.monad.xyz',
 		icon: 'zap',
-		header: 'Celestia Upgrade',
-		body: 'Mainnet update scheduled for 28.01.2025.',
+		header: 'Monad Documentation',
+		body: 'Learn about Monad\'s high-performance EVM blockchain.',
 		footer: 'View Docs',
-		weight: 0,
+		weight: 0.3,
 	},
 	{
-		name: 'celenium_survey',
-		link: 'https://t.co/4nBFExP2VR',
+		name: 'monad_testnet',
+		link: 'https://testnet.monad.xyz',
 		icon: 'validator',
-		header: 'Celenium survey',
-		body: 'Please take 5 minutes of your time and answer a few questions.',
-		footer: 'Take the survey',
-		weight: 0,
+		header: 'Monad Testnet',
+		body: 'Experience the speed of Monad on our public testnet.',
+		footer: 'Try Testnet',
+		weight: 0.2,
 	},
 ]
 
@@ -77,3 +50,13 @@ export function getAdvByName(name) {
 
 	return adv
 }
+
+export const banners = [
+	{
+		title: 'Monad Blockchain',
+		url: 'https://monad.xyz',
+		body: 'The power of Monad: Fast, Scalable and EVM-compatible Blockchain.',
+		image: 'mammoth.jpeg',
+		openType: '_blank',
+	},
+]

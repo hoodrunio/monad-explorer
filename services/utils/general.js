@@ -1,39 +1,31 @@
-import { space } from "./strings.js"
+export const capitalize = (str) => {
+	return str.charAt(0).toUpperCase() + str.slice(1)
+}
 
 export const formatBytes = (bytes, decimals = 2) => {
-	if (!+bytes) return "0 Byte"
+	if (bytes === 0) return "0 Bytes"
 
+	const k = 1024
 	const dm = decimals < 0 ? 0 : decimals
-	const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB"]
+	const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
 
-	const i = Math.floor(Math.log(bytes) / Math.log(1024))
+	const i = Math.floor(Math.log(bytes) / Math.log(k))
 
-	return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(dm))} ${sizes[i]}`
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]
 }
 
-export const getNamespaceID = (target) => {
-	let s = target
-
-	while (s.startsWith("00")) {
-		s = s.substring(2)
-	}
-
-	return s
+export const formatBlockTime = (time) => {
+	return (time / 1000000).toFixed(2)
 }
 
-export const getNamespaceIDFromBase64 = (target) => {
-	let s = base64ToHex(target)
+export const shortAddress = (address, format = "string") => {
+	if (!address || typeof address !== "string") return
 
-	return s.substring(2)
-}
-
-export const getShortNamespaceID = (id) => {
-	let s = getNamespaceID(id)
-
-	if (s.length > 8) {
-		return `${s.slice(0, 4)} ••• ${s.slice(-4)}`
+	if (address.startsWith("0x")) {
+		// EVM address format for Monad
+		return format === "array" ? ["0x", address.slice(-4)] : `0x••••${address.slice(-4)}`
 	} else {
-		return space(s)
+		return format === "array" ? ["monad", address.slice(-4)] : `monad ••• ${address.slice(-4)}`
 	}
 }
 
@@ -71,12 +63,11 @@ export const midHex = (hex) => {
 export const splitAddress = (address, format = "string") => {
 	if (!address) return
 
-	if (address.startsWith("celestiavaloper")) {
-		return format === "array" ? [`celestiavaloper`, address.slice(-4)] : `celestiavaloper ••• ${address.slice(-4)}`
-	} else if (address.startsWith("celestiavalcons")) {
-		return format === "array" ? [`celestiavalcons`, address.slice(-4)] : `celestiavalcons ••• ${address.slice(-4)}`
+	if (address.startsWith("0x")) {
+		// EVM address format for Monad
+		return format === "array" ? ["0x", address.slice(-4)] : `0x••••${address.slice(-4)}`
 	} else {
-		return format === "array" ? ["celestia", address.slice(-4)] : `celestia ••• ${address.slice(-4)}`
+		return format === "array" ? ["monad", address.slice(-4)] : `monad ••• ${address.slice(-4)}`
 	}
 }
 
@@ -105,13 +96,13 @@ export const getNetworkName = () => {
 	const { hostname } = useRequestURL()
 
 	switch (hostname) {
-		case "explorer.monad.io":
+		case "monad.hoodscan.io":
 			return "Mainnet"
 
-		case "testnet.monad.io":
+		case "testnet.monad.hoodscan.io":
 			return "Testnet"
 
-		case "dev.monad.io":
+		case "dev.monad.hoodscan.io":
 			return "Development"
 
 		case "localhost":
