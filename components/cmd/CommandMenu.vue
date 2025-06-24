@@ -45,6 +45,38 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 const route = useRoute()
 const router = useRouter()
 
+// Function definitions need to be declared before they are used in the actions arrays
+const openMainnet = () => {
+	window.open("https://monad.hoodscan.io", "_blank")
+}
+
+const openTestnet = () => {
+	window.open("https://testnet.monad.hoodscan.io", "_blank")
+}
+
+const openDocs = () => {
+	window.open("https://docs.monad.xyz", "_blank")
+}
+
+const runBounce = () => {
+	bounce.value = true
+	setTimeout(() => {
+		bounce.value = false
+	}, 150)
+}
+
+const exitCommandMode = () => {
+	mode.value = null
+	searchTerm.value = ""
+	runText.value = ""
+	placeholder.value = null
+	rules.value = []
+
+	runBounce()
+
+	resetMetadata()
+}
+
 let root = null
 
 let trap = null
@@ -837,18 +869,6 @@ onMounted(() => {
 	})
 })
 
-const exitCommandMode = () => {
-	mode.value = null
-	searchTerm.value = ""
-	runText.value = ""
-	placeholder.value = null
-	rules.value = []
-
-	runBounce()
-
-	resetMetadata()
-}
-
 watch(
 	() => appStore.showCmd,
 	() => {
@@ -1120,25 +1140,6 @@ const handleOutside = () => {
 	exitCommandMode()
 
 	appStore.showCmd = false
-}
-
-const runBounce = () => {
-	bounce.value = true
-	setTimeout(() => {
-		bounce.value = false
-	}, 150)
-}
-
-const openMainnet = () => {
-	window.open("https://monad.hoodscan.io", "_blank")
-}
-
-const openTestnet = () => {
-	window.open("https://testnet.monad.hoodscan.io", "_blank")
-}
-
-const openDocs = () => {
-	window.open("https://docs.monad.xyz", "_blank")
 }
 </script>
 
