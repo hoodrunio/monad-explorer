@@ -1,8 +1,8 @@
 export const Server = {
 	API: {
-		mainnet: "https://monad-indexer.hoodscan.io/api",
-		testnet: "https://monad-indexer.hoodscan.io/api",
-		dev: "https://monad-indexer.hoodscan.io/api",
+		mainnet: "https://monad-indexer.hoodscan.io",
+		testnet: "https://monad-indexer.hoodscan.io",
+		dev: "https://monad-indexer.hoodscan.io",
 	},
 }
 
@@ -11,6 +11,7 @@ export const useServerURL = () => {
 
 	switch (requestURL.hostname) {
 		case "explorer.monad.io":
+		case "localhost:9090":
 			return Server.API.mainnet
 
 		case "testnet.monad.io":

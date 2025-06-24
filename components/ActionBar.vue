@@ -35,10 +35,6 @@ const appStore = useAppStore()
 			<Button @click="appStore.showCmd = true" type="secondary" size="mini">
 				<Icon name="terminal_square" size="16" color="secondary" />
 			</Button>
-
-			<div style="width: 2px; height: 16px; background: var(--op-10)" />
-
-			<Connection :class="$style.connection_btn" />
 		</Flex>
 	</Flex>
 </template>
@@ -61,10 +57,6 @@ const appStore = useAppStore()
 @media (max-width: 500px) {
 	.wrapper {
 		padding: 12px;
-	}
-
-	.connection_btn {
-		display: none;
 	}
 }
 </style>

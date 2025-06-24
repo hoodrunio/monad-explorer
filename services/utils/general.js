@@ -105,29 +105,20 @@ export const getNetworkName = () => {
 	const { hostname } = useRequestURL()
 
 	switch (hostname) {
-		case "celenium.io":
+		case "explorer.monad.io":
 			return "Mainnet"
 
-		case "mocha-4.celenium.io":
-			return "Mocha-4"
+		case "testnet.monad.io":
+			return "Testnet"
 
-		case "mocha.celenium.io":
-			return "Mocha-4"
-
-		case "arabica.celenium.io":
-			return "Arabica"
-
-		case "mammoth.celenium.io":
-			return "Mammoth"
-
-		case "dev.celenium.io":
+		case "dev.monad.io":
 			return "Development"
 
 		case "localhost":
 			return "Local"
 
 		default:
-			return "Unknown"
+			return "Development" // Default to development for now
 	}
 }
 

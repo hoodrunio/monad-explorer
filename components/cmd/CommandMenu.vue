@@ -817,18 +817,6 @@ const rawOtherActions = [
 		subtitle: "Command",
 		runText: "Toggle",
 		callback: () => {
-			if (getNetworkName() !== "Mammoth") {
-				notificationsStore.create({
-					notification: {
-						type: "info",
-						icon: "info",
-						title: `Available for the mammoth network only`,
-						autoDestroy: true,
-					},
-				})
-				return
-			}
-
 			showPromoBackground.value = !showPromoBackground.value
 			notificationsStore.create({
 				notification: {
@@ -867,7 +855,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Github",
 		callback: () => {
-			window.open(`https://github.com/celenium-io/celenium-interface/releases/tag/v${appConfig.version}`, "_blank")
+			window.open(`https://github.com/monad-labs/monad-explorer/releases/tag/v${appConfig.version}`, "_blank")
 		},
 	},
 	{
@@ -877,7 +865,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Discord",
 		callback: () => {
-			window.open("https://discord.com/channels/846362414039695391/1168936555302355005", "_blank")
+			window.open("https://discord.com/invite/monad", "_blank")
 		},
 	},
 	{
@@ -887,7 +875,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Twitter",
 		callback: () => {
-			window.open("https://twitter.com/celenium_io", "_blank")
+			window.open("https://twitter.com/monad_xyz", "_blank")
 		},
 	},
 	{
@@ -897,7 +885,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Github",
 		callback: () => {
-			window.open("https://github.com/celenium-io", "_blank")
+			window.open("https://github.com/monad-labs", "_blank")
 		},
 	},
 ]
