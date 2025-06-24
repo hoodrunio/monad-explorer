@@ -48,8 +48,7 @@ useHead({
 		},
 		{
 			name: "twitter:description",
-			content:
-				"Monitor FDN.",
+			content: "Monad",
 		},
 		{
 			name: "twitter:card",
