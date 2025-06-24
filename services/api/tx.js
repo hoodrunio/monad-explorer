@@ -71,68 +71,6 @@ export const fetchTxEvents = async ({ hash, limit, offset }) => {
 	}
 }
 
-export const fetchTxNamespaces = async ({ hash, limit, offset, sort }) => {
-	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/namespace`)
-
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (sort) url.searchParams.append("sort", sort)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchTxNamespacesCount = async (hash) => {
-	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/namespace/count`)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchTxBlobs = async ({ hash, limit, offset, sort }) => {
-	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/blobs`)
-
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (sort) url.searchParams.append("sort", sort)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchTxBlobsCount = async (hash) => {
-	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/blobs/count`)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchLatestPFBs = () => {
-	try {
-		return useFetch(`${useServerURL()}/tx?msg_type=MsgPayForBlobs&sort=desc&limit=5`, {
-			key: "latest_pfbs",
-		})
-	} catch (error) {
-		console.error(error)
-	}
-}
-
 export const fetchTransactionsByBlock = ({ limit, offset, sort, height, from, to, status, type, excluded_types }) => {
 	try {
 		const url = new URL(`${useServerURL()}/tx`)

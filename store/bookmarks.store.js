@@ -3,137 +3,128 @@ import { defineStore, acceptHMRUpdate } from "pinia"
 
 export const useBookmarksStore = defineStore("bookmarks", () => {
 	const bookmarks = ref({
-		addresses: [],
-		blocks: [],
-		namespaces: [],
 		txs: [],
+		blocks: [],
+		addresses: [],
 	})
 
-	const recentBookmarks = computed(() => {
-		return [...bookmarks.value.txs, ...bookmarks.value.blocks, ...bookmarks.value.namespaces, ...bookmarks.value.addresses]
-			.sort((a, b) => b.ts - a.ts)
-			.slice(0, 3)
+	const all = computed(() => {
+		return [...bookmarks.value.txs, ...bookmarks.value.blocks, ...bookmarks.value.addresses]
 	})
 
-	const hasBookmarks = computed(() => {
-		let has = false
+	const add = (item) => {
+		const target = getTargetRef(item.type, item.data)
 
-		let keys = Object.keys(bookmarks.value)
-		for (let i = 0; i < keys.length; i++) {
-			if (bookmarks.value[keys[i]].length) {
-				has = true
-				break
-			}
+		if (target) {
+			/** check if item already exist */
+			if (target.value.filter((b) => b.data.hash === item.data.hash).length) return
+
+			target.value.push(item)
 		}
+	}
 
-		return has
-	})
+	const remove = (item) => {
+		const target = getTargetRef(item.type)
 
-	const getBookmarkAlias = (type, id) => {
-		if (!hasBookmarks) return id
-
-		let store = getStoreByType(type)
-
-		if (!store) return id
-				
-		for (let i = 0; i < store.length; i++) {
-			let el = store[i]
-			if (el.id === id) {
-				return el.alias || el.id
-			}
+		if (target) {
+			target.value.splice(
+				target.value.findIndex((b) => b.data.hash === item.data.hash),
+				1,
+			)
 		}
-
-		return id
 	}
 
-	const getBookmark = (type, id) => {
-		if (!hasBookmarks) return null
-		
-		let store = getStoreByType(type)
+	const updateAlias = ({ type, hash, alias }) => {
+		const target = getTargetRef(type)
 
-		if (!store) return null
-		
-		for (let i = 0; i < store.length; i++) {
-			let el = store[i]
-			if (el.id === id) {
-				return el
-			}
-		}
-
-		return null
+		target.value[target.value.findIndex((b) => b.data.hash === hash)].alias = alias
 	}
 
-	const addBookmark = (bookmark) => {
-		let store = getStoreByType(bookmark.type)
-
-		if (!store) return false
-
-		store.push(bookmark)
-
-		return true
-	}
-
-	const removeBookmark = (type, id) => {
-		let store = getStoreByType(type)
-		if (!store) return false
-
-		let idx = store.findIndex((el) => el.id === id)
-
-		if (idx === -1) return false
-
-		store.splice(idx, 1)
-
-		return true
-	}
-
-	const getStoreByType = (type) => {
-		switch (type.toLowerCase()) {
-			case 'address':
-			case 'addresses':
-				return bookmarks.value.addresses
-			case 'block':
-			case 'blocks':
-				return bookmarks.value.blocks
-			case 'namespace':
-			case 'namespaces':
-				return bookmarks.value.namespaces
-			case 'tx':
-			case 'txs':
-			case 'transaction':
+	const getTargetRef = (type, data) => {
+		switch (type) {
+			case "transaction":
+			case "tx":
 				return bookmarks.value.txs
+
+			case "block":
+				return bookmarks.value.blocks
+
+			case "address":
+				return bookmarks.value.addresses
+
 			default:
 				return null
 		}
 	}
 
-	const searchBookmarks = (searchString) => {
-		if (!hasBookmarks) return []
-		
-		let res = []
-		
-		Object.keys(bookmarks.value).forEach((b) => {
-			
-			bookmarks.value[b].forEach((el) => {
-				if (el.alias?.toUpperCase().includes(searchString.toUpperCase())) {
-					res.push({
-						result: el,
-						type: el.type.toLowerCase(),
-						bookmark: true,
-					})
-				}
-			})
-		})
+	/** utils */
+	const getBookmarkByHash = (hash) => all.value.find((item) => item.data.hash === hash)
 
-		return res
+	const isBookmarked = (hash) => !!getBookmarkByHash(hash)
+
+	const getById = (type) => {
+		switch (type) {
+			case "transaction":
+			case "tx":
+				return bookmarks.value.txs
+
+			case "block":
+				return bookmarks.value.blocks
+
+			case "address":
+				return bookmarks.value.addresses
+
+			default:
+				return null
+		}
 	}
 
-	const clearBookmarks = () => {
-		Object.keys(bookmarks.value).forEach((b) => {
-			bookmarks.value[b] = []
-		})
+	const getByType = (type) => {
+		switch (type) {
+			case "transaction":
+			case "tx":
+				return bookmarks.value.txs
+
+			case "block":
+				return bookmarks.value.blocks
+
+			case "address":
+				return bookmarks.value.addresses
+
+			default:
+				return []
+		}
 	}
 
-	return { bookmarks, hasBookmarks, recentBookmarks, addBookmark, clearBookmarks, getBookmark, getBookmarkAlias, removeBookmark, searchBookmarks }
+	const exportBookmarks = () => {
+		const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookmarks.value))
+		const downloadAnchorNode = document.createElement("a")
+		downloadAnchorNode.setAttribute("href", dataStr)
+		downloadAnchorNode.setAttribute("download", "bookmarks.json")
+		document.body.appendChild(downloadAnchorNode)
+		downloadAnchorNode.click()
+		downloadAnchorNode.remove()
+	}
+
+	const importBookmarks = (data) => {
+		bookmarks.value = data
+	}
+
+	return {
+		bookmarks,
+		all,
+		add,
+		remove,
+		updateAlias,
+		getBookmarkByHash,
+		isBookmarked,
+		getById,
+		getByType,
+		exportBookmarks,
+		importBookmarks,
+	}
+}, {
+	persist: true,
 })
 
 if (import.meta.hot) {

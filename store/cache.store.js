@@ -1,15 +1,10 @@
 /**
  * Vendor
  */
-import { ref, reactive } from "vue"
+import { reactive } from "vue"
 import { defineStore, acceptHMRUpdate } from "pinia"
 
 export const useCacheStore = defineStore("cache", () => {
-	const selectedBlob = ref(null)
-	const selectedCommitment = ref(null)
-	const selectedRollupRank = ref(null)
-	const selectedRollup = ref (null)
-
 	const qr = reactive({
 		data: null,
 		description: null,
@@ -22,48 +17,33 @@ export const useCacheStore = defineStore("cache", () => {
 	})
 
 	const current = reactive({
-		_target: null,
-
-		/** global */
-		transactions: null,
-
-		/** namespace */
-		namespace: null,
-		messages: null,
-		blobs: null,
-
 		/** block */
 		block: null,
 
-		/** tx */
+		/** transaction */
 		transaction: null,
-		events: null,
-		message: null,
-		event: null,
+		transactions: [],
+		events: [],
 
 		/** address */
 		address: null,
 
-		/** bookmark */
-		bookmark: null,
+		/** validators */
+		validator: null,
+		validators: [],
+		
+		/** validator blocks */
+		validator_blocks: [],
 
-		/** blob viewer */
-		blob: null,
-		proof: null,
+		/** chart */
+		chart: null,
 	})
 
 	const tx = reactive({
-		type: null,
-		hash: null,
-		from: null,
-		to: null,
-		amount: null,
-		file: null,
-		network: null,
-		ts: null,
+		target: null,
 	})
 
-	return { chart, current, qr, selectedBlob, selectedCommitment, selectedRollupRank, selectedRollup, tx }
+	return { chart, current, qr, tx }
 })
 
 if (import.meta.hot) {
