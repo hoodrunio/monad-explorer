@@ -214,46 +214,10 @@ const rawNavigationActions = [
 	{
 		type: "callback",
 		icon: "arrow-narrow-right",
-		title: "Go to Explorer",
-		runText: "Open Explorer",
+		title: "Go to Dashboard",
+		runText: "Open Dashboard",
 		callback: () => {
 			router.push("/")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Namespaces",
-		runText: "Open Namespaces",
-		callback: () => {
-			router.push("/namespaces")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Rollups",
-		runText: "Open Rollups",
-		callback: () => {
-			router.push("/rollups")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Transactions",
-		runText: "Open Transactions",
-		callback: () => {
-			router.push("/txs")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Blocks",
-		runText: "Open Blocks",
-		callback: () => {
-			router.push("/blocks")
 		},
 	},
 	{
@@ -268,73 +232,10 @@ const rawNavigationActions = [
 	{
 		type: "callback",
 		icon: "arrow-narrow-right",
-		title: "Go to Addresses",
-		runText: "Open Addresses",
+		title: "Go to Bookmarks",
+		runText: "Open Bookmarks",
 		callback: () => {
-			router.push("/addresses")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Blobstream",
-		runText: "Open Blobstream",
-		callback: () => {
-			router.push("/blobstream")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Cost Savings Calculator",
-		runText: "Open Cost Savings",
-		callback: () => {
-			router.push("/calculators/savings")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Terminal",
-		runText: "Open Terminal",
-		callback: () => {
-			location.href = "https://terminal.celenium.io"
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Faucet",
-		runText: "Open Faucet",
-		callback: () => {
-			router.push("/faucet")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Go to Documentation",
-		runText: "Open Documentation",
-		callback: () => {
-			window.open("https://docs.celenium.io", "_blank")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Read Privacy Policy",
-		runText: "Open Privacy Policy",
-		callback: () => {
-			router.push("/privacy-policy")
-		},
-	},
-	{
-		type: "callback",
-		icon: "arrow-narrow-right",
-		title: "Read Terms of Use",
-		runText: "Open Terms of Use",
-		callback: () => {
-			router.push("/terms-of-use")
+			router.push("/bookmarks")
 		},
 	},
 ]
@@ -349,98 +250,15 @@ const navigationGroup = computed(() => {
 
 const rawQuickCommandsActions = [
 	{
-		type: "callback",
-		icon: "coins",
-		title: "Send TIA",
-		subtitle: "Command",
-		runText: "Send TIA",
-
-		callback: () => {
-			modalsStore.open("send")
-		},
-	},
-	{
-		type: "callback",
-		icon: "blob",
-		title: "Submit data blob",
-		subtitle: "Command",
-		runText: "Submit blob",
-
-		callback: () => {
-			modalsStore.open("pfb")
-		},
-	},
-	{
-		type: "command:input",
-		icon: "tx",
-		title: "Open Transaction..",
-		subtitle: "Command",
-		placeholder: "Type tx hash...",
-		runText: "Run Command",
-
-		callback: (hash) => {
-			router.push(`/tx/${hash}`)
-		},
-
-		metadata: {},
-	},
-	{
-		type: "command:input",
-		icon: "block",
-		title: "Open Block..",
-		subtitle: "Command",
-		placeholder: "Type block height...",
-		runText: "Run Command",
-
-		callback: (height) => {
-			router.push(`/block/${height}`)
-		},
-	},
-	{
 		type: "command:input",
 		icon: "validator",
 		title: "Open Validator..",
 		subtitle: "Command",
-		placeholder: "Type validator moniker...",
+		placeholder: "Type validator ID or address...",
 		runText: "Run Command",
 
 		callback: (id) => {
 			router.push(`/validator/${id}`)
-		},
-	},
-	{
-		type: "command:input",
-		icon: "namespace",
-		title: "Open Namespace..",
-		subtitle: "Command",
-		placeholder: "Type namespace ID...",
-		runText: "Run Command",
-
-		callback: (id) => {
-			router.push(`/namespace/${id}`)
-		},
-	},
-	{
-		type: "command:input",
-		icon: "address",
-		title: "Open Address..",
-		subtitle: "Command",
-		placeholder: "Type address hash...",
-		runText: "Run Command",
-
-		callback: (hash) => {
-			router.push(`/address/${hash}`)
-		},
-	},
-	{
-		type: "callback",
-		icon: "gas",
-		title: "Open Gas Tracker",
-		subtitle: "Command",
-		runText: "Open Gas Tracker",
-
-		callback: () => {
-			router.push("/gas")
 		},
 	},
 	{
@@ -452,40 +270,6 @@ const rawQuickCommandsActions = [
 
 		callback: () => {
 			router.push("/bookmarks")
-		},
-	},
-	{
-		type: "command:custom",
-		icon: "calc",
-		title: "Run Fee Calculator",
-		subtitle: "Command",
-		placeholder: "Type gas limit",
-		runText: "Calculate Gas Fee",
-		nestedRunText: "Copy Result",
-
-		rules: [
-			{
-				type: "input",
-				callback: (str) => {
-					if (parseFloat(str.replace(/[^0-9.]/g, "")) > 5_665_140_000) return "5665140000"
-					return str.replace(/[^0-9.]/g, "")
-				},
-			},
-		],
-
-		callback: () => {
-			amp.log("copyFeeResult", { loc: "cmd" })
-
-			window.navigator.clipboard.writeText(copyData.value)
-
-			notificationsStore.create({
-				notification: {
-					type: "info",
-					icon: "check",
-					title: `Gas fee calculation saved into clipboard`,
-					autoDestroy: true,
-				},
-			})
 		},
 	},
 ]
@@ -855,7 +639,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Github",
 		callback: () => {
-			window.open(`https://github.com/monad-labs/monad-explorer/releases/tag/v${appConfig.version}`, "_blank")
+			window.open(`https://github.com/hoodrunio/monad-explorer/releases/tag/v${appConfig.version}`, "_blank")
 		},
 	},
 	{
@@ -885,7 +669,7 @@ const rawOtherActions = [
 		subtitle: "Quicklink",
 		runText: "Open Github",
 		callback: () => {
-			window.open("https://github.com/monad-labs", "_blank")
+			window.open("https://github.com/hoodrunio", "_blank")
 		},
 	},
 ]
@@ -983,33 +767,6 @@ const debouncedSearch = useDebounceFn(async (e) => {
 		let title
 		let routerLink
 		switch (data.value[i].type.toLowerCase()) {
-			case "tx":
-			case "transaction":
-				data.value[i].type = "tx"
-				title = data.value[i].result.alias || data.value[i].result.hash
-				routerLink = `/tx/${data.value[i].bookmark ? data.value[i].result.id : data.value[i].result.hash}`
-				break
-
-			case "block":
-				title = data.value[i].result.alias || data.value[i].result.hash
-				routerLink = `/block/${data.value[i].bookmark ? data.value[i].result.id : data.value[i].result.height}`
-				break
-
-			case "namespace":
-				title = data.value[i].result.alias || data.value[i].result.hash
-				routerLink = `/namespace/${data.value[i].bookmark ? data.value[i].result.id : data.value[i].result.namespace_id}`
-				break
-
-			case "address":
-				title = data.value[i].result.alias || data.value[i].result.hash
-				routerLink = `/address/${data.value[i].bookmark ? data.value[i].result.id : data.value[i].result.hash}`
-				break
-
-			case "rollup":
-				title = data.value[i].result.name
-				routerLink = `/rollup/${data.value[i].result.slug}`
-				break
-
 			case "validator":
 				title =
 					data.value[i].result.alias || data.value[i].result.moniker ? data.value[i].result.moniker : data.value[i].result.address
@@ -1020,20 +777,20 @@ const debouncedSearch = useDebounceFn(async (e) => {
 				break
 		}
 
-		autocompleteActions.value.push({
-			id: id(),
-			type: "callback",
-			bookmark: data.value[i].bookmark,
-			icon: data.value[i].type,
-			title: title,
-			subtitle: capitilize(data.value[i].type),
-			runText: "Open",
-			callback: () => {
-				router.push(routerLink)
-			},
-		})
+		if (title && routerLink) {
+			autocompleteActions.value.push({
+				id: id(),
+				type: "callback",
+				icon: data.value[i].type,
+				title: title,
+				subtitle: data.value[i].type,
+				callback: () => {
+					router.push(routerLink)
+				},
+			})
+		}
 	}
-}, 250)
+}, 350)
 
 const groups = reactive([
 	suggestionGroup,

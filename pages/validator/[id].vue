@@ -21,43 +21,45 @@ const validatorInfrastructure = ref()
 const isLoading = ref(true)
 const error = ref(null)
 
-// Fetch all validator data
-try {
-	const [
-		{ data: rawValidator },
-		{ data: rawHistory },
-		{ data: rawInfrastructure }
-	] = await Promise.all([
-		fetchValidatorByID(route.params.id),
-		fetchValidatorHistory({ id: route.params.id, hours: 24 }),
-		fetchValidatorInfrastructure(route.params.id)
-	])
-
-	if (!rawValidator.value) {
-		throw new Error('Validator not found')
-	}
-
-	validator.value = rawValidator.value
-	validatorHistory.value = rawHistory.value
-	validatorInfrastructure.value = rawInfrastructure.value
-	
-	cacheStore.current.validator = validator.value
-} catch (err) {
-	error.value = err.message
-	console.error('Error fetching validator data:', err)
-} finally {
-	isLoading.value = false
-}
-
-// Redirect if validator not found
-if (error.value && !validator.value) {
-	router.push("/validators")
-}
-
 const validatorName = computed(() => {
 	return validator.value?.infrastructure?.validator_name || 
 		   validatorInfrastructure.value?.data?.location?.validatorName || 
 		   shortHex(route.params.id)
+})
+
+// Fetch all validator data on component mount
+onMounted(async () => {
+	try {
+		const [
+			{ data: rawValidator },
+			{ data: rawHistory },
+			{ data: rawInfrastructure }
+		] = await Promise.all([
+			fetchValidatorByID(route.params.id),
+			fetchValidatorHistory({ id: route.params.id, hours: 24 }),
+			fetchValidatorInfrastructure(route.params.id)
+		])
+
+		if (!rawValidator.value) {
+			throw new Error('Validator not found')
+		}
+
+		validator.value = rawValidator.value
+		validatorHistory.value = rawHistory.value
+		validatorInfrastructure.value = rawInfrastructure.value
+		
+		cacheStore.current.validator = validator.value
+	} catch (err) {
+		error.value = err.message
+		console.error('Error fetching validator data:', err)
+		
+		// Redirect to validators page if validator not found
+		if (err.message === 'Validator not found') {
+			await router.push("/validators")
+		}
+	} finally {
+		isLoading.value = false
+	}
 })
 
 defineOgImageComponent("ValidatorImage", {

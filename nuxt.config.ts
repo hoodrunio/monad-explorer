@@ -8,7 +8,7 @@ export default defineNuxtConfig({
 	modules: ["nuxt-site-config", "@pinia/nuxt", "nuxt-og-image", "@nuxtjs/sitemap"],
 
 	site: {
-		url: "https://celenium.io",
+		url: "https://monad.hoodscan.io",
 	},
 
 	sitemap: {

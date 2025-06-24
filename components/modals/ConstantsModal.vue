@@ -4,7 +4,7 @@ import Modal from "@/components/ui/Modal.vue"
 import Input from "@/components/ui/Input.vue"
 
 /** API */
-import { fetchConstants } from "@/services/api/main"
+// import { fetchConstants } from "@/services/api/main" - Removed as not needed for Monad validator monitoring
 
 /** Store */
 import { useNotificationsStore } from "@/store/notifications.store"
@@ -61,8 +61,8 @@ const searchTerm = ref("")
 const rawModules = ref({})
 
 onMounted(async () => {
-	const data = await fetchConstants()
-	rawModules.value = data.module
+	// No constants to fetch for Monad validator monitoring
+	rawModules.value = {}
 })
 
 const modules = computed(() => {
@@ -114,9 +114,9 @@ const handleCopy = (target) => {
 <template>
 	<Modal :show="show" @onClose="emit('onClose')" width="600" focus>
 		<Flex direction="column" gap="24">
-			<Text size="14" weight="600" color="primary">Celestia Constants</Text>
+			<Text size="14" weight="600" color="primary">Monad Constants</Text>
 
-			<Input v-model="searchTerm" placeholder="Search through celestia constants" />
+			<Input v-model="searchTerm" placeholder="Search through monad constants" />
 
 			<Flex direction="column" gap="12" :class="$style.constants">
 				<Flex v-for="mod in filteredModules" direction="column" gap="12" :class="$style.module">

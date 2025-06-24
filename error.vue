@@ -1,6 +1,6 @@
 <script setup>
 /** Services */
-import { fetchHead } from "@/services/api/main"
+// import { fetchHead } from "@/services/api/main"
 import amp from "@/services/amp"
 
 /** Components */
@@ -17,12 +17,15 @@ const appStore = useAppStore()
 const router = useRouter()
 const error = useError()
 
+const props = defineProps({
+	error: Object,
+})
+
+const handleError = () => navigateTo("/")
+
 onMounted(async () => {
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
-
-	const data = await fetchHead()
-	if (data) appStore.head = data
 })
 
 const handleBack = () => {
@@ -30,7 +33,7 @@ const handleBack = () => {
 }
 
 const getGithubIssueLink = computed(() => {
-	let link = `https://github.com/monad-labs/monad-explorer/issues/new?labels=bug&title=[${error.value.statusCode}] ${
+	let link = `https://github.com/hoodrunio/monad-explorer/issues/new?labels=bug&title=[${error.value.statusCode}] ${
 		error.value.statusMessage || error.value.message
 	}`
 

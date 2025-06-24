@@ -3,7 +3,6 @@
 import * as Sentry from "@sentry/vue"
 
 /** Services */
-import { fetchHead } from "@/services/api/main"
 import amp from "@/services/amp"
 import { watchForUpdate } from "@/services/version"
 
@@ -73,7 +72,7 @@ onMounted(async () => {
 							icon: "menu",
 							callback: () => {
 								window
-									.open(`https://github.com/monad-labs/monad-explorer/releases/tag/v${newVersion}`, "_blank")
+									.open(`https://github.com/hoodrunio/monad-explorer/releases/tag/v${newVersion}`, "_blank")
 									.focus()
 							},
 						},
@@ -95,9 +94,6 @@ onMounted(async () => {
 
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
-
-	const head = await fetchHead()
-	if (head) appStore.lastHead = head
 
 	await enumStore.init()
 

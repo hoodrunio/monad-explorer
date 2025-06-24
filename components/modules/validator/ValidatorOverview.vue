@@ -2,23 +2,12 @@
 /** UI */
 import Button from "@/components/ui/Button.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
-
-/** Tables */
-import BlocksTable from "./tables/BlocksTable.vue"
-import DelegatorsTable from "./tables/DelegatorsTable.vue"
-import JailsTable from "./tables/JailsTable.vue"
 
 /** Services */
-import { comma, numToPercent, shortHex, splitAddress } from "@/services/utils"
-
-/** API */
-import { fetchValidatorBlocks, fetchValidatorDelegators, fetchValidatorJails, fetchValidatorUptime } from "@/services/api/validator"
+import { shortHex } from "@/services/utils"
 
 /** Store */
-import { useCacheStore } from "@/store/cache.store"
 import { useModalsStore } from "@/store/modals.store"
-const cacheStore = useCacheStore()
 const modalsStore = useModalsStore()
 
 const route = useRoute()
@@ -53,90 +42,9 @@ const tabs = ref([
 		icon: "clock",
 	},
 ])
+
 const preselectedTab = route.query.tab && tabs.value.map((tab) => tab.name).includes(route.query.tab) ? route.query.tab : tabs.value[0].name
 const activeTab = ref(preselectedTab)
-
-const isRefetching = ref(false)
-const delegators = ref([])
-const blocks = ref([])
-const jails = ref([])
-const uptime = ref([])
-
-const page = ref(1)
-const handleNextCondition = ref(true)
-
-const handleNext = () => {
-	page.value += 1
-}
-const handlePrev = () => {
-	page.value -= 1
-}
-
-const getBlocks = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorBlocks({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		blocks.value = data.value
-		cacheStore.current.blocks = blocks.value
-		handleNextCondition.value = blocks.value.length < 10
-	}
-
-	isRefetching.value = false
-}
-
-const getDelegators = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorDelegators({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	delegators.value = data.value
-	handleNextCondition.value = delegators.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getJails = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorJails({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	jails.value = data.value
-	handleNextCondition.value = jails.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getUptime = async () => {
-	const { data } = await fetchValidatorUptime({
-		id: props.validator.id,
-		limit: 100,
-	})
-
-	if (data.value?.blocks?.length) {
-		uptime.value = data.value.blocks.sort((a, b) => a.height - b.height)
-	}
-}
-
-/** Initital fetch for delegators and uptime */
-if (activeTab.value === "Delegators") await getDelegators()
-if (activeTab.value === "Proposed Blocks") await getBlocks()
-if (activeTab.value === "Jails") await getJails()
-
-await getUptime()
 
 onMounted(() => {
 	router.replace({
@@ -176,53 +84,6 @@ const validatorStatus = computed(() => {
 	}
 })
 
-const parsedContacts = computed(() => {
-	let res = []
-	const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
-	const emails = props.validator.contacts.match(emailRegex)
-
-	if (emails) {
-		emails.forEach((email) => {
-			res.push({
-				type: "email",
-				value: "mailto:" + email,
-			})
-		})
-	}
-
-	const telegramRegex = /https?:\/\/t\.me\/([A-Za-z0-9_]+)/g
-	const telegrams = props.validator.contacts.match(telegramRegex)
-
-	if (telegrams) {
-		telegrams.forEach((telegram) => {
-			res.push({
-				type: "telegram",
-				value: telegram,
-			})
-		})
-	}
-
-	return res
-})
-
-/** Refetch Blobs/Messages on new page */
-watch(
-	() => page.value,
-	() => {
-		switch (activeTab.value) {
-			case "Delegators":
-				getDelegators()
-				break
-			case "Proposed Blocks":
-				getBlocks()
-				break
-			case "Jails":
-				getJails()
-				break
-		}
-	},
-)
-
 watch(
 	() => activeTab.value,
 	() => {
@@ -231,26 +92,8 @@ watch(
 				tab: activeTab.value,
 			},
 		})
-
-		page.value = 1
-
-		switch (activeTab.value) {
-			case "Delegators":
-				getDelegators()
-				break
-			case "Proposed Blocks":
-				getBlocks()
-				break
-			case "Jails":
-				getJails()
-				break
-		}
 	},
 )
-
-const handleDelegate = () => {
-	modalsStore.open("staking")
-}
 
 // Computed properties for validator data
 const validatorMetrics = computed(() => {
@@ -331,15 +174,17 @@ const formatDateTime = (dateString) => {
 			<Flex align="center" gap="8">
 				<Icon name="validator" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					{{ validator.infrastructure?.validator_name || shortHex(validator.validator_id) }}
+					{{ infrastructureDetails?.validatorName || shortHex(validator.validator_id) }}
 				</Text>
+				<Badge :color="getPerformanceColor(validatorMetrics.uptimeScore)" type="light" size="small">
+					{{ validatorStatus.name }}
+				</Badge>
 			</Flex>
 
 			<Flex align="center" gap="12">
-				<Button @click="handleDelegate" type="secondary" size="mini">
-					<Icon name="coins_up" size="12" color="primary" />
-					Delegate
-				</Button>
+				<Text size="12" weight="600" color="secondary">
+					{{ formatPercentage(validatorMetrics.uptimeScore) }} uptime
+				</Text>
 			</Flex>
 		</Flex>
 
@@ -358,139 +203,42 @@ const formatDateTime = (dateString) => {
 						</Flex>
 					</Flex>
 
-					<Flex v-if="validator.details" direction="column" gap="6">
-						<Text size="12" weight="600" color="secondary">Description</Text>
+					<!-- Performance Summary -->
+					<Flex direction="column" gap="16">
+						<Text size="12" weight="600" color="secondary">Performance Summary</Text>
 
-						<Flex align="center" gap="6">
-							<Text size="12" height="140" weight="600" color="tertiary" mono selectable :class="$style.memo">
-								{{ validator.details }}
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Uptime Score</Text>
+							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
+								{{ formatPercentage(validatorMetrics.uptimeScore) }}
+							</Text>
+						</Flex>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">QC Participation</Text>
+							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
+								{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
+							</Text>
+						</Flex>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Block Proposal Ratio</Text>
+							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
+								{{ formatPercentage(validatorMetrics.blockProposalRatio) }}
 							</Text>
 						</Flex>
 					</Flex>
-					<Flex v-if="validator.website || parsedContacts.length" align="center" justify="start" gap="12">
-						<Tooltip v-if="validator.website" position="start" delay="500">
-							<a :href="validator.website" target="_blank">
-								<Icon name="globe" size="14" color="secondary" :class="$style.btn" />
-							</a>
 
-							<template #content>
-								{{ validator.website }}
-							</template>
-						</Tooltip>
-
-						<template v-for="c in parsedContacts">
-							<Tooltip v-if="c.type !== 'unknown'" position="start" delay="500">
-								<a :href="c.value" target="_blank">
-									<Icon :name="c.type" size="14" color="secondary" :class="$style.btn" />
-								</a>
-
-								<template #content>
-									{{ c.value }}
-								</template>
-							</Tooltip>
-						</template>
-					</Flex>
-
-					<!-- Staking -->
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Staking</Text>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Voting Power</Text>
-							<AmountInCurrency
-								:amount="{ value: validator.voting_power, unit: 'TIA' }"
-								:styles="{ amount: { color: 'tertiary' } }"
-							/>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Outgoing Rewards</Text>
-							<AmountInCurrency :amount="{ value: validator.rewards }" :styles="{ amount: { color: 'tertiary' } }" />
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Commissions</Text>
-							<AmountInCurrency :amount="{ value: validator.commissions }" :styles="{ amount: { color: 'tertiary' } }" />
-						</Flex>
-					</Flex>
-
-					<!-- Details -->
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Details</Text>
-
-						<Flex v-if="!parsedContacts.length && validator.contacts" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Contact</Text>
-							<Text size="12" weight="600" color="tertiary" selectable> {{ validator.contacts }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Delegator Address</Text>
-							<Flex gap="6">
-								<AddressBadge :account="validator.delegator" color="tertiary" />
-								<CopyButton :text="validator.delegator.hash" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Consensus Address</Text>
-							<Flex gap="6">
-								<Text size="12" weight="600" color="tertiary"> {{ shortHex(validator.cons_address) }} </Text>
-								<CopyButton :text="validator.cons_address" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Identity</Text>
-							<Flex gap="6">
-								<Text size="12" weight="600" color="tertiary"> {{ validator.identity }} </Text>
-								<CopyButton :text="validator.identity" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Max Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.max_rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Max Change Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.max_change_rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Min Self Delegation</Text>
-							<Text size="12" weight="600" color="secondary"> {{ comma(validator.min_self_delegation) }} </Text>
-						</Flex>
-
-						<div :class="$style.horizontal_divider" />
-
-						<!-- Validator Uptime -->
-						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="secondary">Validator Uptime</Text>
-							<Text size="12" weight="600" color="tertiary">(last 100 blocks)</Text>
-						</Flex>
-
-						<Flex :class="$style.uptime_wrapper">
-							<Tooltip v-for="t in uptime">
-								<Flex
-									:class="$style.uptime"
-									:style="{
-										background: t.signed ? 'rgb(10, 219, 111)' : 'red',
-									}"
-								/>
-
-								<template #content>
-									<Flex direction="column" gap="4">
-										<Text color="primary">{{ t.height }}</Text>
-										<Text color="secondary">{{ t.signed ? "Signed" : "Missed" }}</Text>
-									</Flex>
-								</template>
-							</Tooltip>
+					<!-- Status -->
+					<Flex direction="column" gap="8">
+						<Text size="12" weight="600" color="secondary">Status</Text>
+						<Flex direction="column" gap="4">
+							<Text size="11" weight="500" :color="validatorStatus.color">
+								{{ validatorStatus.description[0] }}
+							</Text>
+							<Text size="11" weight="500" :color="validatorStatus.color">
+								{{ validatorStatus.description[1] }}
+							</Text>
 						</Flex>
 					</Flex>
 				</Flex>
@@ -498,17 +246,15 @@ const formatDateTime = (dateString) => {
 
 			<Flex direction="column" gap="4" wide :class="$style.tabs_section">
 				<Flex align="center" justify="between" :class="$style.tabs_wrapper">
-					<Flex gap="4" :class="$style.tabs">
-						<Flex
-							@click="activeTab = tab.name"
+					<Flex align="center" gap="4">
+						<button
 							v-for="tab in tabs"
-							align="center"
-							gap="6"
-							:class="[$style.tab, activeTab === tab.name && $style.active]"
+							@click="activeTab = tab.name"
+							:class="[$style.tab, activeTab === tab.name && $style.tab_active]"
 						>
-							<Icon :name="tab.icon" size="12" color="secondary" />
-							<Text size="13" weight="600">{{ tab.name }}</Text>
-						</Flex>
+							<Icon :name="tab.icon" size="12" />
+							{{ tab.name }}
+						</button>
 					</Flex>
 				</Flex>
 
@@ -516,109 +262,143 @@ const formatDateTime = (dateString) => {
 					<!-- Performance Tab -->
 					<template v-if="activeTab === 'Performance'">
 						<Flex direction="column" gap="12">
-							<Text size="14" weight="600" color="primary">Current Performance</Text>
+							<Text size="13" weight="600" color="primary">Real-time Performance Metrics</Text>
 							
-							<div :class="$style.metrics_grid">
-								<div :class="$style.metric_card">
-									<Text size="11" color="tertiary">Uptime Score</Text>
-									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
+							<Flex direction="column" gap="8" :class="$style.metrics_grid">
+								<Flex direction="column" gap="4" :class="$style.metric_card">
+									<Text size="11" weight="500" color="tertiary">Uptime Score</Text>
+									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
 										{{ formatPercentage(validatorMetrics.uptimeScore) }}
 									</Text>
-								</div>
+								</Flex>
 								
-								<div :class="$style.metric_card">
-									<Text size="11" color="tertiary">QC Participation</Text>
-									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
+								<Flex direction="column" gap="4" :class="$style.metric_card">
+									<Text size="11" weight="500" color="tertiary">QC Participation Rate</Text>
+									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
 										{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
 									</Text>
-								</div>
+								</Flex>
 								
-								<div :class="$style.metric_card">
-									<Text size="11" color="tertiary">Block Proposals</Text>
-									<Text size="18" weight="700" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
+								<Flex direction="column" gap="4" :class="$style.metric_card">
+									<Text size="11" weight="500" color="tertiary">Block Proposal Ratio</Text>
+									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
 										{{ formatPercentage(validatorMetrics.blockProposalRatio) }}
 									</Text>
-								</div>
-							</div>
+								</Flex>
+							</Flex>
+
+							<Flex direction="column" gap="8">
+								<Text size="12" weight="600" color="secondary">Activity Details</Text>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Total Block Opportunities</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalBlockOpportunities }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Blocks Proposed</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.blocksProposed }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Blocks Skipped</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.blocksSkipped }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">QC Opportunities</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalQcOpportunities }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">QC Participations</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.qcParticipations }}</Text>
+								</Flex>
+							</Flex>
 						</Flex>
 					</template>
 
 					<!-- Infrastructure Tab -->
 					<template v-if="activeTab === 'Infrastructure'">
-						<Flex v-if="infrastructureDetails" direction="column" gap="12">
-							<Text size="14" weight="600" color="primary">Infrastructure Details</Text>
+						<Flex direction="column" gap="12">
+							<Text size="13" weight="600" color="primary">Infrastructure Details</Text>
 							
-							<Flex direction="column" gap="8">
+							<Flex v-if="infrastructureDetails" direction="column" gap="8">
 								<Flex align="center" justify="between">
-									<Text size="12" weight="600" color="tertiary">Hostname</Text>
-									<Text size="12" weight="600" color="secondary" mono>
-										{{ infrastructureDetails.hostname }}
-									</Text>
+									<Text size="11" weight="500" color="tertiary">Validator Name</Text>
+									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.validatorName }}</Text>
 								</Flex>
 								
 								<Flex align="center" justify="between">
-									<Text size="12" weight="600" color="tertiary">IP Address</Text>
-									<Text size="12" weight="600" color="secondary" mono>
-										{{ infrastructureDetails.ip }}
-									</Text>
+									<Text size="11" weight="500" color="tertiary">Hostname</Text>
+									<Text size="11" weight="600" color="secondary" mono>{{ infrastructureDetails.hostname }}</Text>
 								</Flex>
 								
 								<Flex align="center" justify="between">
-									<Text size="12" weight="600" color="tertiary">Port</Text>
-									<Text size="12" weight="600" color="secondary">
-										{{ infrastructureDetails.port }}
-									</Text>
+									<Text size="11" weight="500" color="tertiary">IP Address</Text>
+									<Flex align="center" gap="4">
+										<Text size="11" weight="600" color="secondary" mono>{{ infrastructureDetails.ip }}</Text>
+										<CopyButton :text="infrastructureDetails.ip" />
+									</Flex>
 								</Flex>
 								
 								<Flex align="center" justify="between">
-									<Text size="12" weight="600" color="tertiary">Timezone</Text>
-									<Text size="12" weight="600" color="secondary">
-										{{ infrastructureDetails.timezone }}
-									</Text>
+									<Text size="11" weight="500" color="tertiary">Port</Text>
+									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.port }}</Text>
 								</Flex>
 								
 								<Flex align="center" justify="between">
-									<Text size="12" weight="600" color="tertiary">Last Updated</Text>
-									<Text size="12" weight="600" color="secondary">
-										{{ formatDateTime(infrastructureDetails.lastUpdated) }}
-									</Text>
+									<Text size="11" weight="500" color="tertiary">Provider</Text>
+									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.provider }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Location</Text>
+									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.location }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Timezone</Text>
+									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.timezone }}</Text>
+								</Flex>
+								
+								<Flex v-if="infrastructureDetails.lastUpdated" align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Last Updated</Text>
+									<Text size="11" weight="600" color="secondary">{{ formatDateTime(infrastructureDetails.lastUpdated) }}</Text>
 								</Flex>
 							</Flex>
-						</Flex>
-						
-						<Flex v-else direction="column" gap="8" align="center" :class="$style.empty">
-							<Text size="13" weight="600" color="secondary">No infrastructure data available</Text>
+							
+							<Flex v-else align="center" justify="center" :class="$style.no_data">
+								<Text size="12" weight="500" color="tertiary">No infrastructure data available</Text>
+							</Flex>
 						</Flex>
 					</template>
 
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
-						<Flex v-if="performanceHistory.length" direction="column" gap="12">
-							<Text size="14" weight="600" color="primary">Performance History (24h)</Text>
+						<Flex direction="column" gap="12">
+							<Text size="13" weight="600" color="primary">24-Hour Performance History</Text>
 							
-							<div :class="$style.history_table">
-								<div :class="$style.history_header">
-									<Text size="11" weight="600" color="tertiary">Time</Text>
-									<Text size="11" weight="600" color="tertiary">Uptime</Text>
-									<Text size="11" weight="600" color="tertiary">QC Rate</Text>
-									<Text size="11" weight="600" color="tertiary">Blocks</Text>
-								</div>
-								
-								<div v-for="entry in performanceHistory.slice(0, 10)" :key="entry.hour" :class="$style.history_row">
-									<Text size="11" color="secondary">{{ new Date(entry.hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</Text>
-									<Text size="11" weight="600" :color="getPerformanceColor(entry.uptimeScore)">
-										{{ formatPercentage(entry.uptimeScore) }}
-									</Text>
-									<Text size="11" weight="600" :color="getPerformanceColor(entry.qcParticipationRate)">
-										{{ formatPercentage(entry.qcParticipationRate) }}
-									</Text>
-									<Text size="11" color="secondary">{{ entry.blocksProposed }}/{{ entry.blockOpportunities }}</Text>
-								</div>
-							</div>
-						</Flex>
-						
-						<Flex v-else direction="column" gap="8" align="center" :class="$style.empty">
-							<Text size="13" weight="600" color="secondary">No performance history available</Text>
+							<Flex v-if="performanceHistory.length" direction="column" gap="6" :class="$style.history_list">
+								<Flex v-for="entry in performanceHistory.slice(-10)" align="center" justify="between" gap="12" :class="$style.history_item">
+									<Text size="11" weight="500" color="tertiary">{{ entry.hour }}:00</Text>
+									<Flex align="center" gap="16">
+										<Text size="10" weight="500" :color="getPerformanceColor(entry.uptimeScore)">
+											{{ formatPercentage(entry.uptimeScore) }}
+										</Text>
+										<Text size="10" weight="500" :color="getPerformanceColor(entry.qcParticipationRate)">
+											QC: {{ formatPercentage(entry.qcParticipationRate) }}
+										</Text>
+										<Text size="10" weight="500" :color="getPerformanceColor(entry.blockProposalRatio)">
+											BP: {{ formatPercentage(entry.blockProposalRatio) }}
+										</Text>
+									</Flex>
+								</Flex>
+							</Flex>
+							
+							<Flex v-else align="center" justify="center" :class="$style.no_data">
+								<Text size="12" weight="500" color="tertiary">No historical data available</Text>
+							</Flex>
 						</Flex>
 					</template>
 				</Flex>
@@ -628,85 +408,71 @@ const formatDateTime = (dateString) => {
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .header {
-	height: 40px;
-	border-radius: 8px 8px 4px 4px;
-	background: var(--card-background);
-	padding: 0 16px;
+	margin-bottom: 16px;
 }
 
 .content {
-	min-height: 400px;
+	align-items: flex-start;
 }
 
 .data {
-	min-width: 384px;
-	border-radius: 4px 4px 4px 8px;
-	background: var(--card-background);
+	min-width: 280px;
+	max-width: 280px;
 }
 
 .main {
+	border: 1px solid var(--op-8);
+	border-radius: 8px;
 	padding: 16px;
+	background: var(--op-3);
 }
 
 .key_value {
-	max-width: 100%;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--op-8);
 }
 
 .tabs_section {
-	min-width: 0;
+	min-height: 400px;
 }
 
 .tabs_wrapper {
-	min-height: 44px;
-	overflow-x: auto;
-	border-radius: 4px;
-	background: var(--card-background);
-	padding: 0 8px;
-}
-
-.tabs_wrapper::-webkit-scrollbar {
-	display: none;
-}
-
-.tabs {
-	display: flex;
-	gap: 4px;
+	border-bottom: 1px solid var(--op-8);
+	padding-bottom: 8px;
 }
 
 .tab {
-	height: 28px;
-	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
 	border-radius: 6px;
-	padding: 0 8px;
+	background: transparent;
+	border: none;
+	color: var(--txt-tertiary);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
 	transition: all 0.1s ease;
-	white-space: nowrap;
-
-	& span {
-		color: var(--txt-tertiary);
-		transition: all 0.1s ease;
-	}
-
-	&:hover {
-		& span {
-			color: var(--txt-secondary);
-		}
-	}
 }
 
-.tab.active {
-	background: var(--op-8);
+.tab:hover {
+	background: var(--op-5);
+	color: var(--txt-secondary);
+}
 
-	& span {
-		color: var(--txt-primary);
-	}
+.tab_active {
+	background: var(--op-8);
+	color: var(--txt-primary);
 }
 
 .tab_content {
-	background: var(--card-background);
-	border-radius: 4px;
-	padding: 16px;
-	min-height: 300px;
+	padding: 16px 0;
 }
 
 .metrics_grid {
@@ -716,108 +482,42 @@ const formatDateTime = (dateString) => {
 }
 
 .metric_card {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
 	padding: 12px;
 	border: 1px solid var(--op-8);
 	border-radius: 6px;
 	background: var(--op-3);
 }
 
-.history_table {
-	display: flex;
-	flex-direction: column;
-	gap: 1px;
+.history_list {
+	max-height: 300px;
+	overflow-y: auto;
 }
 
-.history_header {
-	display: grid;
-	grid-template-columns: 80px 80px 80px 1fr;
-	gap: 12px;
+.history_item {
 	padding: 8px 12px;
-	background: var(--op-5);
-	border-radius: 4px 4px 0 0;
-}
-
-.history_row {
-	display: grid;
-	grid-template-columns: 80px 80px 80px 1fr;
-	gap: 12px;
-	padding: 8px 12px;
+	border: 1px solid var(--op-8);
+	border-radius: 4px;
 	background: var(--op-3);
-	border-bottom: 1px solid var(--op-5);
-
-	&:last-child {
-		border-radius: 0 0 4px 4px;
-	}
-
-	&:hover {
-		background: var(--op-8);
-	}
 }
 
-.empty {
+.no_data {
 	padding: 40px 20px;
-	text-align: center;
-}
-
-.memo {
-	max-width: 352px;
-	text-overflow: ellipsis;
-	overflow: hidden;
-}
-
-.uptime_wrapper {
-	max-width: 384px;
-	flex-wrap: wrap;
-}
-
-.uptime {
-	/* width: 10px;
-	height: 10px; */
-	width: 0.6rem;
-	height: 0.6rem;
-
-	border-radius: 2px;
-	cursor: pointer;
-
-	margin-right: 0.35rem;
-	margin-bottom: 0.35rem;
-}
-
-.horizontal_divider {
-	width: 100%;
-	height: 2px;
-	background: var(--op-5);
-
-	margin-top: 4px;
-	margin-bottom: 4px;
-}
-
-.btn {
-	margin-left: 4px;
+	border: 1px dashed var(--op-8);
+	border-radius: 6px;
 }
 
 @media (max-width: 768px) {
 	.content {
 		flex-direction: column;
 	}
-
+	
 	.data {
-		min-width: initial;
-		border-radius: 8px;
-	}
-
-	.metrics_grid {
-		grid-template-columns: 1fr;
+		min-width: 100%;
+		max-width: 100%;
 	}
 	
-	.history_header,
-	.history_row {
-		grid-template-columns: 60px 60px 60px 1fr;
-		gap: 8px;
-		padding: 6px 8px;
+	.metrics_grid {
+		grid-template-columns: 1fr;
 	}
 }
 </style>
