@@ -1,14 +1,12 @@
 <script setup>
 /** UI */
-import Button from "@/components/ui/Button.vue"
-import Tooltip from "@/components/ui/Tooltip.vue"
+import Badge from "@/components/ui/Badge.vue"
+
+/** Components */
+import CopyButton from "@/components/CopyButton.vue"
 
 /** Services */
 import { shortHex } from "@/services/utils"
-
-/** Store */
-import { useModalsStore } from "@/store/modals.store"
-const modalsStore = useModalsStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -97,30 +95,45 @@ watch(
 
 // Computed properties for validator data
 const validatorMetrics = computed(() => {
+	// Debug logging to understand data structure
+	if (process.dev) {
+		console.log('Validator data structure:', props.validator)
+		console.log('Infrastructure data structure:', props.infrastructure)
+		console.log('History data structure:', props.history)
+	}
+	
+	const metrics = props.validator.metrics || {}
 	return {
-		uptimeScore: props.validator.metrics?.uptime_score || 0,
-		qcParticipationRate: props.validator.metrics?.qc_participation_rate || 0,
-		blockProposalRatio: props.validator.metrics?.block_proposal_ratio || 0,
+		uptimeScore: metrics.uptime_score || 0,
+		qcParticipationRate: metrics.qc_participation_rate || 0,
+		blockProposalRatio: metrics.block_proposal_ratio || 0,
 	}
 })
 
 const validatorDetails = computed(() => {
+	const details = props.validator.details || {}
+	const blockProposals = details.block_proposals || {}
+	const qcParticipations = details.qc_participation || {}
+	
 	return {
-		totalBlockOpportunities: props.validator.details?.total_block_opportunities || 0,
-		blocksProposed: props.validator.details?.blocks_proposed || 0,
-		blocksSkipped: props.validator.details?.blocks_skipped || 0,
-		totalQcOpportunities: props.validator.details?.total_qc_opportunities || 0,
-		qcParticipations: props.validator.details?.qc_participations || 0,
+		totalBlockOpportunities: blockProposals.total_opportunities || 0,
+		blocksProposed: blockProposals.successful_proposals || 0,
+		blocksSkipped: blockProposals.skipped_proposals || 0,
+		totalQcOpportunities: qcParticipations.total_opportunities || 0,
+		qcParticipations: qcParticipations.participations || 0,
 	}
 })
 
 const infrastructureDetails = computed(() => {
-	if (!props.infrastructure?.data?.location) return null
+	// Handle multiple possible data structures
+	const infraData = props.infrastructure?.data || props.infrastructure || {}
+	const location = infraData.location || infraData || {}
 	
-	const location = props.infrastructure.data.location
+	if (!location || Object.keys(location).length === 0) return null
+	
 	return {
-		validatorName: location.validatorName || 'Unknown',
-		provider: location.isp || 'Unknown',
+		validatorName: location.validatorName || location.validator_name || 'Unknown',
+		provider: location.isp || location.provider || 'Unknown',
 		location: `${location.city || 'Unknown'}, ${location.country || 'Unknown'}`,
 		ip: location.ip || 'Unknown',
 		hostname: location.hostname || 'Unknown',
@@ -128,23 +141,29 @@ const infrastructureDetails = computed(() => {
 		timezone: location.timezone || 'Unknown',
 		latitude: location.latitude || 0,
 		longitude: location.longitude || 0,
-		lastUpdated: location.lastUpdated || null,
+		lastUpdated: location.lastUpdated || location.last_updated || null,
 	}
 })
 
 const performanceHistory = computed(() => {
-	if (!props.history?.history) return []
+	const historyData = props.history?.history || props.history?.data || []
+	if (!Array.isArray(historyData)) return []
 	
-	return props.history.history.map(entry => ({
-		hour: entry.hour,
-		uptimeScore: entry.metrics?.uptime_score || 0,
-		qcParticipationRate: entry.metrics?.qc_participation_rate || 0,
-		blockProposalRatio: entry.metrics?.block_proposal_ratio || 0,
-		blockOpportunities: entry.activity?.block_opportunities || 0,
-		blocksProposed: entry.activity?.blocks_proposed || 0,
-		qcOpportunities: entry.activity?.qc_opportunities || 0,
-		qcParticipations: entry.activity?.qc_participations || 0,
-	}))
+	return historyData.map(entry => {
+		const metrics = entry.metrics || {}
+		const activity = entry.activity || {}
+		
+		return {
+			hour: entry.hour || entry.timestamp || 'Unknown',
+			uptimeScore: metrics.uptime_score || 0,
+			qcParticipationRate: metrics.qc_participation_rate || 0,
+			blockProposalRatio: metrics.block_proposal_ratio || 0,
+			blockOpportunities: activity.block_opportunities || 0,
+			blocksProposed: activity.blocks_proposed || 0,
+			qcOpportunities: activity.qc_opportunities || 0,
+			qcParticipations: activity.qc_participations || 0,
+		}
+	})
 })
 
 const formatPercentage = (value) => {

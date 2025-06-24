@@ -83,7 +83,7 @@ const selectedSort = ref(route.query.sortBy || "uptime_score")
 
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
-const limit = ref(50)
+const limit = ref(200)
 const totalValidators = ref(0)
 const pages = computed(() => Math.max(1, Math.ceil(totalValidators.value / limit.value)))
 
