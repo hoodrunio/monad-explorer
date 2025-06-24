@@ -396,28 +396,21 @@ const rawSettingsActions = [
 				title: "Mainnet",
 				subtitle: "Network",
 				runText: "Switch to Mainnet",
-				callback: openMainnet,
-			},
-			{
-				id: id(),
-				type: "callback",
-				icon: "globe",
-				title: "Mocha-4",
-				subtitle: "Network",
-				runText: "Switch to Mocha-4",
 				callback: () => {
-					window.open("https://mocha-4.celenium.io", "_blank")
+					openMainnet()
+					runBounce()
 				},
 			},
 			{
 				id: id(),
 				type: "callback",
 				icon: "globe",
-				title: "Arabica",
+				title: "Testnet",
 				subtitle: "Network",
-				runText: "Switch to Arabica",
+				runText: "Switch to Testnet",
 				callback: () => {
-					window.open("https://arabica.celenium.io", "_blank")
+					openTestnet()
+					runBounce()
 				},
 			},
 		],

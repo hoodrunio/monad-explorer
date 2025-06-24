@@ -120,7 +120,7 @@ async function geocodeLocationLive(locationString) {
 
 		const response = await fetch(url.href, {
 			headers: {
-				'User-Agent': 'Celenium-Interface/1.0 (https://explorer.monad.io)'
+				'User-Agent': 'Monad-Interface/1.0 (https://monad.hoodscan.io)'
 			}
 		})
 
@@ -197,7 +197,7 @@ export const reverseGeocode = async (lat, lon) => {
 
 		const response = await fetch(url.href, {
 			headers: {
-				'User-Agent': 'Celenium-Interface/1.0 (https://explorer.monad.io)'
+				'User-Agent': 'Monad-Interface/1.0 (https://monad.hoodscan.io)'
 			}
 		})
 

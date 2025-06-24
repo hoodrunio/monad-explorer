@@ -47,7 +47,7 @@ async function geocodeLocation(locationString) {
 
 		const response = await fetch(url.href, {
 			headers: {
-				'User-Agent': 'Celenium-Interface-BuildScript/1.0 (https://explorer.monad.io)'
+				'User-Agent': 'Monad-Interface-BuildScript/1.0 (https://monad.hoodscan.io)'
 			}
 		})
 
