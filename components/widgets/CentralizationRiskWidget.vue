@@ -30,7 +30,7 @@ const centralizationData = computed(() => {
     geographicConcentration: data.riskFactors?.geographicConcentration || 0,
     infrastructureDiversity: data.riskFactors?.infrastructureDiversity || 0,
     topProviders: Object.entries(data.providerRisks || {}).slice(0, 3).map(([name, info]) => ({
-      name,
+      name: info.provider || 'unknown',
       validatorCount: info.validatorCount || 0,
       riskScore: info.riskScore || 0
     }))
