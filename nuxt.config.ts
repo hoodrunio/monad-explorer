@@ -63,6 +63,7 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		public: {
 			AMP: process.env.AMP,
+			SENTRY_DSN: process.env.SENTRY_DSN,
 			version: "1.16.0",
 		},
 	},
@@ -118,9 +119,7 @@ export default defineNuxtConfig({
 
 	css: ["@/assets/styles/base.scss", "@/assets/styles/flex.scss", "@/assets/styles/text.scss"],
 
-	pinia: {
-		autoImports: ["defineStore"],
-	},
+	// Pinia configuration - using defaults
 
 	ogImage: {
 		fonts: ["Inter:400", "Inter:600", "IBM+Plex+Mono:400"],
@@ -129,6 +128,8 @@ export default defineNuxtConfig({
 	devtools: {
 		enabled: true,
 	},
+
+	//debug: true,
 
 	vite: {
 		define: {

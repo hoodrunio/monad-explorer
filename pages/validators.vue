@@ -76,6 +76,7 @@ const selectedTimeWindow = ref(route.query.window || "7d")
 // Sort options 
 const sortOptions = ref([
 	{ label: "Uptime Score", value: "uptime_score" },
+	{ label: "Stake", value: "stake" },
 	{ label: "QC Participation", value: "qc_participation_rate" },
 	{ label: "Block Proposals", value: "block_proposal_ratio" },
 ])
