@@ -84,10 +84,11 @@ export const fetchCentralizationRisks = () => {
 }
 
 // Events APIs
-export const fetchRecentEvents = ({ limit, offset } = {}) => {
+export const fetchRecentEvents = ({ type, limit, offset } = {}) => {
 	try {
 		const url = new URL(`${useServerURL()}/api/events/recent`)
 
+		if (type) url.searchParams.append("type", type)
 		if (limit) url.searchParams.append("limit", limit)
 		if (offset) url.searchParams.append("offset", offset)
 

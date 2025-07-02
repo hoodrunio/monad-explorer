@@ -100,13 +100,6 @@ const formatPercentage = (value) => {
             {{ formatPercentage(validatorStats.qcSuccessRate) }}
           </Text>
         </Flex>
-        
-        <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Network Participation</Text>
-          <Text size="14" weight="600" color="primary">
-            {{ formatPercentage(validatorStats.avgNetworkParticipationRate) }}
-          </Text>
-        </Flex>
       </Flex>
     </Flex>
   </div>

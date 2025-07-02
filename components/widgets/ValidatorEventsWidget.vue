@@ -4,9 +4,9 @@ import { ref, computed } from 'vue'
 /** API */
 import { fetchRecentEvents } from "@/services/api/main"
 
-const { data: eventsData, pending: isLoading, error } = await fetchRecentEvents({ limit: 8 })
+const { data: eventsData, pending: isLoading, error } = await fetchRecentEvents({ type: 'block_proposal', limit: 8 })
 
-const recentEvents = computed(() => {
+const recentProposalEvents = computed(() => {
   if (!eventsData.value?.events || !Array.isArray(eventsData.value.events)) {
     return []
   }
@@ -73,7 +73,7 @@ const truncateValidator = (name) => {
   <div :class="$style.wrapper">
     <Flex direction="column" gap="16">
       <Flex align="center" justify="between">
-        <Text size="14" weight="600" color="primary">Recent Events</Text>
+        <Text size="14" weight="600" color="primary">Recent Proposals</Text>
         <NuxtLink to="/validators" :class="$style.view_all_link">
           <Text size="12" color="secondary">View All</Text>
         </NuxtLink>
@@ -87,13 +87,13 @@ const truncateValidator = (name) => {
         <Text size="12" color="red">Error loading events</Text>
       </Flex>
       
-      <Flex v-else-if="recentEvents.length === 0" direction="column" gap="8">
+      <Flex v-else-if="recentProposalEvents.length === 0" direction="column" gap="8">
         <Text size="12" color="tertiary">No recent events</Text>
       </Flex>
       
       <Flex v-else direction="column" gap="8">
         <div 
-          v-for="event in recentEvents.slice(0, 4)" 
+          v-for="event in recentProposalEvents.slice(0, 10)" 
           :key="event.id"
           :class="$style.event_item"
         >
