@@ -86,7 +86,7 @@ const formatPercentage = (value) => {
         <Flex align="center" justify="between">
           <Text size="12" color="tertiary">Total Proposals</Text>
           <Text size="14" weight="600" color="primary">
-            {{ validatorStats.totalProposals.toLocaleString() }}
+            {{ validatorStats.totalProposals.toLocaleString("en-US") }}
           </Text>
         </Flex>
         

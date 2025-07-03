@@ -75,7 +75,7 @@ const displayStatus = computed(() => {
         <Flex align="center" justify="between">
           <Text size="12" color="tertiary">Total Events</Text>
           <Text size="14" weight="600" color="primary">
-            {{ networkHealth.totalEvents.toLocaleString() }}
+            {{ networkHealth.totalEvents.toLocaleString("en-US") }}
           </Text>
         </Flex>
         

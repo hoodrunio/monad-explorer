@@ -170,15 +170,6 @@ const getPerformanceColor = (score) => {
 	if (score >= 90) return 'yellow'
 	return 'red'
 }
-
-const formatDateTime = (dateString) => {
-	if (!dateString) return 'Unknown'
-	try {
-		return new Date(dateString).toLocaleString()
-	} catch {
-		return 'Invalid date'
-	}
-}
 </script>
 
 <template>
@@ -219,6 +210,26 @@ const formatDateTime = (dateString) => {
 					<!-- Performance Summary -->
 					<Flex direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Performance Summary</Text>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">First Seen</Text>
+							<Text
+								v-if="validator.activity"
+								size="12"
+								weight="600"
+								color="primary"
+							>
+								{{
+									new Date(
+										validator.activity.first_seen,
+									).toLocaleString("en-US", {
+										year: "numeric",
+										month: "long",
+										day: "numeric",
+									})
+								}}
+							</Text>
+						</Flex>
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Uptime Score</Text>
@@ -377,7 +388,15 @@ const formatDateTime = (dateString) => {
 								
 								<Flex v-if="infrastructureDetails.lastUpdated" align="center" justify="between">
 									<Text size="11" weight="500" color="tertiary">Last Updated</Text>
-									<Text size="11" weight="600" color="secondary">{{ formatDateTime(infrastructureDetails.lastUpdated) }}</Text>
+									<Text size="11" weight="600" color="secondary">{{
+										new Date(
+											infrastructureDetails.lastUpdated,
+										).toLocaleString("en-US", {
+											year: "numeric",
+											month: "long",
+											day: "numeric",
+										})
+									}}</Text>
 								</Flex>
 							</Flex>
 							
