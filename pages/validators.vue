@@ -2,6 +2,7 @@
 /** UI */
 import Button from "@/components/ui/Button.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
+import BookmarkButton from "@/components/BookmarkButton.vue"
 
 /** Services */
 import { capitilize, comma, shortHex } from "@/services/utils"
@@ -302,6 +303,7 @@ onMounted(() => {
 								<th><Text size="12" weight="600" color="tertiary" noWrap>QC Participation</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Block Proposals</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
+								<th style="width: 1px;"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
 						</thead>
 
@@ -356,6 +358,9 @@ onMounted(() => {
 											{{ validator.location }}
 										</Text>
 									</NuxtLink>
+								</td>
+								<td>
+									<BookmarkButton type="validator" :id="validator.validatorId" />
 								</td>
 							</tr>
 						</tbody>

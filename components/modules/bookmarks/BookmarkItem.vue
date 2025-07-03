@@ -29,6 +29,9 @@ const getIcon = () => {
 		case "transaction":
 			return "tx"
 
+		case "validator":
+			return "validator"
+
 		case "block":
 		case "address":
 			return props.item.type.toLowerCase()
@@ -45,6 +48,9 @@ const getLink = () => {
 
 		case "transaction":
 			return `/tx/${props.item.id}`
+
+		case "validator":
+			return `/validator/${props.item.id}`
 
 		case "block":
 			return `/block/${props.item.id}`
