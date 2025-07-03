@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-06-24T20:53:54.625Z",
-  "totalLocations": 65,
+  "generatedAt": "2025-07-03T12:33:45.348Z",
+  "totalLocations": 76,
   "source": "nominatim",
   "locations": {
     "Falkenstein, Germany": [
@@ -263,6 +263,50 @@
     "Secaucus, United States": [
       -74.0566735,
       40.7899291
+    ],
+    "Warrenton, United States": [
+      -77.795367,
+      38.7135498
+    ],
+    "Baton Rouge, United States": [
+      -91.1869659,
+      30.4494155
+    ],
+    "Salt Lake City, United States": [
+      -111.886797,
+      40.7596198
+    ],
+    "Fechenheim, Germany": [
+      8.7693856,
+      50.123015
+    ],
+    "Piscataway, United States": [
+      -74.4660408,
+      40.5462553
+    ],
+    "Hillsboro, United States": [
+      -122.989827,
+      45.5228939
+    ],
+    "Duivendrecht, The Netherlands": [
+      4.9365267,
+      52.3235787
+    ],
+    "Lausanne, Switzerland": [
+      6.6327025,
+      46.5218269
+    ],
+    "Omaha, United States": [
+      -95.9383758,
+      41.2587459
+    ],
+    "Frankfurt (Oder), Germany": [
+      14.549452,
+      52.3412273
+    ],
+    "San José, Costa Rica": [
+      -84.0795782,
+      9.9325427
     ]
   }
 }
