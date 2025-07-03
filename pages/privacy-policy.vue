@@ -54,7 +54,7 @@ useHead({
 			<Flex :class="[$style.section, $style.section_content]">
 				<Text :class="$style.section_paragraph">PK Labs AG is the controller for the processing under this Privacy Policy unless we tell you otherwise in an individual case.</Text>
 
-				<Text :class="$style.section_paragraph">For any matters, relating to data protection and to exercise your rights under Section 13, you may contact <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a> in writing by e-mail or letter to the following address: Hoodrun AG, Gartenstrasse 6, Zug 6300, Switzerland</Text>
+				<Text :class="$style.section_paragraph">For any matters, relating to data protection and to exercise your rights under Section 13, you may contact <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a> in writing by e-mail.</Text>
 			</Flex>
 		</Flex>
 
