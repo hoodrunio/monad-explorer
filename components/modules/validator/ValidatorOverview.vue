@@ -59,25 +59,19 @@ const validatorStatus = computed(() => {
 		return {
 			name: "Excellent",
 			color: "var(--green)",
-			description: ["Validator performing exceptionally well", "with excellent uptime and participation"]
+			description: ["Performing well"]
 		}
 	} else if (uptime >= 95) {
 		return {
 			name: "Good",
 			color: "var(--brand)",
-			description: ["Validator performing well", "with good uptime and participation"]
+			description: ["Performing good"]
 		}
-	} else if (uptime >= 90) {
+	} else if (uptime <= 90) {
 		return {
 			name: "Warning",
 			color: "var(--yellow)",
-			description: ["Validator performance needs attention", "uptime below optimal levels"]
-		}
-	} else {
-		return {
-			name: "Poor",
-			color: "var(--red)",
-			description: ["Validator performance is poor", "immediate attention required"]
+			description: ["Needs attention"]
 		}
 	}
 })
