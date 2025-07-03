@@ -18,48 +18,59 @@ const router = useRouter()
 const validator = ref()
 const validatorHistory = ref()
 const validatorInfrastructure = ref()
-const isLoading = ref(true)
-const error = ref(null)
 
-const validatorName = computed(() => {
-	return validator.value?.infrastructure?.validator_name || 
-		   validatorInfrastructure.value?.data?.location?.validatorName || 
-		   shortHex(route.params.id)
-})
-
-// Fetch all validator data on component mount
-onMounted(async () => {
+const {
+	data,
+	status: isLoading,
+	error,
+} = useAsyncData("validator", async () => {
 	try {
 		const [
 			{ data: rawValidator },
 			{ data: rawHistory },
-			{ data: rawInfrastructure }
+			{ data: rawInfrastructure },
 		] = await Promise.all([
 			fetchValidatorByID(route.params.id),
 			fetchValidatorHistory({ id: route.params.id, hours: 24 }),
-			fetchValidatorInfrastructure(route.params.id)
+			fetchValidatorInfrastructure(route.params.id),
 		])
 
 		if (!rawValidator.value) {
-			throw new Error('Validator not found')
+			throw new Error("Validator not found")
 		}
 
-		validator.value = rawValidator.value
-		validatorHistory.value = rawHistory.value
-		validatorInfrastructure.value = rawInfrastructure.value
-		
-		cacheStore.current.validator = validator.value
+		return {
+			validator: rawValidator.value,
+			history: rawHistory.value,
+			infrastructure: rawInfrastructure.value,
+		}
 	} catch (err) {
-		error.value = err.message
-		console.error('Error fetching validator data:', err)
-		
-		// Redirect to validators page if validator not found
-		if (err.message === 'Validator not found') {
+		if (err.message === "Validator not found") {
 			await router.push("/validators")
 		}
-	} finally {
-		isLoading.value = false
+		throw err
 	}
+})
+
+watch(
+	data,
+	(newData) => {
+		if (newData) {
+			validator.value = newData.validator
+			validatorHistory.value = newData.history
+			validatorInfrastructure.value = newData.infrastructure
+			cacheStore.current.validator = newData.validator
+		}
+	},
+	{ immediate: true },
+)
+
+const validatorName = computed(() => {
+	return (
+		validator.value?.infrastructure?.validator_name ||
+		validatorInfrastructure.value?.data?.location?.validatorName ||
+		shortHex(route.params.id)
+	)
 })
 
 defineOgImageComponent("ValidatorImage", {
@@ -123,7 +134,7 @@ useHead({
 				/>
 			</Flex>
 
-			<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
+			<Flex v-if="isLoading === 'pending'" direction="column" gap="20" align="center" :class="$style.loading">
 				<Text size="13" weight="600" color="secondary">Loading validator data...</Text>
 			</Flex>
 

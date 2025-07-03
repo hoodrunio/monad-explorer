@@ -65,7 +65,7 @@ const formatTime = (timestamp) => {
 
 const truncateValidator = (name) => {
   if (typeof name !== 'string') return 'Unknown'
-  return name.length > 15 ? `${name.slice(0, 15)}...` : name
+  return name.length > 30 ? `${name.slice(0, 30)}...` : name
 }
 </script>
 
