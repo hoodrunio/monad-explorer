@@ -751,7 +751,7 @@ const searchAction = {
 				break
 
 			case "validator":
-				router.push(`/validator/${data.value[0].result.id}`)
+				router.push(`/validator/${data.value[0].result.validator_id}`)
 				break
 
 			default:
@@ -792,8 +792,8 @@ const debouncedSearch = useDebounceFn(async (e) => {
 		switch (data.value[i].type.toLowerCase()) {
 			case "validator":
 				title =
-					data.value[i].result.alias || data.value[i].result.moniker ? data.value[i].result.moniker : data.value[i].result.address
-				routerLink = `/validator/${data.value[i].result.id}`
+					data.value[i].result.infrastructure?.validator_name || data.value[i].result.validator_id
+				routerLink = `/validator/${data.value[i].result.validator_id}`
 				break
 
 			default:

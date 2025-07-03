@@ -120,8 +120,8 @@ const getResultMetadata = (target) => {
 
 		case "validator":
 			metadata.type = target.type
-			metadata.title = target.result.alias || target.result.moniker ? target.result.moniker : target.result.address
-			metadata.routerLink = `/validator/${target.result.id}`
+			metadata.title = target.result.infrastructure?.validator_name || target.result.validator_id
+			metadata.routerLink = `/validator/${target.result.validator_id}`
 			break
 
 		default:
