@@ -40,16 +40,16 @@ const healthPercentage = computed(() => {
 const statusColor = computed(() => {
   if (isLoading.value) return 'tertiary'
   if (error.value) return 'red'
-  if (healthPercentage.value >= 85) return 'green'
-  if (healthPercentage.value >= 70) return 'yellow'
+  if (healthPercentage.value >= 75) return 'green'
+  if (healthPercentage.value <= 70) return 'yellow'
   return 'red'
 })
 
 const displayStatus = computed(() => {
   if (isLoading.value) return 'Loading...'
   if (error.value) return 'Error'
-  if (healthPercentage.value >= 85) return 'Healthy'
-  if (healthPercentage.value >= 70) return 'Warning'
+  if (healthPercentage.value >= 75) return 'Healthy'
+  if (healthPercentage.value <= 70) return 'Warning'
   return 'Critical'
 })
 </script>
