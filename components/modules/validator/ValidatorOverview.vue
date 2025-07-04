@@ -97,10 +97,17 @@ const validatorMetrics = computed(() => {
 	}
 	
 	const metrics = props.validator.metrics || {}
+	const details = props.validator.details || {}
+	const blockProposals = details.block_proposals || {}
+	const totalBlockOpportunities = blockProposals.total_opportunities || 0
+	
+	// If validator had no block opportunities, don't show 0% as it's misleading
+	const blockProposalRatio = totalBlockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
+	
 	return {
 		uptimeScore: metrics.uptime_score || 0,
 		qcParticipationRate: metrics.qc_participation_rate || 0,
-		blockProposalRatio: metrics.block_proposal_ratio || 0,
+		blockProposalRatio,
 	}
 })
 
@@ -146,13 +153,17 @@ const performanceHistory = computed(() => {
 	return historyData.map(entry => {
 		const metrics = entry.metrics || {}
 		const activity = entry.activity || {}
+		const blockOpportunities = activity.block_opportunities || 0
+		
+		// If validator had no block opportunities, don't show 0% as it's misleading
+		const blockProposalRatio = blockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
 		
 		return {
 			hour: entry.hour || entry.timestamp || 'Unknown',
 			uptimeScore: metrics.uptime_score || 0,
 			qcParticipationRate: metrics.qc_participation_rate || 0,
-			blockProposalRatio: metrics.block_proposal_ratio || 0,
-			blockOpportunities: activity.block_opportunities || 0,
+			blockProposalRatio,
+			blockOpportunities,
 			blocksProposed: activity.blocks_proposed || 0,
 			qcOpportunities: activity.qc_opportunities || 0,
 			qcParticipations: activity.qc_participations || 0,
@@ -247,8 +258,8 @@ const getPerformanceColor = (score) => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Block Proposal Ratio</Text>
-							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
-								{{ formatPercentage(validatorMetrics.blockProposalRatio) }}
+							<Text size="12" weight="600" :color="validatorMetrics.blockProposalRatio !== null ? getPerformanceColor(validatorMetrics.blockProposalRatio) : 'tertiary'">
+								{{ validatorMetrics.blockProposalRatio !== null ? formatPercentage(validatorMetrics.blockProposalRatio) : 'N/A' }}
 							</Text>
 						</Flex>
 					</Flex>
@@ -305,8 +316,8 @@ const getPerformanceColor = (score) => {
 								
 								<Flex direction="column" gap="4" :class="$style.metric_card">
 									<Text size="11" weight="500" color="tertiary">Block Proposal Ratio</Text>
-									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.blockProposalRatio)">
-										{{ formatPercentage(validatorMetrics.blockProposalRatio) }}
+									<Text size="16" weight="600" :color="validatorMetrics.blockProposalRatio !== null ? getPerformanceColor(validatorMetrics.blockProposalRatio) : 'tertiary'">
+										{{ validatorMetrics.blockProposalRatio !== null ? formatPercentage(validatorMetrics.blockProposalRatio) : 'N/A' }}
 									</Text>
 								</Flex>
 							</Flex>
@@ -412,20 +423,20 @@ const getPerformanceColor = (score) => {
 							<Text size="13" weight="600" color="primary">24-Hour Performance History</Text>
 							
 							<Flex v-if="performanceHistory.length" direction="column" gap="6" :class="$style.history_list">
-								<Flex v-for="entry in performanceHistory.slice(-10)" align="center" justify="between" gap="12" :class="$style.history_item">
-									<Text size="11" weight="500" color="tertiary">{{ entry.hour }}:00</Text>
-									<Flex align="center" gap="16">
-										<Text size="10" weight="500" :color="getPerformanceColor(entry.uptimeScore)">
-											{{ formatPercentage(entry.uptimeScore) }}
-										</Text>
-										<Text size="10" weight="500" :color="getPerformanceColor(entry.qcParticipationRate)">
-											QC: {{ formatPercentage(entry.qcParticipationRate) }}
-										</Text>
-										<Text size="10" weight="500" :color="getPerformanceColor(entry.blockProposalRatio)">
-											BP: {{ formatPercentage(entry.blockProposalRatio) }}
-										</Text>
+																	<Flex v-for="entry in performanceHistory.slice(-24)" align="center" justify="between" gap="12" :class="$style.history_item">
+										<Text size="11" weight="500" color="tertiary">{{ entry.hour }}:00</Text>
+										<Flex align="center" gap="16">
+											<Text size="10" weight="500" :color="getPerformanceColor(entry.uptimeScore)">
+												{{ formatPercentage(entry.uptimeScore) }}
+											</Text>
+											<Text size="10" weight="500" :color="getPerformanceColor(entry.qcParticipationRate)">
+												QC: {{ formatPercentage(entry.qcParticipationRate) }}
+											</Text>
+											<Text size="10" weight="500" :color="entry.blockProposalRatio !== null ? getPerformanceColor(entry.blockProposalRatio) : 'tertiary'">
+												BP: {{ entry.blockProposalRatio !== null ? formatPercentage(entry.blockProposalRatio) : 'N/A' }}
+											</Text>
+										</Flex>
 									</Flex>
-								</Flex>
 							</Flex>
 							
 							<Flex v-else align="center" justify="center" :class="$style.no_data">
