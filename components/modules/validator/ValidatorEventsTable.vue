@@ -99,12 +99,25 @@ const getEventDescription = (event) => {
 
 const formatTime = (timestamp) => {
 	try {
-		const date = new Date(timestamp)
-		return {
-			relative: DateTime.fromJSDate(date).toRelative({ locale: "en", style: "short" }),
-			absolute: DateTime.fromJSDate(date).toFormat("LLL dd, yyyy, HH:mm:ss")
+		// Handle different timestamp formats
+		let parsedDate
+		
+		if (timestamp.includes('T')) {
+			// ISO format: "2025-07-01T10:18:43.891Z"
+			parsedDate = DateTime.fromISO(timestamp, { zone: 'utc' })
+		} else {
+			// SQL format: "2025-07-01 10:18:43.891"
+			parsedDate = DateTime.fromSQL(timestamp, { zone: 'utc' })
 		}
-	} catch {
+		
+		const localDate = parsedDate.toLocal()
+		
+		return {
+			relative: localDate.toRelative({ locale: "en", style: "short" }),
+			absolute: localDate.toFormat("LLL dd, yyyy, HH:mm:ss")
+		}
+	} catch (error) {
+		console.error('Error parsing timestamp:', timestamp, error)
 		return {
 			relative: 'Unknown',
 			absolute: 'Unknown time'
