@@ -270,7 +270,7 @@ const getPerformanceColor = (score) => {
 
 					<!-- Validator Uptime Grid -->
 					<Flex direction="column" gap="8">
-						<Text size="12" weight="600" color="secondary">Validator Uptime (last 100 blocks)</Text>
+						<Text size="12" weight="600" color="secondary">Validator Uptime (computed over last 100 hours)</Text>
 						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
 					</Flex>
 				</Flex>
