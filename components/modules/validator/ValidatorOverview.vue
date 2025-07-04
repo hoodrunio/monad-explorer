@@ -10,6 +10,7 @@ import { shortHex } from "@/services/utils"
 
 /** Components */
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
+import ValidatorEventsTable from "./ValidatorEventsTable.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +38,10 @@ const tabs = ref([
 	{
 		name: "History",
 		icon: "clock",
+	},
+	{
+		name: "Events",
+		icon: "calendar",
 	},
 ])
 
@@ -343,6 +348,11 @@ const getPerformanceColor = (score) => {
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
 						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
+					</template>
+
+					<!-- Events Tab -->
+					<template v-if="activeTab === 'Events'">
+						<ValidatorEventsTable :validator-id="validator.validator_id" />
 					</template>
 				</Flex>
 			</Flex>
