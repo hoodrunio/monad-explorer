@@ -22,7 +22,7 @@ const advertisements = [
 		link: 'https://testnet.monad.xyz',
 		icon: 'validator',
 		header: 'Monad Testnet',
-		body: 'Experience the speed of Monad on our public testnet.',
+		body: 'Experience the speed of Monad on public testnet.',
 		footer: 'Try Testnet',
 		weight: 0.2,
 	},

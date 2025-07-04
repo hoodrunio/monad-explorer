@@ -55,7 +55,7 @@ const getGridData = () => {
 	// Ensure we have exactly 100 hours of data, filling with empty entries if needed
 	const data = []
 	// Reverse the history data since API returns oldest to newest
-	const historyData = props.performanceHistory.slice().reverse().slice(-101)
+	const historyData = props.performanceHistory.slice().reverse().slice(-100)
 	
 	// Fill the grid with the last 100 hours
 	for (let i = 0; i < 100; i++) {
@@ -84,11 +84,7 @@ const gridData = computed(() => getGridData())
 </script>
 
 <template>
-	<Flex direction="column" gap="16">
-		<Flex align="center" justify="between">
-			<Text size="13" weight="600" color="primary">100-Hour Performance History</Text>
-			<Text size="11" weight="500" color="tertiary">(last 100 hours)</Text>
-		</Flex>
+	<Flex direction="column" gap="12">
 		
 		<Flex v-if="gridData.length" direction="column" gap="16">
 			<!-- Performance Grid -->
@@ -151,32 +147,7 @@ const gridData = computed(() => getGridData())
 				</div>
 			</Flex>
 			
-			<!-- Legend -->
-			<Flex direction="column" gap="8">
-				<Text size="11" weight="600" color="secondary">Score Legend</Text>
-				<Flex align="center" gap="16" wrap>
-					<Flex align="center" gap="4">
-						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--green)' }" />
-						<Text size="10" weight="500" color="tertiary">99-100%</Text>
-					</Flex>
-					<Flex align="center" gap="4">
-						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--brand)' }" />
-						<Text size="10" weight="500" color="tertiary">95-99%</Text>
-					</Flex>
-					<Flex align="center" gap="4">
-						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--yellow)' }" />
-						<Text size="10" weight="500" color="tertiary">90-95%</Text>
-					</Flex>
-					<Flex align="center" gap="4">
-						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--orange)' }" />
-						<Text size="10" weight="500" color="tertiary">70-90%</Text>
-					</Flex>
-					<Flex align="center" gap="4">
-						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--red)' }" />
-						<Text size="10" weight="500" color="tertiary">0-70%</Text>
-					</Flex>
-				</Flex>
-			</Flex>
+
 		</Flex>
 		
 		<Flex v-else align="center" justify="center" :class="$style.no_data">
@@ -189,11 +160,11 @@ const gridData = computed(() => getGridData())
 .grid_container {
 	display: grid;
 	grid-template-columns: repeat(20, 1fr);
-	gap: 4px;
-	padding: 12px;
+	gap: 2px;
+	padding: 8px;
 	background: var(--op-3);
 	border: 1px solid var(--op-8);
-	border-radius: 8px;
+	border-radius: 6px;
 }
 
 .grid_item {
@@ -203,9 +174,9 @@ const gridData = computed(() => getGridData())
 }
 
 .performance_square {
-	width: 14px;
-	height: 14px;
-	border-radius: 3px;
+	width: 12px;
+	height: 12px;
+	border-radius: 2px;
 	cursor: pointer;
 	transition: all 0.2s ease;
 	border: 1px solid var(--op-8);
@@ -248,27 +219,27 @@ const gridData = computed(() => getGridData())
 
 @media (max-width: 768px) {
 	.grid_container {
-		grid-template-columns: repeat(15, 1fr);
-		gap: 3px;
-		padding: 8px;
-	}
-	
-	.performance_square {
-		width: 12px;
-		height: 12px;
-	}
-}
-
-@media (max-width: 480px) {
-	.grid_container {
-		grid-template-columns: repeat(10, 1fr);
-		gap: 2px;
+		grid-template-columns: repeat(20, 1fr);
+		gap: 1px;
 		padding: 6px;
 	}
 	
 	.performance_square {
 		width: 10px;
 		height: 10px;
+	}
+}
+
+@media (max-width: 480px) {
+	.grid_container {
+		grid-template-columns: repeat(15, 1fr);
+		gap: 1px;
+		padding: 4px;
+	}
+	
+	.performance_square {
+		width: 8px;
+		height: 8px;
 	}
 }
 </style> 

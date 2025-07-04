@@ -10,6 +10,7 @@ import { shortHex } from "@/services/utils"
 
 /** Components */
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
+import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed.vue"
 import ValidatorEventsTable from "./ValidatorEventsTable.vue"
 
 const route = useRoute()
@@ -266,6 +267,12 @@ const getPerformanceColor = (score) => {
 							</Text>
 						</Flex>
 					</Flex>
+
+					<!-- Validator Uptime Grid -->
+					<Flex direction="column" gap="8">
+						<Text size="12" weight="600" color="secondary">Validator Uptime (last 100 blocks)</Text>
+						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
+					</Flex>
 				</Flex>
 			</Flex>
 
@@ -347,7 +354,7 @@ const getPerformanceColor = (score) => {
 
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
-						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
+						<ValidatorPerformanceGridDetailed :performance-history="performanceHistory" />
 					</template>
 
 					<!-- Events Tab -->
@@ -374,8 +381,8 @@ const getPerformanceColor = (score) => {
 }
 
 .data {
-	min-width: 280px;
-	max-width: 280px;
+	min-width: 400px;
+	max-width: 400px;
 }
 
 .main {
