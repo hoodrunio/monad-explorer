@@ -8,6 +8,9 @@ import CopyButton from "@/components/CopyButton.vue"
 /** Services */
 import { shortHex } from "@/services/utils"
 
+/** Components */
+import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
+
 const route = useRoute()
 const router = useRouter()
 
@@ -30,10 +33,6 @@ const tabs = ref([
 	{
 		name: "Performance",
 		icon: "bar-chart",
-	},
-	{
-		name: "Infrastructure",
-		icon: "server",
 	},
 	{
 		name: "History",
@@ -217,50 +216,36 @@ const getPerformanceColor = (score) => {
 							<CopyButton :text="validator.validator_id" />
 						</Flex>
 					</Flex>
-
-					<!-- Performance Summary -->
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Performance Summary</Text>
+					<!-- Infrastructure Details -->
+					<Flex v-if="infrastructureDetails" direction="column" gap="16">
+						<Text size="12" weight="600" color="secondary">Infrastructure Details</Text>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">First Seen</Text>
-							<Text
-								v-if="validator.activity"
-								size="12"
-								weight="600"
-								color="primary"
-							>
-								{{
-									new Date(
-										validator.activity.first_seen,
-									).toLocaleString("en-US", {
-										year: "numeric",
-										month: "long",
-										day: "numeric",
-									})
-								}}
-							</Text>
+							<Text size="12" weight="600" color="tertiary">Validator Name</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.validatorName }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Uptime Score</Text>
-							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
-								{{ formatPercentage(validatorMetrics.uptimeScore) }}
-							</Text>
+							<Text size="12" weight="600" color="tertiary">Hostname</Text>
+							<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.hostname }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">QC Participation</Text>
-							<Text size="12" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
-								{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
-							</Text>
+							<Text size="12" weight="600" color="tertiary">IP Address</Text>
+							<Flex align="center" gap="4">
+								<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.ip }}</Text>
+								<CopyButton :text="infrastructureDetails.ip" />
+							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Block Proposal Ratio</Text>
-							<Text size="12" weight="600" :color="validatorMetrics.blockProposalRatio !== null ? getPerformanceColor(validatorMetrics.blockProposalRatio) : 'tertiary'">
-								{{ validatorMetrics.blockProposalRatio !== null ? formatPercentage(validatorMetrics.blockProposalRatio) : 'N/A' }}
-							</Text>
+							<Text size="12" weight="600" color="tertiary">Provider</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.provider }}</Text>
+						</Flex>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Location</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.location }}</Text>
 						</Flex>
 					</Flex>
 
@@ -353,96 +338,11 @@ const getPerformanceColor = (score) => {
 						</Flex>
 					</template>
 
-					<!-- Infrastructure Tab -->
-					<template v-if="activeTab === 'Infrastructure'">
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="600" color="primary">Infrastructure Details</Text>
-							
-							<Flex v-if="infrastructureDetails" direction="column" gap="8">
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Validator Name</Text>
-									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.validatorName }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Hostname</Text>
-									<Text size="11" weight="600" color="secondary" mono>{{ infrastructureDetails.hostname }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">IP Address</Text>
-									<Flex align="center" gap="4">
-										<Text size="11" weight="600" color="secondary" mono>{{ infrastructureDetails.ip }}</Text>
-										<CopyButton :text="infrastructureDetails.ip" />
-									</Flex>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Port</Text>
-									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.port }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Provider</Text>
-									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.provider }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Location</Text>
-									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.location }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Timezone</Text>
-									<Text size="11" weight="600" color="secondary">{{ infrastructureDetails.timezone }}</Text>
-								</Flex>
-								
-								<Flex v-if="infrastructureDetails.lastUpdated" align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">Last Updated</Text>
-									<Text size="11" weight="600" color="secondary">{{
-										new Date(
-											infrastructureDetails.lastUpdated,
-										).toLocaleString("en-US", {
-											year: "numeric",
-											month: "long",
-											day: "numeric",
-										})
-									}}</Text>
-								</Flex>
-							</Flex>
-							
-							<Flex v-else align="center" justify="center" :class="$style.no_data">
-								<Text size="12" weight="500" color="tertiary">No infrastructure data available</Text>
-							</Flex>
-						</Flex>
-					</template>
+
 
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
-						<Flex direction="column" gap="12">
-							<Text size="13" weight="600" color="primary">24-Hour Performance History</Text>
-							
-							<Flex v-if="performanceHistory.length" direction="column" gap="6" :class="$style.history_list">
-																	<Flex v-for="entry in performanceHistory.slice(-24)" align="center" justify="between" gap="12" :class="$style.history_item">
-										<Text size="11" weight="500" color="tertiary">{{ entry.hour }}:00</Text>
-										<Flex align="center" gap="16">
-											<Text size="10" weight="500" :color="getPerformanceColor(entry.uptimeScore)">
-												{{ formatPercentage(entry.uptimeScore) }}
-											</Text>
-											<Text size="10" weight="500" :color="getPerformanceColor(entry.qcParticipationRate)">
-												QC: {{ formatPercentage(entry.qcParticipationRate) }}
-											</Text>
-											<Text size="10" weight="500" :color="entry.blockProposalRatio !== null ? getPerformanceColor(entry.blockProposalRatio) : 'tertiary'">
-												BP: {{ entry.blockProposalRatio !== null ? formatPercentage(entry.blockProposalRatio) : 'N/A' }}
-											</Text>
-										</Flex>
-									</Flex>
-							</Flex>
-							
-							<Flex v-else align="center" justify="center" :class="$style.no_data">
-								<Text size="12" weight="500" color="tertiary">No historical data available</Text>
-							</Flex>
-						</Flex>
+						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
 					</template>
 				</Flex>
 			</Flex>
@@ -529,24 +429,6 @@ const getPerformanceColor = (score) => {
 	border: 1px solid var(--op-8);
 	border-radius: 6px;
 	background: var(--op-3);
-}
-
-.history_list {
-	max-height: 300px;
-	overflow-y: auto;
-}
-
-.history_item {
-	padding: 8px 12px;
-	border: 1px solid var(--op-8);
-	border-radius: 4px;
-	background: var(--op-3);
-}
-
-.no_data {
-	padding: 40px 20px;
-	border: 1px dashed var(--op-8);
-	border-radius: 6px;
 }
 
 @media (max-width: 768px) {

@@ -31,7 +31,7 @@ const {
 			{ data: rawInfrastructure },
 		] = await Promise.all([
 			fetchValidatorByID(route.params.id),
-			fetchValidatorHistory({ id: route.params.id, hours: 24 }),
+			fetchValidatorHistory({ id: route.params.id, hours: 100 }),
 			fetchValidatorInfrastructure(route.params.id),
 		])
 
