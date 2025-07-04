@@ -38,16 +38,24 @@ const activeFilters = computed(() => {
 	return Object.keys(filters.value).filter(key => filters.value[key])
 })
 
+const getEventName = (type) => {
+	switch (type) {
+		case 'block_proposal': return 'Proposed Block'
+		case 'block_skipped': return 'Skipped Block'
+		case 'qc_participation': return 'Quorum (QC) Participation'
+	}
+}
+
 const getEventIcon = (type) => {
 	switch (type) {
 		case 'block_proposal': return 'zap'
-		case 'block_skipped': return 'x'
+		case 'block_skipped': return 'close-circle'
 		case 'qc_participation': return 'check-circle'
 		case 'validator_joined': return 'plus-circle'
 		case 'validator_left': return 'minus-circle'
 		case 'performance_warning': return 'warning'
 		case 'validator_slashed': return 'shield-alert'
-		case 'consensus_failure': return 'x-octagon'
+		case 'consensus_failure': return 'close'
 		default: return 'info'
 	}
 }
@@ -308,7 +316,7 @@ onMounted(() => {
 										:color="getEventColor(event.event_type)"
 									/>
 									<Text size="12" weight="600" color="primary">
-										{{ event.event_type?.replace('_', ' ') || 'Unknown' }}
+										{{ getEventName(event.event_type) }}
 									</Text>
 								</Flex>
 							</td>
