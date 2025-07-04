@@ -54,7 +54,8 @@ const formatHour = (hour) => {
 const getGridData = () => {
 	// Ensure we have exactly 100 hours of data, filling with empty entries if needed
 	const data = []
-	const historyData = props.performanceHistory.slice(-100)
+	// Reverse the history data since API returns oldest to newest
+	const historyData = props.performanceHistory.slice().reverse().slice(-101)
 	
 	// Fill the grid with the last 100 hours
 	for (let i = 0; i < 100; i++) {
