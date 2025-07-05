@@ -69,6 +69,23 @@ export const fetchBlockLogs = ({ number, limit = 20, offset = 0 } = {}) => {
 	}
 }
 
+// Legacy: Get block events (maps to logs for EVM compatibility)
+export const fetchBlockEvents = ({ height, limit = 20, offset = 0 } = {}) => {
+	try {
+		// For EVM, events are called logs
+		const url = new URL(`${useExplorerURL()}/api/blocks/${height}/logs`)
+
+		if (limit) url.searchParams.append("limit", limit)
+		if (offset) url.searchParams.append("offset", offset)
+
+		return useFetch(url.href, {
+			key: "block_events",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
 // Legacy function for backward compatibility - maps to fetchBlockTransactions
 export const fetchTransactionsByBlock = ({ 
 	height, 

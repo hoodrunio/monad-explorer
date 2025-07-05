@@ -57,18 +57,27 @@ const EventIconMapping = {
 const getEvents = async () => {
 	isLoading.value = true
 
-	if (props.block) {
-		events.value = await fetchBlockEvents({
-			height: props.block.height,
-			limit: 10,
-			offset: (page.value - 1) * 10,
-		})
-	} else if (props.tx) {
-		events.value = await fetchTxEvents({
-			hash: props.tx.hash,
-			limit: 10,
-			offset: (page.value - 1) * 10,
-		})
+	try {
+		if (props.block) {
+			// For EVM blocks, use number instead of height
+			const blockId = props.block.number || props.block.height
+			const { data } = await fetchBlockEvents({
+				height: blockId,
+				limit: 10,
+				offset: (page.value - 1) * 10,
+			})
+			events.value = data?.value || []
+		} else if (props.tx) {
+			// For EVM transactions, use decodedLogs directly from tx data
+			// instead of making additional API calls
+			const startIndex = (page.value - 1) * 10
+			const endIndex = startIndex + 10
+			const decodedLogs = props.tx.decodedLogs || []
+			events.value = decodedLogs.slice(startIndex, endIndex)
+		}
+	} catch (error) {
+		console.error("Error fetching events:", error)
+		events.value = []
 	}
 
 	isLoading.value = false
@@ -98,7 +107,18 @@ const handleViewRawEvent = (event) => {
 }
 
 const page = ref(1)
-const pages = computed(() => (props.block ? Math.ceil(props.block.stats.events_count / 10) : Math.ceil(props.tx.events_count / 10)))
+const pages = computed(() => {
+	if (props.block) {
+		// For EVM blocks, we might not have events_count, so use a default or calculate based on logs
+		const eventsCount = props.block.stats?.events_count || props.block.logsCount || events.value.length || 0
+		return Math.ceil(eventsCount / 10)
+	} else if (props.tx) {
+		// For EVM transactions, use decodedLogs length
+		const eventsCount = props.tx.decodedLogs?.length || 0
+		return Math.ceil(eventsCount / 10)
+	}
+	return 1
+})
 const handleNext = () => {
 	if (page.value === pages.value) return
 	page.value += 1
@@ -139,13 +159,32 @@ watch(
 					:class="[$style.left, idx === 0 && $style.first, idx === events.length - 1 && $style.last]"
 				>
 					<div />
-					<Icon :name="EventIconMapping[event.type] ? EventIconMapping[event.type] : 'zap'" size="12" color="tertiary" />
+					<Icon :name="event.topics ? 'zap' : (EventIconMapping[event.type] ? EventIconMapping[event.type] : 'zap')" size="12" color="tertiary" />
 					<div />
 				</Flex>
 
 				<Flex wide justify="between" align="center" gap="6" :class="$style.right">
+					<!-- For EVM logs, show simplified view -->
+					<Flex v-if="props.tx && (event.eventSignature || event.address)" align="center" gap="4" color="secondary" :class="$style.text">
+						<Text size="12" weight="500" color="secondary">Event</Text>
+						<Text size="12" weight="500" color="primary" mono>
+							{{ event.eventName || (event.eventSignature ? event.eventSignature.slice(0, 10) : 'Unknown') }}
+						</Text>
+						<Text size="12" weight="500" color="secondary">from</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/address/${event.address}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ splitAddress(event.address) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.address }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">Log #{{ event.logIndex }}</Text>
+					</Flex>
 					<!-- Event: coin_spent -->
-					<Flex v-if="event.type === 'coin_spent'" align="center" gap="4" color="secondary" :class="$style.text">
+					<Flex v-else-if="event.type === 'coin_spent'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Tooltip :class="$style.tooltip">
 							<NuxtLink :to="`/address/${event.data.spender}`" @click.stop>
 								<Text size="12" weight="500" color="primary" mono>

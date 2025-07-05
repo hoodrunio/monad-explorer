@@ -3,7 +3,7 @@
 import TxOverview from "@/components/modules/tx/TxOverview.vue"
 
 /** API */
-import { fetchTxByHash, fetchTxTokenTransfers, fetchTxInternalTransactions } from "@/services/api/tx"
+import { fetchTxByHash } from "@/services/api/tx"
 
 /** Services */
 import { shortHex } from "@/services/utils"
@@ -16,8 +16,6 @@ const route = useRoute()
 const router = useRouter()
 
 const transaction = ref()
-const tokenTransfers = ref([])
-const internalTransactions = ref([])
 
 const {
 	data,
@@ -32,24 +30,15 @@ const {
 			throw new Error("Invalid transaction hash format")
 		}
 
-		const [
-			{ data: rawTransaction },
-			{ data: rawTokenTransfers },
-			{ data: rawInternalTransactions },
-		] = await Promise.all([
-			fetchTxByHash(txHash),
-			fetchTxTokenTransfers(txHash),
-			fetchTxInternalTransactions(txHash),
-		])
+		const { data: rawTransaction } = await fetchTxByHash(txHash)
 
-		if (!rawTransaction.value) {
+		// API response structure: { success: true, data: { ...transaction }, meta: {...} }
+		if (!rawTransaction.value?.data) {
 			throw new Error("Transaction not found")
 		}
 
 		return {
-			transaction: rawTransaction.value.transaction || rawTransaction.value,
-			tokenTransfers: rawTokenTransfers.value?.tokenTransfers || rawTokenTransfers.value || [],
-			internalTransactions: rawInternalTransactions.value?.internalTransactions || rawInternalTransactions.value || [],
+			transaction: rawTransaction.value.data,
 		}
 	} catch (err) {
 		if (err.message === "Transaction not found" || err.message === "Invalid transaction hash format") {
@@ -64,11 +53,7 @@ watch(
 	(newData) => {
 		if (newData) {
 			transaction.value = newData.transaction
-			tokenTransfers.value = newData.tokenTransfers
-			internalTransactions.value = newData.internalTransactions
 			cacheStore.current.transaction = newData.transaction
-			cacheStore.current.tokenTransfers = newData.tokenTransfers
-			cacheStore.current.internalTransactions = newData.internalTransactions
 		}
 	},
 	{ immediate: true },

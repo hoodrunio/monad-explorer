@@ -16,8 +16,7 @@ import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 
-/** API */
-import { fetchTxTokenTransfers, fetchTxInternalTransactions } from "@/services/api/tx"
+// API imports removed - using data directly from tx prop
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -37,8 +36,10 @@ const props = defineProps({
 
 const preselectedTab = route.query.tab && ["transfers", "internal", "logs"].includes(route.query.tab) ? route.query.tab : "transfers"
 const activeTab = ref(preselectedTab)
-const tokenTransfers = ref([])
-const internalTransactions = ref([])
+
+// Use data directly from tx prop since API already includes everything
+const tokenTransfers = computed(() => props.tx?.tokenTransfers || [])
+const internalTransactions = computed(() => props.tx?.internalTransactions || [])
 
 // EVM transaction helper functions
 const formatGasValue = (value) => {
@@ -46,11 +47,11 @@ const formatGasValue = (value) => {
 	return comma(value)
 }
 
-const formatEthValue = (value) => {
+const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
 	// Convert wei to ETH (divide by 10^18)
-	const ethValue = parseInt(value) / Math.pow(10, 18)
-	return ethValue.toFixed(6)
+	const monValue = parseInt(value) / Math.pow(10, 18)
+	return monValue.toFixed(6)
 }
 
 const formatGwei = (value) => {
@@ -66,6 +67,7 @@ const getGasUsagePercent = (gasUsed, gasLimit) => {
 }
 
 const gasBarColor = computed(() => {
+	if (!props.tx?.gasUsed || !props.tx?.gas) return "var(--grey)"
 	let percent = getGasUsagePercent(props.tx.gasUsed, props.tx.gas)
 
 	if (percent > 100) {
@@ -97,25 +99,14 @@ watch(
 		}),
 )
 
-onMounted(async () => {
+onMounted(() => {
 	router.replace({
 		query: {
 			tab: activeTab.value,
 		},
 	})
-
-	// Load token transfers and internal transactions
-	try {
-		const [transfersData, internalData] = await Promise.all([
-			fetchTxTokenTransfers(props.tx.hash, { includeMetadata: true }),
-			fetchTxInternalTransactions(props.tx.hash)
-		])
-		
-		tokenTransfers.value = transfersData?.data || []
-		internalTransactions.value = internalData?.data || []
-	} catch (error) {
-		console.error("Error loading transaction data:", error)
-	}
+	// No need for additional API calls since transaction data already includes 
+	// tokenTransfers, decodedLogs, and internalTransactions
 })
 
 const handleViewRawTransaction = () => {
@@ -130,13 +121,13 @@ const handleViewRawTransaction = () => {
 			<Flex align="center" gap="8">
 				<Icon name="tx" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					Transaction <Text color="secondary">{{ tx.hash.slice(0, 6) }} ••• {{ tx.hash.slice(-4) }}</Text>
+					Transaction <Text v-if="tx?.hash" color="secondary">{{ tx.hash.slice(0, 6) }} ••• {{ tx.hash.slice(-4) }}</Text>
 				</Text>
-				<CopyButton :text="tx.hash" size="12" />
+				<CopyButton v-if="tx?.hash" :text="tx.hash" size="12" />
 			</Flex>
 
 			<Flex align="center" gap="12">
-				<BookmarkButton type="transaction" :id="tx.hash" />
+				<BookmarkButton v-if="tx?.hash" type="transaction" :id="tx.hash" />
 
 				<div class="divider_v" />
 
@@ -155,7 +146,7 @@ const handleViewRawTransaction = () => {
 		<Flex gap="4" :class="$style.content">
 			<Flex direction="column" :class="$style.data">
 				<Flex direction="column" gap="24" :class="$style.main">
-					<Flex align="center" gap="40">
+					<Flex v-if="tx" align="center" gap="40">
 						<Flex direction="column" gap="10" :class="$style.key_value">
 							<Text size="12" weight="600" color="secondary">Status</Text>
 
@@ -173,7 +164,7 @@ const handleViewRawTransaction = () => {
 
 						<Flex direction="column" gap="10" :class="$style.key_value">
 							<Text size="12" weight="600" color="secondary">Time</Text>
-							<Text size="13" weight="600" color="primary">
+							<Text v-if="tx.timestamp" size="13" weight="600" color="primary">
 								{{ DateTime.fromISO(tx.timestamp).setLocale("en").toFormat("ff") }}
 							</Text>
 						</Flex>
@@ -222,10 +213,10 @@ const handleViewRawTransaction = () => {
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Value</Text>
-						<Text size="13" weight="600" color="primary">{{ formatEthValue(tx.value) }} ETH</Text>
+						<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.value) }} MON</Text>
 					</Flex>
 
-					<Flex direction="column" gap="10">
+					<Flex v-if="tx?.gasUsed && tx?.gas" direction="column" gap="10">
 						<Text size="12" weight="600" color="secondary">Gas Used</Text>
 
 						<div :class="$style.gas_bar">
@@ -265,7 +256,7 @@ const handleViewRawTransaction = () => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Transaction Fee</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatEthValue(tx.transactionFee) }} ETH</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatMonValue(tx.transactionFee) }} MON</Text>
 						</Flex>
 
 						<Flex v-if="tx.methodName" align="center" justify="between">
@@ -369,7 +360,7 @@ const handleViewRawTransaction = () => {
 									</Flex>
 								</Flex>
 								<Flex direction="column" gap="4" align="end">
-									<Text size="13" weight="600" color="primary">{{ formatEthValue(internal.value) }} ETH</Text>
+									<Text size="13" weight="600" color="primary">{{ formatMonValue(internal.value) }} MON</Text>
 									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gasUsed) }}</Text>
 								</Flex>
 							</Flex>
