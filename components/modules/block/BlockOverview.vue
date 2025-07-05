@@ -163,11 +163,11 @@ const formatGasValue = (value) => {
 	return comma(value)
 }
 
-const formatEthValue = (value) => {
+const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
-	// Convert wei to ETH (divide by 10^18)
-	const ethValue = parseInt(value) / Math.pow(10, 18)
-	return ethValue.toFixed(6)
+	// Convert wei to MON (divide by 10^18)
+	const monValue = parseInt(value) / Math.pow(10, 18)
+	return monValue.toFixed(6)
 }
 
 const getTransactions = async () => {
@@ -546,7 +546,7 @@ const handleViewRawTransactions = () => {
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Text size="13" weight="600" color="primary">
-												{{ formatEthValue(tx.value) }} ETH
+												{{ formatMonValue(tx.value) }} MON
 											</Text>
 										</NuxtLink>
 									</td>
