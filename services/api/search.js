@@ -13,10 +13,11 @@ export const search = async (query) => {
 	if (!isNaN(trimmedQuery) && !trimmedQuery.includes(".")) {
 		promises.push(
 			fetchBlockByHeight(trimmedQuery).then(({ data }) => {
-				if (data.value) {
+				// Handle the actual API response structure: { data: { block: {...} } }
+				if (data.value?.data?.block) {
 					results.push({
 						type: "block",
-						result: data.value,
+						result: data.value.data.block,
 					})
 				}
 			}),
@@ -30,10 +31,11 @@ export const search = async (query) => {
 		/^0x[0-9a-fA-F]{64}$/.test(trimmedQuery)) {
 		promises.push(
 			fetchTxByHash(trimmedQuery).then(({ data }) => {
-				if (data.value) {
+				// Handle the actual API response structure: { data: {...} }
+				if (data.value?.data) {
 					results.push({
 						type: "tx",
-						result: data.value,
+						result: data.value.data,
 					})
 				}
 			}),
@@ -66,17 +68,17 @@ export const search = async (query) => {
 		/^[0-9a-fA-F]+$/.test(trimmedQuery)) {
 		promises.push(
 			fetchTxByHash(`0x${trimmedQuery}`).then(({ data }) => {
-				if (data.value) {
+				// Handle the actual API response structure: { data: {...} }
+				if (data.value?.data) {
 					results.push({
 						type: "tx",
-						result: data.value,
+						result: data.value.data,
 					})
 				}
 			}),
 		)
 	}
 
-	// Legacy: Check for old-style validator address (66 hex characters without 0x)
 	if (typeof trimmedQuery === "string" && 
 		trimmedQuery.length === 66 && 
 		!trimmedQuery.startsWith("0x") && 
