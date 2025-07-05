@@ -21,7 +21,7 @@ import Events from "@/components/shared/tables/Events.vue"
 import { comma, formatBytes, space, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchTransactionsByBlock } from "@/services/api/tx"
+import { fetchBlockTransactions } from "@/services/api/block"
 
 /** Store */
 import { useAppStore } from "@/store/app.store"
@@ -61,35 +61,28 @@ const handlePrev = () => {
 	page.value -= 1
 }
 
-/** Filters */
+/** Filters for EVM transactions */
 const filters = reactive({
 	status: {
 		success: false,
 		failed: false,
 	},
-	message_type: props.block.message_types.sort().reduce((a, b) => ({ ...a, [b]: false }), {}),
+	// Remove message_type filter for EVM - transactions don't have message types
 })
+
 const hasActiveFilters = computed(() => {
 	let has = false
-
 	Object.keys(filters.status).forEach((s) => {
 		if (filters.status[s]) has = true
 	})
-	Object.keys(filters.message_type).forEach((t) => {
-		if (filters.message_type[t]) has = true
-	})
-
 	return has
 })
+
 const savedFiltersBeforeChanges = ref(null)
 
 const handleClearAllFilters = () => {
 	Object.keys(filters.status).forEach((f) => {
 		filters.status[f] = false
-	})
-
-	Object.keys(filters.message_type).forEach((f) => {
-		filters.message_type[f] = false
 	})
 
 	router.replace({
@@ -99,18 +92,14 @@ const handleClearAllFilters = () => {
 	getTransactions()
 }
 
-const searchTerm = ref("")
-
 /** Parse route query */
 Object.keys(route.query).forEach((key) => {
 	if (key === "page" || key === "tab") return
 
-	if (route.query[key].split(",").length) {
+	if (filters[key] && route.query[key].split(",").length) {
 		route.query[key].split(",").forEach((item) => {
 			filters[key][item] = true
 		})
-	} else {
-		filters[key][route.query[key]] = true
 	}
 })
 
@@ -121,11 +110,6 @@ const updateRouteQuery = () => {
 				Object.keys(filters.status).find((f) => filters.status[f]) &&
 				Object.keys(filters.status)
 					.filter((f) => filters.status[f])
-					.join(","),
-			message_type:
-				Object.keys(filters.message_type).find((f) => filters.message_type[f]) &&
-				Object.keys(filters.message_type)
-					.filter((f) => filters.message_type[f])
 					.join(","),
 		},
 	})
@@ -154,40 +138,6 @@ const handleApplyStatusFilters = () => {
 	isStatusPopoverOpen.value = false
 
 	getTransactions()
-
-	updateRouteQuery()
-}
-
-const isMessageTypePopoverOpen = ref(false)
-const handleOpenMessageTypePopover = () => {
-	isMessageTypePopoverOpen.value = true
-
-	if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
-		savedFiltersBeforeChanges.value = { ...filters.message_type }
-	}
-}
-const onMessageTypePopoverClose = () => {
-	isMessageTypePopoverOpen.value = false
-
-	searchTerm.value = ""
-
-	if (savedFiltersBeforeChanges.value) {
-		filters.message_type = savedFiltersBeforeChanges.value
-		savedFiltersBeforeChanges.value = null
-	} else {
-		resetFilters("message_type")
-	}
-}
-const handleApplyMessageTypeFilters = () => {
-	savedFiltersBeforeChanges.value = null
-	isMessageTypePopoverOpen.value = false
-
-	if (page.value > 1) {
-		page.value = 1
-	} else {
-		getTransactions()
-	}
-
 	updateRouteQuery()
 }
 
@@ -198,35 +148,68 @@ const resetFilters = (target, refetch) => {
 
 	if (refetch) {
 		updateRouteQuery()
-
 		getTransactions()
 	}
+}
+
+// EVM block data helper functions
+const getGasUsagePercent = (gasUsed, gasLimit) => {
+	if (!gasLimit || gasLimit === "0") return 0
+	return (parseInt(gasUsed) / parseInt(gasLimit)) * 100
+}
+
+const formatGasValue = (value) => {
+	if (!value) return "0"
+	return comma(value)
+}
+
+const formatEthValue = (value) => {
+	if (!value || value === "0") return "0"
+	// Convert wei to ETH (divide by 10^18)
+	const ethValue = parseInt(value) / Math.pow(10, 18)
+	return ethValue.toFixed(6)
 }
 
 const getTransactions = async () => {
 	isLoading.value = true
 
-	const { data } = await fetchTransactionsByBlock({
-		height: props.block.height,
-		from: parseInt(DateTime.fromISO(props.block.time) / 1000),
-		to: parseInt(DateTime.fromISO(props.block.time) / 1000) + 1,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-		sort: "desc",
-		status:
-			Object.keys(filters.status).find((f) => filters.status[f]) &&
-			Object.keys(filters.status)
-				.filter((f) => filters.status[f])
-				.join(","),
-		type:
-			Object.keys(filters.message_type).find((f) => filters.message_type[f]) &&
-			Object.keys(filters.message_type)
-				.filter((f) => filters.message_type[f])
-				.join(","),
-	})
+	try {
+		const { data } = await fetchBlockTransactions({
+			number: props.block.number,
+			limit: 10,
+			offset: (page.value - 1) * 10,
+			includeTokenTransfers: true,
+		})
 
-	transactions.value = data.value
-	cacheStore.current.transactions = transactions.value
+		// Process transactions data to match display format
+		let txs = data.value.data?.transactions || []
+		
+		// Apply status filters
+		if (Object.keys(filters.status).find((f) => filters.status[f])) {
+			const activeStatuses = Object.keys(filters.status).filter((f) => filters.status[f])
+			txs = txs.filter((tx) => {
+				const status = tx.status === 1 ? "success" : "failed"
+				return activeStatuses.includes(status)
+			})
+		}
+
+		transactions.value = txs.map(tx => ({
+			...tx,
+			// Map EVM fields to expected format
+			status: tx.status === 1 ? "success" : "failed",
+			gas_used: tx.gasUsed,
+			gas_wanted: tx.gas || tx.gasUsed, // Use gasUsed as fallback if gas limit not available
+			fee: tx.transactionFee || "0",
+			// For EVM, we don't have message_types, so we'll use a generic type
+			message_types: tx.isContractCreation ? ["Contract Creation"] : 
+						   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
+		}))
+
+		cacheStore.current.transactions = transactions.value
+	} catch (error) {
+		console.error("Error fetching block transactions:", error)
+		transactions.value = []
+	}
 
 	isLoading.value = false
 }
@@ -261,14 +244,9 @@ watch(
 		})
 
 		page.value = 1
-
 		getTransactions()
 	},
 )
-
-const handleViewODSBlock = () => {
-	modalsStore.open("ods")
-}
 
 const handleViewRawBlock = () => {
 	cacheStore.current._target = "block"
@@ -287,18 +265,13 @@ const handleViewRawTransactions = () => {
 			<Flex align="center" gap="8">
 				<Icon name="block" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					Block <Text color="secondary">{{ comma(block.height) }} </Text>
+					Block <Text color="secondary">{{ comma(block.number) }} </Text>
 				</Text>
-				<CopyButton :text="block.height" size="12" />
+				<CopyButton :text="block.number" size="12" />
 			</Flex>
 
 			<Flex align="center" gap="12">
-				<Button @click="handleViewODSBlock" type="secondary" size="mini" :class="$style.ods_btn" :disabled="block.height === 0">
-					<Icon name="ods" size="12" color="primary" />
-					ODS
-				</Button>
-
-				<BookmarkButton type="block" :id="block.height" />
+				<BookmarkButton type="block" :id="block.number" />
 
 				<div class="divider_v" />
 
@@ -321,114 +294,99 @@ const handleViewRawTransactions = () => {
 					<Flex align="center" justify="between" wide>
 						<Text size="12" weight="600" color="secondary"> Timeline </Text>
 						<Text size="12" weight="600" color="tertiary">
-							{{ DateTime.fromISO(block.time).setLocale("en").toFormat("ff") }}
+							{{ DateTime.fromISO(block.timestamp).setLocale("en").toFormat("ff") }}
 						</Text>
 					</Flex>
 
 					<Badge>
 						<Flex align="center" justify="between" wide>
-							<Text size="12" weight="600" color="secondary">
-								{{
-									DateTime.fromISO(block.time)
-										.minus({ milliseconds: block.stats.block_time })
-										.setLocale("en")
-										.toFormat("TT")
-								}}
+							<Text size="12" weight="600" color="secondary" align="center">
+								{{ DateTime.fromISO(block.timestamp).setLocale("en").toFormat("TT") }}
 							</Text>
 
 							<div v-for="dot in 5" class="dot" />
 
 							<Flex align="center" gap="6">
-								<Icon name="time" size="12" color="secondary" />
-								<Text size="12" weight="600" color="primary"> {{ (block.stats.block_time / 1_000).toFixed(2) }}s </Text>
+								<Icon name="zap" size="12" color="secondary" />
+								<Text size="12" weight="600" color="primary"> 
+									{{ formatGasValue(block.gasUsed) }} gas
+								</Text>
 							</Flex>
 
 							<div v-for="dot in 5" class="dot" />
 
-							<Text size="12" weight="600" color="secondary" align="right">
-								{{ DateTime.fromISO(block.time).setLocale("en").toFormat("TT") }}</Text
-							>
+							<Text size="12" weight="600" color="secondary" align="center">
+								{{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}% used
+							</Text>
 						</Flex>
 					</Badge>
 				</Flex>
 
 				<Flex direction="column" gap="24" :class="$style.main">
-					<Flex v-if="block.proposer" direction="column" gap="12">
-						<Text size="12" weight="600" color="tertiary">Proposer</Text>
-
-						<Flex direction="column" gap="8">
-							<NuxtLink :to="`/validator/${block.proposer.id}`">
-								<Text size="13" weight="600" color="primary">
-									{{ block.proposer.moniker }}
-								</Text>
-							</NuxtLink>
-
-							<Flex align="center" gap="6">
-								<Text size="12" weight="600" color="tertiary">{{ shortHex(block.proposer.cons_address) }}</Text>
-
-								<CopyButton :text="block.proposer.cons_address" size="10" />
-							</Flex>
-						</Flex>
-					</Flex>
-
 					<Flex v-if="block.hash" direction="column" gap="8" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Hash</Text>
-
 						<BadgeValue :text="block.hash" />
+					</Flex>
+
+					<Flex v-if="block.parentHash" direction="column" gap="8" :class="$style.key_value">
+						<Text size="12" weight="600" color="secondary">Parent Hash</Text>
+						<BadgeValue :text="block.parentHash" />
 					</Flex>
 
 					<Flex direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Details</Text>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Blobs Size</Text>
-							<Text size="12" weight="600" color="secondary"> {{ formatBytes(block.stats.blobs_size) }} </Text>
+							<Text size="12" weight="600" color="tertiary">Transactions</Text>
+							<Text size="12" weight="600" color="secondary">{{ block.transactionCount }}</Text>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Events</Text>
-							<Text size="12" weight="600" color="secondary"> {{ block.stats.events_count }} </Text>
+							<Text size="12" weight="600" color="tertiary">Gas Used</Text>
+							<Flex align="center" gap="4">
+								<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gasUsed) }}</Text>
+								<Text size="12" weight="600" color="tertiary">
+									({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+								</Text>
+							</Flex>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Transactions</Text>
-							<Text size="12" weight="600" color="secondary"> {{ block.stats.tx_count }} </Text>
+							<Text size="12" weight="600" color="tertiary">Gas Limit</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gasLimit) }}</Text>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Transactions Fee </Text>
-							<AmountInCurrency
-								:amount="{ value: block.stats.fee, decimal: 6 }"
-								:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
-							/>
+							<Text size="12" weight="600" color="tertiary">Base Fee</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.baseFeePerGas) }} wei</Text>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Bytes in block </Text>
-							<Text size="12" weight="600" color="secondary"> {{ formatBytes(block.stats.bytes_in_block) }}</Text>
-						</Flex>
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Square size </Text>
-							<Text size="12" weight="600" color="secondary"> {{ block.stats.square_size }}</Text>
+							<Text size="12" weight="600" color="tertiary">Block Size</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatBytes(block.size) }}</Text>
 						</Flex>
 					</Flex>
 
 					<Flex align="center" gap="8">
 						<Button
-							@click="router.push(`/block/${block.height - 1}`)"
+							@click="router.push(`/block/${block.number - 1}`)"
 							wide
 							type="secondary"
 							size="mini"
-							:disabled="block.height === 0"
+							:disabled="block.number === 0"
 						>
 							<Icon name="arrow-redo-right" size="16" color="tertiary" :style="{ transform: 'scaleX(-1)' }" />
-							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to</Text> {{ comma(block.height - 1) }}</Text>
+							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to</Text> {{ comma(block.number - 1) }}</Text>
 						</Button>
 
 						<Button
-							@click="router.push(`/block/${block.height + 1}`)"
+							@click="router.push(`/block/${block.number + 1}`)"
 							wide
 							type="secondary"
 							size="mini"
-							:disabled="block.height === lastBlock?.height"
+							:disabled="block.number === lastBlock?.number"
 						>
-							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to </Text>{{ comma(block.height + 1) }}</Text>
+							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to </Text>{{ comma(block.number + 1) }}</Text>
 							<Icon name="arrow-redo-right" size="16" color="tertiary" />
 						</Button>
 					</Flex>
@@ -445,7 +403,6 @@ const handleViewRawTransactions = () => {
 							:class="[$style.tab, activeTab === 'transactions' && $style.active]"
 						>
 							<Icon name="tx" size="12" color="secondary" />
-
 							<Text size="13" weight="600">Transactions</Text>
 						</Flex>
 
@@ -456,8 +413,7 @@ const handleViewRawTransactions = () => {
 							:class="[$style.tab, activeTab === 'events' && $style.active]"
 						>
 							<Icon name="zap" size="12" color="secondary" />
-
-							<Text size="13" weight="600">Events</Text>
+							<Text size="13" weight="600">Logs</Text>
 						</Flex>
 					</Flex>
 				</Flex>
@@ -471,7 +427,6 @@ const handleViewRawTransactions = () => {
 
 								<template v-if="Object.keys(filters.status).find((f) => filters.status[f])">
 									<div :class="$style.vertical_divider" />
-
 									<Text size="12" weight="600" color="primary" style="text-transform: capitalize">
 										{{
 											Object.keys(filters.status)
@@ -479,7 +434,6 @@ const handleViewRawTransactions = () => {
 												.join(", ")
 										}}
 									</Text>
-
 									<Icon @click.stop="resetFilters('status', true)" name="close-circle" size="12" color="secondary" />
 								</template>
 							</Button>
@@ -501,81 +455,17 @@ const handleViewRawTransactions = () => {
 								</Flex>
 							</template>
 						</Popover>
-
-						<Popover :open="isMessageTypePopoverOpen" @on-close="onMessageTypePopoverClose" width="250">
-							<Button @click="handleOpenMessageTypePopover" type="secondary" size="mini" :disabled="!transactions.length">
-								<Icon name="plus-circle" size="12" color="tertiary" />
-								<Text color="secondary">Message Type</Text>
-
-								<template v-if="Object.keys(filters.message_type).find((f) => filters.message_type[f])">
-									<div :class="$style.vertical_divider" />
-
-									<Text size="12" weight="600" color="primary">
-										{{
-											Object.keys(filters.message_type).filter((f) => filters.message_type[f]).length < 3
-												? Object.keys(filters.message_type)
-														.filter((f) => filters.message_type[f])
-														.map((f) => f.replace("Msg", ""))
-														.join(", ")
-												: `${Object.keys(filters.message_type)
-														.filter((f) => filters.message_type[f])[0]
-														.replace("Msg", "")} and ${
-														Object.keys(filters.message_type).filter((f) => filters.message_type[f]).length - 1
-												  } more`
-										}}
-									</Text>
-
-									<Icon
-										@click.stop="resetFilters('message_type', true)"
-										name="close-circle"
-										size="12"
-										color="secondary"
-									/>
-								</template>
-							</Button>
-
-							<template #content>
-								<Flex direction="column" gap="12">
-									<Text size="12" weight="500" color="secondary">Filter by Message Type</Text>
-
-									<Input v-model="searchTerm" size="small" placeholder="Search" autofocus />
-
-									<Flex direction="column" gap="8" :class="$style.message_types_list">
-										<template
-											v-if="
-												Object.keys(filters.message_type).filter((t) =>
-													t.toLowerCase().includes(searchTerm.trim().toLowerCase()),
-												).length
-											"
-										>
-											<Checkbox
-												v-for="msg_type in Object.keys(filters.message_type).filter((t) =>
-													t.toLowerCase().includes(searchTerm.trim().toLowerCase()),
-												)"
-												v-model="filters.message_type[msg_type]"
-											>
-												<Text size="12" weight="500" color="primary">{{ msg_type.replace("Msg", "") }}</Text>
-											</Checkbox>
-										</template>
-										<Flex v-else direction="column" gap="8">
-											<Text size="12" weight="500" color="tertiary">Nothing was found</Text>
-										</Flex>
-									</Flex>
-
-									<Button @click="handleApplyMessageTypeFilters" type="secondary" size="mini" wide>Apply</Button>
-								</Flex>
-							</template>
-						</Popover>
 					</Flex>
 
 					<Flex v-if="transactions.length" :class="$style.table_scroller">
-						<table v-if="block.height">
+						<table>
 							<thead>
 								<tr>
 									<th><Text size="12" weight="600" color="tertiary">Hash</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Messages</Text></th>
+									<th><Text size="12" weight="600" color="tertiary">From</Text></th>
+									<th><Text size="12" weight="600" color="tertiary">To</Text></th>
+									<th><Text size="12" weight="600" color="tertiary">Value</Text></th>
 									<th><Text size="12" weight="600" color="tertiary">Gas</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Fee</Text></th>
 								</tr>
 							</thead>
 
@@ -592,7 +482,7 @@ const handleViewRawTransactions = () => {
 													/>
 
 													<Text size="13" weight="600" color="primary" mono>{{
-														tx.hash.slice(0, 4).toUpperCase()
+														tx.hash.slice(0, 6)
 													}}</Text>
 
 													<Flex align="center" gap="3">
@@ -600,7 +490,7 @@ const handleViewRawTransactions = () => {
 													</Flex>
 
 													<Text size="13" weight="600" color="primary" mono>{{
-														tx.hash.slice(tx.hash.length - 4, tx.hash.length).toUpperCase()
+														tx.hash.slice(tx.hash.length - 4, tx.hash.length)
 													}}</Text>
 
 													<CopyButton :text="tx.hash" />
@@ -619,9 +509,9 @@ const handleViewRawTransactions = () => {
 															</Text>
 														</Flex>
 
-														{{ space(tx.hash).toUpperCase() }}
+														<Text color="tertiary" mono>{{ tx.hash }}</Text>
 
-														<Text height="120" color="tertiary" style="max-width: 400px" mono align="left">
+														<Text v-if="tx.error" height="120" color="tertiary" style="max-width: 400px" mono align="left">
 															{{ tx.error }}
 														</Text>
 													</Flex>
@@ -631,119 +521,53 @@ const handleViewRawTransactions = () => {
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Tooltip position="start" textAlign="left">
-													<MessageTypeBadge :types="tx.message_types" />
-
-													<template #content>
-														<Flex direction="column" gap="8">
-															<Text v-for="type in tx.message_types" color="primary">
-																{{ type.replace("Msg", "") }}
-															</Text>
-														</Flex>
-													</template>
-												</Tooltip>
-											</Flex>
+											<Tooltip position="start">
+												<Text size="13" weight="600" color="primary" mono>
+													{{ shortHex(tx.fromAddress) }}
+												</Text>
+												<template #content>
+													<Text color="primary" mono>{{ tx.fromAddress }}</Text>
+												</template>
+											</Tooltip>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/tx/${tx.hash}`">
+											<Tooltip position="start">
+												<Text size="13" weight="600" color="primary" mono>
+													{{ shortHex(tx.toAddress) }}
+												</Text>
+												<template #content>
+													<Text color="primary" mono>{{ tx.toAddress }}</Text>
+												</template>
+											</Tooltip>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/tx/${tx.hash}`">
+											<Text size="13" weight="600" color="primary">
+												{{ formatEthValue(tx.value) }} ETH
+											</Text>
 										</NuxtLink>
 									</td>
 									<td style="width: 1px">
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Tooltip>
 												<Flex align="center" gap="8">
-													<GasBar :percent="(tx.gas_used * 100) / tx.gas_wanted" />
-
-													<Text v-if="tx.gas_wanted > 0" size="13" weight="600" color="primary">
-														{{ ((tx.gas_used * 100) / tx.gas_wanted).toFixed(2) }}%
+													<GasBar :percent="getGasUsagePercent(tx.gas_used, tx.gas_wanted)" />
+													<Text size="13" weight="600" color="primary">
+														{{ formatGasValue(tx.gas_used) }}
 													</Text>
 												</Flex>
 
 												<template #content>
 													<Flex align="center" gap="4">
-														<Text size="13" weight="600" color="primary">{{ comma(tx.gas_used) }}</Text>
-														<Text size="13" weight="600" color="tertiary">/</Text>
-														<Text size="13" weight="600" color="secondary">{{
-															comma(tx.gas_wanted)
-														}}</Text></Flex
-													>
-												</template>
-											</Tooltip>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<AmountInCurrency
-												:amount="{ value: tx.fee, decimal: 6 }"
-												:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-											/>
-										</NuxtLink>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-
-						<table v-else>
-							<thead>
-								<tr>
-									<th><Text size="12" weight="600" color="tertiary">Hash</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Messages</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Gas</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Fee</Text></th>
-								</tr>
-							</thead>
-
-							<tbody>
-								<tr v-for="tx in transactions">
-									<td style="width: 1px">
-										<Flex align="center" gap="8" :class="$style.genesis_td">
-											<Icon
-												:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
-												size="13"
-												:color="tx.status === 'success' ? 'green' : 'red'"
-											/>
-
-											<Text size="13" weight="600" color="primary" mono>Genesis tx</Text>
-										</Flex>
-									</td>
-									<td>
-										<Flex align="center" :class="$style.genesis_td">
-											<Tooltip position="start" textAlign="left">
-												<MessageTypeBadge :types="tx.message_types" />
-
-												<template #content>
-													<Flex direction="column" gap="8">
-														<Text v-for="type in tx.message_types" color="primary">
-															{{ type.replace("Msg", "") }}
-														</Text>
+														<Text size="13" weight="600" color="primary">{{ formatGasValue(tx.gas_used) }}</Text>
+														<Text size="13" weight="600" color="tertiary">used</Text>
 													</Flex>
 												</template>
 											</Tooltip>
-										</Flex>
-									</td>
-									<td style="width: 1px">
-										<Tooltip :class="$style.genesis_td">
-											<Flex align="center" gap="8">
-												<GasBar :percent="(tx.gas_used * 100) / tx.gas_wanted" />
-
-												<Text v-if="tx.gas_wanted > 0" size="13" weight="600" color="primary">
-													{{ ((tx.gas_used * 100) / tx.gas_wanted).toFixed(2) }}%
-												</Text>
-											</Flex>
-
-											<template #content>
-												<Flex align="center" gap="4">
-													<Text size="13" weight="600" color="primary">{{ comma(tx.gas_used) }}</Text>
-													<Text size="13" weight="600" color="tertiary">/</Text>
-													<Text size="13" weight="600" color="secondary">{{ comma(tx.gas_wanted) }}</Text></Flex
-												>
-											</template>
-										</Tooltip>
-									</td>
-									<td>
-										<AmountInCurrency
-											:class="$style.genesis_td"
-											:amount="{ value: tx.fee, decimal: 6 }"
-											:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-										/>
+										</NuxtLink>
 									</td>
 								</tr>
 							</tbody>

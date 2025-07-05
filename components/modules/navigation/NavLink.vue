@@ -48,7 +48,7 @@ const isActive = computed(() => {
 	if (props.link.queryParam) {
 		res = isSubRouteActive(props.link)
 	} else {
-		if (route.path?.includes("/txs")) {
+		if (route.path?.includes("/transactions")) {
 			if (props.link.name === "Transactions") {
 				res = !route.fullPath?.includes("message_type=MsgPayForBlobs")
 			} else if (props.link.name === "Pay for Blobs") {

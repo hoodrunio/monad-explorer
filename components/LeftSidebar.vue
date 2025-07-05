@@ -31,6 +31,16 @@ const mainLinks = reactive([
 		path: "/",
 	},
 	{
+		icon: "block",
+		name: "Blocks",
+		path: "/blocks",
+	},
+	{
+		icon: "tx",
+		name: "Transactions",
+		path: "/transactions",
+	},
+	{
 		icon: "validator",
 		name: "Validators",
 		path: "/validators",

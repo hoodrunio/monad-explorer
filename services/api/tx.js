@@ -1,18 +1,14 @@
 /** Services */
-import { useServerURL } from "@/services/config"
+import { useExplorerURL } from "@/services/config"
 
-export const fetchTransactions = ({ msg_type, status, from, to, limit, offset, sort_by, sort }) => {
+// Get latest transactions with basic data (for preview)
+export const fetchTransactions = ({ limit = 20, offset = 0, page = 1 } = {}) => {
 	try {
-		const url = new URL(`${useServerURL()}/tx`)
+		const url = new URL(`${useExplorerURL()}/api/transactions`)
 
-		if (msg_type) url.searchParams.append("msg_type", msg_type)
-		if (status) url.searchParams.append("status", status)
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
 		if (limit) url.searchParams.append("limit", limit)
 		if (offset) url.searchParams.append("offset", offset)
-		if (sort_by) url.searchParams.append("sort_by", sort_by)
-		if (sort) url.searchParams.append("sort", sort)
+		if (page) url.searchParams.append("page", page)
 
 		return useFetch(url.href, {
 			key: "transactions",
@@ -22,21 +18,20 @@ export const fetchTransactions = ({ msg_type, status, from, to, limit, offset, s
 	}
 }
 
-export const fetchTxsCount = () => {
+// Get enriched transaction with runtime-parsed token transfers
+export const fetchTxByHash = (hash, {
+	includeTokenTransfers = true,
+	includeTokenMetadata = true,
+	includeDecodedLogs = true,
+	includeInternalTransactions = true
+} = {}) => {
 	try {
-		const url = new URL(`${useServerURL()}/tx/count`)
+		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}`)
 
-		return useFetch(url.href, {
-			key: "transactions_count",
-		})
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchTxByHash = (hash) => {
-	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}`)
+		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+		if (includeTokenMetadata) url.searchParams.append("includeTokenMetadata", includeTokenMetadata)
+		if (includeDecodedLogs) url.searchParams.append("includeDecodedLogs", includeDecodedLogs)
+		if (includeInternalTransactions) url.searchParams.append("includeInternalTransactions", includeInternalTransactions)
 
 		return useFetch(url.href, {
 			key: "transaction",
@@ -46,9 +41,46 @@ export const fetchTxByHash = (hash) => {
 	}
 }
 
-export const fetchTxMessages = async (hash) => {
+// Get token transfers for a specific transaction
+export const fetchTxTokenTransfers = (hash, { includeMetadata = false } = {}) => {
 	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/messages`)
+		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/token-transfers`)
+
+		if (includeMetadata) url.searchParams.append("includeMetadata", includeMetadata)
+
+		return useFetch(url.href, {
+			key: "tx_token_transfers",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+// Get internal transactions for a specific transaction (on-demand tracing)
+export const fetchTxInternalTransactions = (hash, {
+	includeFailedCalls = false,
+	maxDepth = 10,
+	filterByAddress = null
+} = {}) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/internal-transactions`)
+
+		if (includeFailedCalls) url.searchParams.append("includeFailedCalls", includeFailedCalls)
+		if (maxDepth) url.searchParams.append("maxDepth", maxDepth)
+		if (filterByAddress) url.searchParams.append("filterByAddress", filterByAddress)
+
+		return useFetch(url.href, {
+			key: "tx_internal_transactions",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+// Quick check if transaction has internal transactions (lightweight)
+export const fetchTxHasInternalTransactions = async (hash) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/has-internal-transactions`)
 
 		const data = await $fetch(url.href)
 		return data
@@ -57,33 +89,67 @@ export const fetchTxMessages = async (hash) => {
 	}
 }
 
+// Legacy functions for backward compatibility
+
+// Legacy: Transaction messages (mapped to token transfers for EVM)
+export const fetchTxMessages = async (hash) => {
+	return fetchTxTokenTransfers(hash, { includeMetadata: true })
+}
+
+// Legacy: Transaction events (mapped to decoded logs for EVM)
 export const fetchTxEvents = async ({ hash, limit, offset }) => {
 	try {
-		const url = new URL(`${useServerURL()}/tx/${hash}/events`)
+		const tx = await fetchTxByHash(hash, { 
+			includeDecodedLogs: true,
+			includeTokenTransfers: false,
+			includeTokenMetadata: false,
+			includeInternalTransactions: false
+		})
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
+		if (tx.data?.value?.decodedLogs) {
+			const logs = tx.data.value.decodedLogs
+			const start = offset || 0
+			const end = start + (limit || logs.length)
+			return {
+				data: logs.slice(start, end),
+				total: logs.length
+			}
+		}
 
-		const data = await $fetch(url.href)
-		return data
+		return { data: [], total: 0 }
 	} catch (error) {
 		console.error(error)
 	}
 }
 
-export const fetchTransactionsByBlock = ({ limit, offset, sort, height, from, to, status, type, excluded_types }) => {
+// Legacy: Transactions count
+export const fetchTxsCount = () => {
 	try {
-		const url = new URL(`${useServerURL()}/tx`)
+		const url = new URL(`${useExplorerURL()}/stats/tx_count`)
 
-		url.searchParams.append("height", height)
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
+		return useFetch(url.href, {
+			key: "transactions_count",
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+// Legacy: Transactions by block (now handled in block.js)
+export const fetchTransactionsByBlock = ({ 
+	height, 
+	limit, 
+	offset, 
+	includeTokenTransfers = false,
+	// Legacy params that we'll ignore for EVM compatibility
+	sort, from, to, status, type, excluded_types
+} = {}) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/blocks/${height}/transactions`)
+
 		if (limit) url.searchParams.append("limit", limit)
-		if (sort) url.searchParams.append("sort", sort)
 		if (offset) url.searchParams.append("offset", offset)
-		if (status) url.searchParams.append("status", status)
-		if (type) url.searchParams.append("msg_type", type)
-		if (excluded_types) url.searchParams.append("excluded_msg_type", excluded_types)
+		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
 
 		return useFetch(url.href, {
 			key: "transactions_by_block",

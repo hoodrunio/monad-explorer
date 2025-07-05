@@ -4,6 +4,11 @@ export const Server = {
 		testnet: "https://monad-indexer.hoodscan.io",
 		dev: "https://monad-indexer.hoodscan.io",
 	},
+	Explorer: {
+		mainnet: "https://monad-testnet-api.hoodscan.io",
+		testnet: "https://monad-testnet-api.hoodscan.io",
+		dev: "https://monad-testnet-api.hoodscan.io",
+	},
 }
 
 export const useServerURL = () => {
@@ -22,6 +27,25 @@ export const useServerURL = () => {
 
 		default:
 			return Server.API.dev
+	}
+}
+
+export const useExplorerURL = () => {
+	const requestURL = useRequestURL()
+
+	switch (requestURL.hostname) {
+		case "explorer.monad.io":
+		case "localhost:9090":
+			return Server.Explorer.mainnet
+
+		case "testnet.monad.io":
+			return Server.Explorer.testnet
+
+		case "dev.monad.io":
+			return Server.Explorer.dev
+
+		default:
+			return Server.Explorer.dev
 	}
 }
 

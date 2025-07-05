@@ -255,6 +255,24 @@ const rawNavigationActions = [
 	{
 		type: "callback",
 		icon: "arrow-narrow-right",
+		title: "Go to Blocks",
+		runText: "Open Blocks",
+		callback: () => {
+			router.push("/blocks")
+		},
+	},
+	{
+		type: "callback",
+		icon: "arrow-narrow-right",
+		title: "Go to Transactions",
+		runText: "Open Transactions",
+		callback: () => {
+			router.push("/transactions")
+		},
+	},
+	{
+		type: "callback",
+		icon: "arrow-narrow-right",
 		title: "Go to Validators",
 		runText: "Open Validators",
 		callback: () => {
@@ -735,7 +753,7 @@ const searchAction = {
 				break
 
 			case "block":
-				router.push(`/block/${data.value[0].result.height}`)
+				router.push(`/block/${data.value[0].result.number || data.value[0].result.height}`)
 				break
 
 			case "namespace":

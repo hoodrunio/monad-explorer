@@ -14,10 +14,10 @@ import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
 
 /** Services */
-import { comma } from "@/services/utils"
+import { comma, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchTxMessages } from "@/services/api/tx"
+import { fetchTxTokenTransfers, fetchTxInternalTransactions } from "@/services/api/tx"
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -35,12 +35,38 @@ const props = defineProps({
 	},
 })
 
-const preselectedTab = route.query.tab && ["messages", "events"].includes(route.query.tab) ? route.query.tab : "messages"
+const preselectedTab = route.query.tab && ["transfers", "internal", "logs"].includes(route.query.tab) ? route.query.tab : "transfers"
 const activeTab = ref(preselectedTab)
-const messages = ref([])
+const tokenTransfers = ref([])
+const internalTransactions = ref([])
+
+// EVM transaction helper functions
+const formatGasValue = (value) => {
+	if (!value) return "0"
+	return comma(value)
+}
+
+const formatEthValue = (value) => {
+	if (!value || value === "0") return "0"
+	// Convert wei to ETH (divide by 10^18)
+	const ethValue = parseInt(value) / Math.pow(10, 18)
+	return ethValue.toFixed(6)
+}
+
+const formatGwei = (value) => {
+	if (!value || value === "0") return "0"
+	// Convert wei to Gwei (divide by 10^9)
+	const gweiValue = parseInt(value) / Math.pow(10, 9)
+	return gweiValue.toFixed(2)
+}
+
+const getGasUsagePercent = (gasUsed, gasLimit) => {
+	if (!gasLimit || gasLimit === "0") return 0
+	return (parseInt(gasUsed) / parseInt(gasLimit)) * 100
+}
 
 const gasBarColor = computed(() => {
-	let percent = (props.tx.gas_used * 100) / props.tx.gas_wanted
+	let percent = getGasUsagePercent(props.tx.gasUsed, props.tx.gas)
 
 	if (percent > 100) {
 		return "var(--red)"
@@ -52,6 +78,14 @@ const gasBarColor = computed(() => {
 		return "var(--green)"
 	}
 })
+
+// Transaction type helper
+const getTransactionType = (tx) => {
+	if (tx.isContractCreation) return "Contract Creation"
+	if (tx.isContractInteraction) return "Contract Call"
+	if (tx.toAddress) return "Transfer"
+	return "Unknown"
+}
 
 watch(
 	() => activeTab.value,
@@ -70,8 +104,18 @@ onMounted(async () => {
 		},
 	})
 
-	const data = await fetchTxMessages(props.tx.hash)
-	messages.value = data
+	// Load token transfers and internal transactions
+	try {
+		const [transfersData, internalData] = await Promise.all([
+			fetchTxTokenTransfers(props.tx.hash, { includeMetadata: true }),
+			fetchTxInternalTransactions(props.tx.hash)
+		])
+		
+		tokenTransfers.value = transfersData?.data || []
+		internalTransactions.value = internalData?.data || []
+	} catch (error) {
+		console.error("Error loading transaction data:", error)
+	}
 })
 
 const handleViewRawTransaction = () => {
@@ -86,7 +130,7 @@ const handleViewRawTransaction = () => {
 			<Flex align="center" gap="8">
 				<Icon name="tx" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					Transaction <Text color="secondary">{{ tx.hash.slice(0, 4) }} ••• {{ tx.hash.slice(-4) }}</Text>
+					Transaction <Text color="secondary">{{ tx.hash.slice(0, 6) }} ••• {{ tx.hash.slice(-4) }}</Text>
 				</Text>
 				<CopyButton :text="tx.hash" size="12" />
 			</Flex>
@@ -117,12 +161,12 @@ const handleViewRawTransaction = () => {
 
 							<Flex align="center" gap="6">
 								<Icon
-									:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
+									:name="tx.status === 1 ? 'check-circle' : 'close-circle'"
 									size="14"
-									:color="tx.status === 'success' ? 'green' : 'red'"
+									:color="tx.status === 1 ? 'green' : 'red'"
 								/>
 								<Text size="13" weight="600" color="primary" style="text-transform: capitalize">
-									{{ tx.status }}
+									{{ tx.status === 1 ? "Success" : "Failed" }}
 								</Text>
 							</Flex>
 						</Flex>
@@ -130,35 +174,32 @@ const handleViewRawTransaction = () => {
 						<Flex direction="column" gap="10" :class="$style.key_value">
 							<Text size="12" weight="600" color="secondary">Time</Text>
 							<Text size="13" weight="600" color="primary">
-								{{ DateTime.fromISO(tx.time).setLocale("en").toFormat("ff") }}
+								{{ DateTime.fromISO(tx.timestamp).setLocale("en").toFormat("ff") }}
 							</Text>
 						</Flex>
 					</Flex>
 
-					<Flex v-if="tx.error" direction="column" gap="6">
+					<Flex v-if="tx.error || tx.revertReason" direction="column" gap="6">
 						<Text size="12" weight="600" color="secondary">Error Message</Text>
 
-						<Text size="12" height="140" weight="600" color="tertiary" mono selectable>{{ tx.error }}</Text>
+						<Text size="12" height="140" weight="600" color="tertiary" mono selectable>
+							{{ tx.error || tx.revertReason }}
+						</Text>
 					</Flex>
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Type</Text>
-
-						<Flex v-if="tx.message_types.length" align="center" gap="8" wrap="wrap">
-							<MessageTypeBadge v-for="type in tx.message_types" :types="[type]" />
-						</Flex>
-						<Text v-else size="13" weight="600" color="tertiary">No Message Types</Text>
+						<Text size="13" weight="600" color="primary">{{ getTransactionType(tx) }}</Text>
 					</Flex>
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Block</Text>
 
-						<NuxtLink :to="`/block/${tx.height}`">
+						<NuxtLink :to="`/block/${tx.blockNumber}`">
 							<Outline>
 								<Flex align="center" gap="6">
 									<Icon name="block" size="14" color="tertiary" />
-
-									<Text size="13" weight="600" color="primary">{{ comma(tx.height) }}</Text>
+									<Text size="13" weight="600" color="primary">{{ comma(tx.blockNumber) }}</Text>
 								</Flex>
 							</Outline>
 						</NuxtLink>
@@ -169,15 +210,19 @@ const handleViewRawTransaction = () => {
 						<BadgeValue :text="tx.hash" />
 					</Flex>
 
-					<Flex v-if="tx.memo" direction="column" gap="6">
-						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="secondary">Memo</Text>
-							<CopyButton :text="tx.memo" />
-						</Flex>
+					<Flex direction="column" gap="10" :class="$style.key_value">
+						<Text size="12" weight="600" color="secondary">From Address</Text>
+						<BadgeValue :text="tx.fromAddress" />
+					</Flex>
 
-						<Text size="12" height="140" weight="600" color="tertiary" mono selectable :class="$style.memo">
-							{{ tx.memo }}
-						</Text>
+					<Flex v-if="tx.toAddress" direction="column" gap="10" :class="$style.key_value">
+						<Text size="12" weight="600" color="secondary">To Address</Text>
+						<BadgeValue :text="tx.toAddress" />
+					</Flex>
+
+					<Flex direction="column" gap="10" :class="$style.key_value">
+						<Text size="12" weight="600" color="secondary">Value</Text>
+						<Text size="13" weight="600" color="primary">{{ formatEthValue(tx.value) }} ETH</Text>
 					</Flex>
 
 					<Flex direction="column" gap="10">
@@ -186,7 +231,7 @@ const handleViewRawTransaction = () => {
 						<div :class="$style.gas_bar">
 							<div
 								:style="{
-									width: `${(tx.gas_used * 100) / tx.gas_wanted > 100 ? 100 : (tx.gas_used * 100) / tx.gas_wanted}%`,
+									width: `${getGasUsagePercent(tx.gasUsed, tx.gas) > 100 ? 100 : getGasUsagePercent(tx.gasUsed, tx.gas)}%`,
 									background: gasBarColor,
 									boxShadow: `0 0 6px ${gasBarColor}`,
 								}"
@@ -195,8 +240,8 @@ const handleViewRawTransaction = () => {
 						</div>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="secondary">{{ ((tx.gas_used * 100) / tx.gas_wanted).toFixed(2) }}%</Text>
-							<Text size="12" weight="600" color="tertiary">{{ comma(tx.gas_used) }} / {{ comma(tx.gas_wanted) }}</Text>
+							<Text size="12" weight="600" color="secondary">{{ getGasUsagePercent(tx.gasUsed, tx.gas).toFixed(2) }}%</Text>
+							<Text size="12" weight="600" color="tertiary">{{ formatGasValue(tx.gasUsed) }} / {{ formatGasValue(tx.gas) }}</Text>
 						</Flex>
 					</Flex>
 
@@ -204,37 +249,48 @@ const handleViewRawTransaction = () => {
 						<Text size="12" weight="600" color="secondary">Details</Text>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Signer</Text>
-							<Flex v-if="tx.signers" align="center" gap="6">
-								<AddressBadge :account="tx.signers[0]" color="secondary" />
+							<Text size="12" weight="600" color="tertiary">Transaction Index</Text>
+							<Text size="12" weight="600" color="secondary">{{ tx.transactionIndex }}</Text>
+						</Flex>
 
-								<CopyButton :text="tx.signers[0].hash" />
-							</Flex>
-						</Flex>
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Events</Text>
-							<Text size="12" weight="600" color="secondary"> {{ tx.events_count }} </Text>
+							<Text size="12" weight="600" color="tertiary">Gas Price</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGwei(tx.gasPrice) }} Gwei</Text>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Messages</Text>
-							<Text size="12" weight="600" color="secondary"> {{ tx.messages_count }} </Text>
+							<Text size="12" weight="600" color="tertiary">Effective Gas Price</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGwei(tx.effectiveGasPrice) }} Gwei</Text>
 						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Fee </Text>
-							<AmountInCurrency
-								:amount="{ value: tx.fee, decimal: 6 }"
-								:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
-							/>
+							<Text size="12" weight="600" color="tertiary">Transaction Fee</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatEthValue(tx.transactionFee) }} ETH</Text>
 						</Flex>
-						<Flex v-if="tx.codespace" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Codespace</Text>
-							<Text size="12" weight="600" color="secondary" no-wrap style="text-transform: capitalize">
-								{{ tx.codespace }}</Text
-							>
+
+						<Flex v-if="tx.methodName" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Method</Text>
+							<Text size="12" weight="600" color="secondary">{{ tx.methodName }}</Text>
 						</Flex>
-						<Flex v-if="tx.timeout_height" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Timeout Height</Text>
-							<Text size="12" weight="600" color="secondary" no-wrap> {{ comma(tx.timeout_height) }}</Text>
+
+						<Flex v-if="tx.methodID" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Method ID</Text>
+							<Text size="12" weight="600" color="secondary" mono>{{ tx.methodID }}</Text>
+						</Flex>
+
+						<Flex v-if="tokenTransfers.length" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Token Transfers</Text>
+							<Text size="12" weight="600" color="secondary">{{ tokenTransfers.length }}</Text>
+						</Flex>
+
+						<Flex v-if="tx.decodedLogs && tx.decodedLogs.length" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Logs</Text>
+							<Text size="12" weight="600" color="secondary">{{ tx.decodedLogs.length }}</Text>
+						</Flex>
+
+						<Flex v-if="internalTransactions.length" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Internal Transactions</Text>
+							<Text size="12" weight="600" color="secondary">{{ internalTransactions.length }}</Text>
 						</Flex>
 					</Flex>
 				</Flex>
@@ -244,33 +300,88 @@ const handleViewRawTransaction = () => {
 				<Flex align="center" justify="between" :class="$style.tabs_wrapper">
 					<Flex gap="4" :class="$style.tabs">
 						<Flex
-							@click="activeTab = 'messages'"
+							@click="activeTab = 'transfers'"
 							align="center"
 							gap="6"
-							:class="[$style.tab, activeTab === 'messages' && $style.active]"
+							:class="[$style.tab, activeTab === 'transfers' && $style.active]"
 						>
-							<Icon name="message" size="12" color="secondary" />
-
-							<Text size="13" weight="600">Messages</Text>
+							<Icon name="swap" size="12" color="secondary" />
+							<Text size="13" weight="600">Token Transfers</Text>
 						</Flex>
 
 						<Flex
-							@click="activeTab = 'events'"
+							@click="activeTab = 'internal'"
 							align="center"
 							gap="6"
-							:class="[$style.tab, activeTab === 'events' && $style.active]"
+							:class="[$style.tab, activeTab === 'internal' && $style.active]"
+						>
+							<Icon name="tree" size="12" color="secondary" />
+							<Text size="13" weight="600">Internal Txs</Text>
+						</Flex>
+
+						<Flex
+							@click="activeTab = 'logs'"
+							align="center"
+							gap="6"
+							:class="[$style.tab, activeTab === 'logs' && $style.active]"
 						>
 							<Icon name="zap" size="12" color="secondary" />
-
-							<Text size="13" weight="600">Events</Text>
+							<Text size="13" weight="600">Logs</Text>
 						</Flex>
 					</Flex>
 				</Flex>
 
-				<Flex v-if="activeTab === 'messages'" :class="$style.inner">
-					<MessagesTable :messages="messages" />
+				<Flex v-if="activeTab === 'transfers'" :class="$style.inner">
+					<Flex v-if="tokenTransfers.length" direction="column" gap="12" :class="$style.content_padding">
+						<div v-for="transfer in tokenTransfers" :class="$style.transfer_item">
+							<Flex align="center" justify="between" wide>
+								<Flex direction="column" gap="4">
+									<Text size="12" weight="600" color="secondary">{{ transfer.tokenType }} Transfer</Text>
+									<Flex align="center" gap="8">
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.fromAddress) }}</Text>
+										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.toAddress) }}</Text>
+									</Flex>
+								</Flex>
+								<Flex direction="column" gap="4" align="end">
+									<Text size="13" weight="600" color="primary">{{ transfer.value }}</Text>
+									<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.tokenAddress) }}</Text>
+								</Flex>
+							</Flex>
+						</div>
+					</Flex>
+					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
+						<Icon name="swap" size="24" color="support" />
+						<Text size="13" weight="600" color="secondary">No token transfers</Text>
+					</Flex>
 				</Flex>
-				<Flex v-if="activeTab === 'events'" :class="$style.inner">
+
+				<Flex v-if="activeTab === 'internal'" :class="$style.inner">
+					<Flex v-if="internalTransactions.length" direction="column" gap="12" :class="$style.content_padding">
+						<div v-for="internal in internalTransactions" :class="$style.transfer_item">
+							<Flex align="center" justify="between" wide>
+								<Flex direction="column" gap="4">
+									<Text size="12" weight="600" color="secondary">{{ internal.type }}</Text>
+									<Flex align="center" gap="8">
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.fromAddress) }}</Text>
+										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.toAddress) }}</Text>
+									</Flex>
+								</Flex>
+								<Flex direction="column" gap="4" align="end">
+									<Text size="13" weight="600" color="primary">{{ formatEthValue(internal.value) }} ETH</Text>
+									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gasUsed) }}</Text>
+								</Flex>
+							</Flex>
+						</div>
+					</Flex>
+					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
+						<Icon name="tree" size="24" color="support" />
+						<Text size="13" weight="600" color="secondary">No internal transactions</Text>
+					</Flex>
+				</Flex>
+
+				<Flex v-if="activeTab === 'logs'" :class="$style.inner">
 					<Events :tx="tx" />
 				</Flex>
 			</Flex>
@@ -386,6 +497,22 @@ const handleViewRawTransaction = () => {
 
 	border-radius: 4px 4px 8px 4px;
 	background: var(--card-background);
+}
+
+.content_padding {
+	padding: 16px;
+}
+
+.transfer_item {
+	padding: 12px;
+	border-radius: 6px;
+	background: var(--op-5);
+	border: 1px solid var(--op-8);
+}
+
+.empty_state {
+	flex: 1;
+	padding: 32px 16px;
 }
 
 .events {
