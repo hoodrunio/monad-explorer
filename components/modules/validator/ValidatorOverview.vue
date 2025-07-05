@@ -7,6 +7,7 @@ import CopyButton from "@/components/CopyButton.vue"
 
 /** Services */
 import { shortHex } from "@/services/utils"
+import { convertUTCToLocal } from "@/services/utils/validator"
 
 /** Components */
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
@@ -163,8 +164,12 @@ const performanceHistory = computed(() => {
 		// If validator had no block opportunities, don't show 0% as it's misleading
 		const blockProposalRatio = blockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
 		
+		// Convert UTC timestamp to local time
+		const originalHour = entry.hour || entry.timestamp || 'Unknown'
+		const localHour = originalHour !== 'Unknown' ? convertUTCToLocal(originalHour).toISOString() : originalHour
+		
 		return {
-			hour: entry.hour || entry.timestamp || 'Unknown',
+			hour: localHour,
 			uptimeScore: metrics.uptime_score || 0,
 			qcParticipationRate: metrics.qc_participation_rate || 0,
 			blockProposalRatio,
@@ -270,7 +275,7 @@ const getPerformanceColor = (score) => {
 
 					<!-- Validator Uptime Grid -->
 					<Flex direction="column" gap="8">
-						<Text size="12" weight="600" color="secondary">Validator Uptime (computed over last 100 hours)</Text>
+						<Text size="12" weight="600" color="secondary">Validator Uptime (last 100 hours)</Text>
 						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
 					</Flex>
 				</Flex>

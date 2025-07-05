@@ -44,9 +44,35 @@ const getPerformanceOpacity = (entry) => {
 }
 
 const formatHour = (hour) => {
-	if (typeof hour === 'string') {
-		// If it's already a formatted hour string, return it
-		return hour.includes(':') ? hour : `${hour}:00`
+	if (typeof hour === 'string' && hour !== 'Unknown') {
+		try {
+			// Parse the timestamp and format as local date and time
+			const date = new Date(hour)
+			const today = new Date()
+			const yesterday = new Date(today)
+			yesterday.setDate(yesterday.getDate() - 1)
+			
+			// Format time
+			const localHour = date.getHours()
+			const localMinute = date.getMinutes()
+			const timeStr = `${localHour.toString().padStart(2, '0')}:${localMinute.toString().padStart(2, '0')}`
+			
+			// Format date
+			if (date.toDateString() === today.toDateString()) {
+				return `Today, ${timeStr}`
+			} else if (date.toDateString() === yesterday.toDateString()) {
+				return `Yesterday, ${timeStr}`
+			} else {
+				const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+					'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+				const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+				
+				return `${dayNames[date.getDay()]}, ${monthNames[date.getMonth()]} ${date.getDate()}, ${timeStr}`
+			}
+		} catch (error) {
+			// Fallback to original behavior
+			return hour.includes(':') ? hour : `${hour}:00`
+		}
 	}
 	return `${hour}:00`
 }
@@ -54,8 +80,8 @@ const formatHour = (hour) => {
 const getGridData = () => {
 	// Ensure we have exactly 100 hours of data, filling with empty entries if needed
 	const data = []
-	// Reverse the history data since API returns oldest to newest
-	const historyData = props.performanceHistory.slice().reverse().slice(-100)
+	// Get last 100 hours first, then reverse since API returns oldest to newest
+	const historyData = props.performanceHistory.slice(-100).reverse()
 	
 	// Fill the grid with the last 100 hours
 	for (let i = 0; i < 100; i++) {
@@ -102,7 +128,7 @@ const gridData = computed(() => getGridData())
 							
 							<template #content>
 								<Flex direction="column" gap="8">
-									<Text size="12" weight="600" color="primary">Hour {{ formatHour(entry.hour) }}</Text>
+									<Text size="12" weight="600" color="primary">{{ formatHour(entry.hour) }}</Text>
 									
 									<Flex direction="column" gap="4">
 										<Flex align="center" justify="between" gap="16">
