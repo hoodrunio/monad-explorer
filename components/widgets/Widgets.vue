@@ -29,9 +29,9 @@ onBeforeMount(() => {
 
 		<!-- Section 2: Validator Analysis & Recent Data -->
 		<Flex gap="20" :class="$style.section">
-			<GeographicDistributionWidget :class="$style.column" />
+			<GeographicDistributionWidget :class="$style.equal_widget" />
 			
-			<ValidatorEventsWidget :class="$style.events_widget" />
+			<ValidatorEventsWidget :class="$style.equal_widget" />
 		</Flex>
 
 		<!-- Section 3: Recent Blocks & Transactions -->
@@ -51,9 +51,7 @@ onBeforeMount(() => {
 	width: 100%;
 }
 
-.column {
-	min-width: 368px;
-}
+
 
 .epoch_widget {
 	flex: 1;
@@ -63,6 +61,11 @@ onBeforeMount(() => {
 .stats_widget {
 	flex: 1;
 	min-width: 280px;
+}
+
+.equal_widget {
+	flex: 1;
+	min-width: 368px;
 }
 
 .events_widget {
@@ -79,15 +82,12 @@ onBeforeMount(() => {
 	.section {
 		flex-direction: column;
 	}
-	
-	.column {
-		min-width: initial;
-	}
 }
 
 @media (max-width: 500px) {
 	.stats_widget,
 	.epoch_widget,
+	.equal_widget,
 	.events_widget,
 	.recent_widget {
 		min-width: initial;
