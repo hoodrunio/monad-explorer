@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button.vue"
 import Input from "@/components/ui/Input.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import BookmarkButton from "@/components/BookmarkButton.vue"
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Services */
 import { capitilize, comma, shortHex } from "@/services/utils"
@@ -119,7 +120,8 @@ const getValidators = async () => {
 				blocksProposed: validator.details?.blocks_proposed || 0,
 				totalBlockOpportunities: validator.details?.total_block_opportunities || 0,
 				qcParticipations: validator.details?.qc_participations || 0,
-				totalQcOpportunities: validator.details?.total_qc_opportunities || 0
+				totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+				logoUrl: validator.keybase?.logo_url || null
 			}))
 			
 			allValidators.value = validatorsList
@@ -357,13 +359,20 @@ onMounted(() => {
 								</td>
 								<td style="width: 1px">
 									<NuxtLink :to="`/validator/${validator.validatorId}`">
-										<Flex direction="column" gap="2">
-											<Text size="13" weight="600" color="primary" mono>
-												{{ validator.name }}
-											</Text>
-											<Text size="11" color="tertiary">
-												{{ shortHex(validator.validatorId) }}
-											</Text>
+										<Flex align="center" gap="8">
+											<ValidatorLogo 
+												:logo-url="validator.logoUrl" 
+												:validator-name="validator.name"
+												size="small"
+											/>
+											<Flex direction="column" gap="2">
+												<Text size="13" weight="600" color="primary" mono>
+													{{ validator.name }}
+												</Text>
+												<Text size="11" color="tertiary">
+													{{ shortHex(validator.validatorId) }}
+												</Text>
+											</Flex>
 										</Flex>
 									</NuxtLink>
 								</td>

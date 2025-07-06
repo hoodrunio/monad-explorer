@@ -5,6 +5,9 @@ import { fetchValidatorRankings } from "@/services/api/validator"
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 
+/** Components */
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
+
 const { data: validatorsData, pending: isLoading, error } = await fetchValidatorRankings({ 
   limit: 10, 
   sortBy: 'uptime_score',
@@ -28,7 +31,8 @@ const topValidators = computed(() => {
     blocksProposed: validator.details?.blocks_proposed || 0,
     totalBlockOpportunities: validator.details?.total_block_opportunities || 0,
     qcParticipations: validator.details?.qc_participations || 0,
-    totalQcOpportunities: validator.details?.total_qc_opportunities || 0
+    totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+    logoUrl: validator.keybase?.logo_url || null
   }))
 })
 
@@ -89,9 +93,16 @@ const getPerformanceColor = (score) => {
             
             <td>
               <NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.validator_link">
-                <Flex direction="column" gap="2">
-                  <Text size="13" weight="600" color="primary">{{ validator.name }}</Text>
-                  <Text size="11" color="tertiary">{{ validator.provider }}</Text>
+                <Flex align="center" gap="6">
+                  <ValidatorLogo 
+                    :logo-url="validator.logoUrl" 
+                    :validator-name="validator.name"
+                    size="small"
+                  />
+                  <Flex direction="column" gap="2">
+                    <Text size="13" weight="600" color="primary">{{ validator.name }}</Text>
+                    <Text size="11" color="tertiary">{{ validator.provider }}</Text>
+                  </Flex>
                 </Flex>
               </NuxtLink>
             </td>

@@ -4,6 +4,7 @@ import Badge from "@/components/ui/Badge.vue"
 
 /** Components */
 import CopyButton from "@/components/CopyButton.vue"
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Services */
 import { shortHex, comma } from "@/services/utils"
@@ -191,13 +192,21 @@ const getPerformanceColor = (score) => {
 	if (score >= 90) return 'yellow'
 	return 'red'
 }
+
+const validatorLogoUrl = computed(() => {
+	return props.validator?.keybase?.logo_url || null
+})
 </script>
 
 <template>
 	<Flex direction="column" gap="4">
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="8">
-				<Icon name="validator" size="14" color="primary" />
+				<ValidatorLogo 
+					:logo-url="validatorLogoUrl" 
+					:validator-name="infrastructureDetails?.validatorName || shortHex(validator.validator_id)"
+					size="medium"
+				/>
 				<Text as="h1" size="13" weight="600" color="primary">
 					{{ infrastructureDetails?.validatorName || shortHex(validator.validator_id) }}
 				</Text>
