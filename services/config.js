@@ -5,9 +5,9 @@ export const Server = {
 		dev: "https://monad-indexer.hoodscan.io",
 	},
 	Explorer: {
-		mainnet: "https://monad-testnet-api.hoodscan.io",
-		testnet: "https://monad-testnet-api.hoodscan.io",
-		dev: "https://monad-testnet-api.hoodscan.io",
+		mainnet: "http://localhost:8080",
+		testnet: "http://localhost:8080",
+		dev: "http://localhost:8080",
 	},
 }
 

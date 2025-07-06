@@ -20,19 +20,19 @@ export const customViewerTheme = createTheme({
 		},
 		{
 			tag: [t.string, t.special(t.brace)],
-			color: "#f1fa8c",
+			color: "var(--editor-string)",
 		},
 		{
 			tag: [t.number, t.self, t.null],
-			color: "#bd93f9",
+			color: "var(--editor-number)",
 		},
 		{
 			tag: t.bool,
-			color: "#F2994A",
+			color: "var(--editor-boolean)",
 		},
 		{
 			tag: [t.keyword, t.propertyName],
-			color: "#6BC46D",
+			color: "var(--editor-keyword)",
 		},
 		{
 			tag: [t.definitionKeyword, t.typeName],

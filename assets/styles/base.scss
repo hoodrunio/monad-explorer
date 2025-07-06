@@ -31,6 +31,12 @@ $grayscale: (
 	--txt-semiblack: rgba(0, 0, 0, 45%);
 	--txt-white: rgba(255, 255, 255, 95%);
 
+	/* Editor Syntax Colors */
+	--editor-string: #f1fa8c;
+	--editor-number: #bd93f9;
+	--editor-boolean: #F2994A;
+	--editor-keyword: #6BC46D;
+
 	/* General */
 	--brand: #18d2a5;
 	--blue: #379bff;
@@ -103,6 +109,12 @@ $grayscale: (
 	--txt-black: rgba(0, 0, 0, 95%);
 	--txt-white: rgba(255, 255, 255, 95%);
 
+	/* Editor Syntax Colors */
+	--editor-string: #f1fa8c;
+	--editor-number: #bd93f9;
+	--editor-boolean: #F2994A;
+	--editor-keyword: #6BC46D;
+
 	/* General */
 	--brand: #33a853;
 	--blue: #0b84fe;
@@ -166,6 +178,12 @@ $grayscale: (
 	--txt-support: rgba(0, 0, 0, 20%);
 	--txt-black: rgba(0, 0, 0, 95%);
 	--txt-white: rgba(255, 255, 255, 95%);
+
+	/* Editor Syntax Colors - Light mode optimized */
+	--editor-string: #b5651d;
+	--editor-number: #6f42c1;
+	--editor-boolean: #d97706;
+	--editor-keyword: #22863a;
 
 	/* General */
 	--brand: #0ade71;

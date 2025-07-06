@@ -30,6 +30,7 @@ const props = defineProps({
 
 const isLoading = ref(false)
 const events = ref([])
+const totalEventsCount = ref(0)
 
 const EventIconMapping = {
 	message: "message",
@@ -57,7 +58,7 @@ const EventIconMapping = {
 const getEvents = async () => {
 	isLoading.value = true
 
-	try {
+			try {
 		if (props.block) {
 			// For EVM blocks, use number instead of height
 			const blockId = props.block.number || props.block.height
@@ -66,7 +67,8 @@ const getEvents = async () => {
 				limit: 10,
 				offset: (page.value - 1) * 10,
 			})
-			events.value = data?.value || []
+			events.value = data?.value?.data?.logs || []
+			totalEventsCount.value = data?.value?.meta?.totalCount || 0
 		} else if (props.tx) {
 			// For EVM transactions, use decodedLogs directly from tx data
 			// instead of making additional API calls
@@ -109,8 +111,8 @@ const handleViewRawEvent = (event) => {
 const page = ref(1)
 const pages = computed(() => {
 	if (props.block) {
-		// For EVM blocks, we might not have events_count, so use a default or calculate based on logs
-		const eventsCount = props.block.stats?.events_count || props.block.logsCount || events.value.length || 0
+		// For EVM blocks, use totalCount from the API response or fallback to current events length
+		const eventsCount = totalEventsCount.value || events.value.length || 0
 		return Math.ceil(eventsCount / 10)
 	} else if (props.tx) {
 		// For EVM transactions, use decodedLogs length
@@ -164,8 +166,34 @@ watch(
 				</Flex>
 
 				<Flex wide justify="between" align="center" gap="6" :class="$style.right">
-					<!-- For EVM logs, show simplified view -->
-					<Flex v-if="props.tx && (event.eventSignature || event.address)" align="center" gap="4" color="secondary" :class="$style.text">
+					<!-- For EVM logs in blocks, show log details -->
+					<Flex v-if="props.block && event.address" align="center" gap="4" color="secondary" :class="$style.text">
+						<Text size="12" weight="500" color="secondary">Log from</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/address/${event.address}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ splitAddress(event.address) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.address }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">in tx</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/tx/${event.transactionHash}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ event.transactionHash.slice(0, 6) }}...{{ event.transactionHash.slice(-4) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.transactionHash }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">{{ event.topics?.length || 0 }} topics</Text>
+					</Flex>
+					<!-- For EVM logs in transactions, show simplified view -->
+					<Flex v-else-if="props.tx && (event.eventSignature || event.address)" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="secondary">Event</Text>
 						<Text size="12" weight="500" color="primary" mono>
 							{{ event.eventName || (event.eventSignature ? event.eventSignature.slice(0, 10) : 'Unknown') }}
@@ -839,7 +867,7 @@ watch(
 					</Flex>
 
 					<Text size="12" weight="600" color="tertiary" mono>
-						{{ handlingEventType(event.type) }}
+						{{ event.type ? handlingEventType(event.type) : (event.address ? `Log #${event.logIndex}` : 'Unknown') }}
 					</Text>
 				</Flex>
 			</Flex>

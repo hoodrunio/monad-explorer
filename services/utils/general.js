@@ -19,7 +19,7 @@ export const formatBlockTime = (time) => {
 }
 
 export const shortAddress = (address, format = "string") => {
-	if (!address || typeof address !== "string") return
+	if (!address || typeof address !== "string") return format === "array" ? ["—", "—"] : "—"
 
 	if (address.startsWith("0x")) {
 		// EVM address format for Monad
@@ -30,6 +30,8 @@ export const shortAddress = (address, format = "string") => {
 }
 
 export const shortHash = (hash) => {
+	if (!hash || typeof hash !== 'string') return '—'
+	
 	return `${hash.slice(0, 4).toUpperCase()} ••• ${hash.slice(-4).toUpperCase()}`
 }
 
@@ -45,6 +47,8 @@ export const strToHex = (str) => {
 }
 
 export const shortHex = (hex) => {
+	if (!hex || typeof hex !== 'string') return '—'
+	
 	if (hex.length > 16) {
 		return `${hex.slice(0, 8)} ••• ${hex.slice(-8)}`
 	} else {
@@ -53,6 +57,8 @@ export const shortHex = (hex) => {
 }
 
 export const midHex = (hex) => {
+	if (!hex || typeof hex !== 'string') return '—'
+	
 	if (hex.length > 32) {
 		return `${hex.slice(0, 16)} ••• ${hex.slice(-16)}`
 	} else {
@@ -61,7 +67,7 @@ export const midHex = (hex) => {
 }
 
 export const splitAddress = (address, format = "string") => {
-	if (!address) return
+	if (!address || typeof address !== "string") return format === "array" ? ["—", "—"] : "—"
 
 	if (address.startsWith("0x")) {
 		// EVM address format for Monad
