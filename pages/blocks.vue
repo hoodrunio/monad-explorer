@@ -36,20 +36,26 @@ const loadBlocks = async (page = 1) => {
 	isLoading.value = true
 	
 	try {
-		const { data } = await fetchBlocks({
+		const { data, error } = await fetchBlocks({
 			limit: pageSize.value,
 			page: page,
 			offset: (page - 1) * pageSize.value
 		})
 		
-		if (data.value && data.value.data) {
+		if (error.value) {
+			blocks.value = []
+			totalBlocks.value = 0
+		} else if (data.value && data.value.data) {
 			blocks.value = data.value.data.blocks || []
 			totalBlocks.value = data.value.data.pagination?.total || blocks.value.length
 			currentPage.value = page
+		} else {
+			blocks.value = []
+			totalBlocks.value = 0
 		}
 	} catch (error) {
-		console.error("Error loading blocks:", error)
 		blocks.value = []
+		totalBlocks.value = 0
 	} finally {
 		isLoading.value = false
 	}
@@ -84,7 +90,8 @@ const totalPages = computed(() => {
 })
 
 // Load blocks on mount
-onMounted(() => {
+onMounted(async () => {
+	await nextTick()
 	loadBlocks(currentPage.value)
 })
 
@@ -94,6 +101,11 @@ watch(() => route.query.page, (newPage) => {
 	if (page !== currentPage.value) {
 		loadBlocks(page)
 	}
+}, { immediate: true })
+
+// Additional handler for page refresh
+onActivated(() => {
+	loadBlocks(currentPage.value)
 })
 
 useHead({

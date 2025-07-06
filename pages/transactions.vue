@@ -54,20 +54,26 @@ const loadTransactions = async (page = 1) => {
 	isLoading.value = true
 	
 	try {
-		const { data } = await fetchTransactions({
+		const { data, error } = await fetchTransactions({
 			limit: pageSize.value,
 			page: page,
 			offset: (page - 1) * pageSize.value
 		})
 		
-		if (data.value && data.value.data) {
+		if (error.value) {
+			transactions.value = []
+			totalTransactions.value = 0
+		} else if (data.value && data.value.data) {
 			transactions.value = data.value.data.transactions || []
 			totalTransactions.value = data.value.data.pagination?.total || transactions.value.length
 			currentPage.value = page
+		} else {
+			transactions.value = []
+			totalTransactions.value = 0
 		}
 	} catch (error) {
-		console.error("Error loading transactions:", error)
 		transactions.value = []
+		totalTransactions.value = 0
 	} finally {
 		isLoading.value = false
 	}
@@ -102,7 +108,8 @@ const totalPages = computed(() => {
 })
 
 // Load transactions on mount
-onMounted(() => {
+onMounted(async () => {
+	await nextTick()
 	loadTransactions(currentPage.value)
 })
 
@@ -112,6 +119,11 @@ watch(() => route.query.page, (newPage) => {
 	if (page !== currentPage.value) {
 		loadTransactions(page)
 	}
+}, { immediate: true })
+
+// Additional handler for page refresh
+onActivated(() => {
+	loadTransactions(currentPage.value)
 })
 
 useHead({
@@ -186,25 +198,26 @@ useHead({
 				</Flex>
 
 				<Flex v-else direction="column" gap="16" :class="$style.content">
-					<div :class="$style.table_wrapper">
+					<!-- Desktop Table View -->
+					<div :class="$style.desktop_table">
 						<table :class="$style.table">
 							<thead>
 								<tr>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Transaction Hash</Text></th>
+									<th><Text size="12" weight="600" color="tertiary" noWrap>Hash</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>Status</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>Block</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>Type</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>From</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>To</Text></th>
 									<th><Text size="12" weight="600" color="tertiary" noWrap>Value</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Gas Used</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
+									<th><Text size="12" weight="600" color="tertiary" noWrap>Gas</Text></th>
+									<th><Text size="12" weight="600" color="tertiary" noWrap>Time</Text></th>
 								</tr>
 							</thead>
 
 							<tbody>
 								<tr v-for="tx in transactions" :key="tx.hash">
-									<td style="width: 1px">
+									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
 												<Outline>
@@ -308,6 +321,64 @@ useHead({
 						</table>
 					</div>
 
+					<!-- Mobile Card View -->
+					<div :class="$style.mobile_cards">
+						<div v-for="tx in transactions" :key="tx.hash" :class="$style.card">
+							<NuxtLink :to="`/tx/${tx.hash}`" :class="$style.card_link">
+								<Flex direction="column" gap="16">
+									<!-- Header with hash and status -->
+									<Flex align="center" justify="between">
+										<Flex align="center" gap="8">
+											<Icon name="tx" size="14" color="primary" />
+											<Text size="13" weight="600" color="primary" mono>
+												{{ shortHex(tx.hash) }}
+											</Text>
+										</Flex>
+										<Badge size="small" :color="getStatusColor(tx.status)">
+											<Text size="11" weight="600" color="primary">
+												{{ getStatusText(tx.status) }}
+											</Text>
+										</Badge>
+									</Flex>
+
+									<!-- Transaction details -->
+									<Flex direction="column" gap="12">
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">From</Text>
+											<Text size="12" weight="600" color="primary" mono>
+												{{ shortHex(tx.fromAddress) }}
+											</Text>
+										</Flex>
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">To</Text>
+											<Text size="12" weight="600" color="primary" mono>
+												{{ tx.toAddress ? shortHex(tx.toAddress) : "—" }}
+											</Text>
+										</Flex>
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Value</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ formatMonValue(tx.value) }} MON
+											</Text>
+										</Flex>
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Block</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ comma(tx.blockNumber) }}
+											</Text>
+										</Flex>
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Time</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
+											</Text>
+										</Flex>
+									</Flex>
+								</Flex>
+							</NuxtLink>
+						</div>
+					</div>
+
 					<!-- Pagination -->
 					<Flex v-if="totalPages > 1" align="center" justify="center" gap="8" :class="$style.pagination">
 						<Button @click="handleFirst" type="secondary" size="mini" :disabled="currentPage === 1">
@@ -349,23 +420,30 @@ useHead({
 	overflow: hidden;
 }
 
-.table_wrapper {
+/* Desktop Table View */
+.desktop_table {
+	display: block;
 	overflow-x: auto;
 }
 
 .table {
 	width: 100%;
+	min-width: 1200px; /* Ensure all columns are visible */
 	border-spacing: 0;
 	
 	& thead {
 		& tr {
 			& th {
 				text-align: left;
-				padding: 16px 24px 8px 16px;
+				padding: 16px 16px 8px 16px;
 				border-bottom: 1px solid var(--op-5);
 				
 				&:first-child {
 					padding-left: 24px;
+				}
+				
+				&:last-child {
+					padding-right: 24px;
 				}
 				
 				& span {
@@ -390,12 +468,16 @@ useHead({
 		}
 		
 		& td {
-			padding: 12px 24px 12px 16px;
+			padding: 12px 16px 12px 16px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
 			
 			&:first-child {
 				padding-left: 24px;
+			}
+			
+			&:last-child {
+				padding-right: 24px;
 			}
 			
 			& > a {
@@ -405,6 +487,33 @@ useHead({
 			}
 		}
 	}
+}
+
+/* Mobile Card View */
+.mobile_cards {
+	display: none;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
+}
+
+.card {
+	border: 1px solid var(--op-5);
+	border-radius: 8px;
+	background: var(--card-background);
+	transition: all 0.2s ease;
+	
+	&:hover {
+		border-color: var(--op-10);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+}
+
+.card_link {
+	display: block;
+	padding: 16px;
+	text-decoration: none;
+	color: inherit;
 }
 
 .loading {
@@ -417,17 +526,64 @@ useHead({
 	border-top: 1px solid var(--op-5);
 }
 
+/* Responsive Breakpoints - Progressive column hiding */
+@media (max-width: 1400px) {
+	.table {
+		min-width: 1000px;
+		& thead th:nth-child(4),
+		& tbody td:nth-child(4) {
+			display: none; /* Hide Type column */
+		}
+	}
+}
+
+@media (max-width: 1200px) {
+	.table {
+		min-width: 900px;
+		& thead th:nth-child(8),
+		& tbody td:nth-child(8) {
+			display: none; /* Hide Gas column */
+		}
+	}
+}
+
+@media (max-width: 1024px) {
+	.table {
+		min-width: 800px;
+		& thead th:nth-child(3),
+		& tbody td:nth-child(3) {
+			display: none; /* Hide Block column */
+		}
+	}
+}
+
+@media (max-width: 900px) {
+	.table {
+		min-width: 700px;
+		& thead th:nth-child(6),
+		& tbody td:nth-child(6) {
+			display: none; /* Hide To column */
+		}
+	}
+}
+
+@media (max-width: 768px) {
+	.desktop_table {
+		display: none;
+	}
+	
+	.mobile_cards {
+		display: flex;
+	}
+	
+	.wrapper {
+		padding: 20px 16px 60px 16px;
+	}
+}
+
 @media (max-width: 500px) {
 	.wrapper {
 		padding: 32px 12px;
-	}
-	
-	.table {
-		& thead th,
-		& tbody td {
-			padding-left: 12px;
-			padding-right: 12px;
-		}
 	}
 }
 </style> 

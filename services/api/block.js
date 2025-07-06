@@ -11,7 +11,7 @@ export const fetchBlocks = ({ limit = 20, offset = 0, page = 1 } = {}) => {
 		if (page) url.searchParams.append("page", page)
 
 		return useFetch(url.href, {
-			key: "blocks",
+			key: `blocks-${page}-${limit}-${offset}`,
 		})
 	} catch (error) {
 		console.error(error)

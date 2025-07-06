@@ -11,7 +11,7 @@ export const fetchTransactions = ({ limit = 20, offset = 0, page = 1 } = {}) => 
 		if (page) url.searchParams.append("page", page)
 
 		return useFetch(url.href, {
-			key: "transactions",
+			key: `transactions-${page}-${limit}-${offset}`,
 		})
 	} catch (error) {
 		console.error(error)
