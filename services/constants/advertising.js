@@ -59,7 +59,6 @@ export const banners = [
 		title: 'Monad Blockchain',
 		url: 'https://monad.xyz',
 		body: 'The power of Monad: Fast, Scalable and EVM-compatible Blockchain.',
-		image: 'mammoth.jpeg',
 		openType: '_blank',
 	},
 ]
