@@ -24,11 +24,11 @@ const recentProposalEvents = computed(() => {
   }))
 })
 
-const getEventIcon = (type) => {
+const getEventIcon = (type, participated = null) => {
   switch (type) {
     case 'block_proposal': return 'check-circle'
-    case 'block_skipped': return 'x-circle'
-    case 'qc_participation': return 'users'
+    case 'block_skipped': return 'close-circle'
+    case 'qc_participation': return participated ? 'check-circle' : 'close-circle'
     default: return 'info'
   }
 }
@@ -37,7 +37,7 @@ const getEventColor = (type, status, participated) => {
   switch (type) {
     case 'block_proposal': return status === 'proposed' ? 'green' : 'tertiary'
     case 'block_skipped': return 'red'
-    case 'qc_participation': return participated ? 'blue' : 'yellow'
+    case 'qc_participation': return participated ? 'green' : 'red'
     default: return 'tertiary'
   }
 }
@@ -99,7 +99,7 @@ const truncateValidator = (name) => {
         >
           <Flex align="center" gap="12">
             <Icon 
-              :name="getEventIcon(event.type)" 
+              :name="getEventIcon(event.type, event.participated)" 
               size="14" 
               :color="getEventColor(event.type, event.status, event.participated)"
             />

@@ -46,11 +46,11 @@ const getEventName = (type) => {
 	}
 }
 
-const getEventIcon = (type) => {
+const getEventIcon = (type, event = null) => {
 	switch (type) {
 		case 'block_proposal': return 'zap'
 		case 'block_skipped': return 'close-circle'
-		case 'qc_participation': return 'check-circle'
+		case 'qc_participation': return event?.details?.participated ? 'check-circle' : 'close-circle'
 		case 'validator_joined': return 'plus-circle'
 		case 'validator_left': return 'minus-circle'
 		case 'performance_warning': return 'warning'
@@ -60,11 +60,11 @@ const getEventIcon = (type) => {
 	}
 }
 
-const getEventColor = (type) => {
+const getEventColor = (type, event = null) => {
 	switch (type) {
 		case 'block_proposal': return 'green'
 		case 'block_skipped': return 'red'
-		case 'qc_participation': return 'blue'
+		case 'qc_participation': return event?.details?.participated ? 'green' : 'red'
 		case 'validator_joined': return 'green'
 		case 'validator_left': return 'yellow'
 		case 'performance_warning': return 'yellow'
@@ -279,7 +279,7 @@ onMounted(() => {
 						:class="$style.filter_checkbox"
 					/>
 					<Flex align="center" gap="6">
-						<Icon name="check-circle" size="12" color="green" />
+						<Icon name="message" size="12" color="blue" />
 						<Text size="12" weight="500" color="primary">Quorum (QC) Participation</Text>
 					</Flex>
 				</Flex>
@@ -300,7 +300,7 @@ onMounted(() => {
 		
 		<Flex v-else-if="events.length === 0" align="center" justify="center" :class="$style.no_data">
 			<Flex direction="column" align="center" gap="8">
-				<Icon name="calendar" size="24" color="tertiary" />
+				<Icon name="message" size="24" color="tertiary" />
 				<Text size="13" weight="600" color="secondary">No events found</Text>
 				<Text size="12" weight="500" color="tertiary">No events match the selected filters</Text>
 			</Flex>
@@ -323,11 +323,11 @@ onMounted(() => {
 						<tr v-for="event in events" :key="`${event.event_type}-${event.round_number}-${event.timestamp}`" :class="$style.event_row">
 							<td :class="$style.type_cell">
 								<Flex align="center" gap="8">
-									<Icon 
-										:name="getEventIcon(event.event_type)" 
-										size="14" 
-										:color="getEventColor(event.event_type)"
-									/>
+																	<Icon 
+									:name="getEventIcon(event.event_type, event)" 
+									size="14" 
+									:color="getEventColor(event.event_type, event)"
+								/>
 									<Text size="12" weight="600" color="primary">
 										{{ getEventName(event.event_type) }}
 									</Text>

@@ -39,11 +39,11 @@ const tabs = ref([
 	},
 	{
 		name: "History",
-		icon: "clock",
+		icon: "time",
 	},
 	{
 		name: "Events",
-		icon: "calendar",
+		icon: "message",
 	},
 ])
 
@@ -302,7 +302,7 @@ const getPerformanceColor = (score) => {
 							@click="activeTab = tab.name"
 							:class="[$style.tab, activeTab === tab.name && $style.tab_active]"
 						>
-							<Icon :name="tab.icon" size="12" />
+							<Icon :name="tab.icon" size="12" :color="activeTab === tab.name ? 'primary' : 'tertiary'" />
 							{{ tab.name }}
 						</button>
 					</Flex>

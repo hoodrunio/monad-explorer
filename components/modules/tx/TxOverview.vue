@@ -296,7 +296,7 @@ const handleViewRawTransaction = () => {
 							gap="6"
 							:class="[$style.tab, activeTab === 'transfers' && $style.active]"
 						>
-							<Icon name="swap" size="12" color="secondary" />
+							<Icon name="coins" size="12" color="secondary" />
 							<Text size="13" weight="600">Token Transfers</Text>
 						</Flex>
 
@@ -306,7 +306,7 @@ const handleViewRawTransaction = () => {
 							gap="6"
 							:class="[$style.tab, activeTab === 'internal' && $style.active]"
 						>
-							<Icon name="tree" size="12" color="secondary" />
+							<Icon name="hash" size="12" color="secondary" />
 							<Text size="13" weight="600">Internal Txs</Text>
 						</Flex>
 
@@ -342,7 +342,7 @@ const handleViewRawTransaction = () => {
 						</div>
 					</Flex>
 					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
-						<Icon name="swap" size="24" color="support" />
+						<Icon name="coins" size="24" color="support" />
 						<Text size="13" weight="600" color="secondary">No token transfers</Text>
 					</Flex>
 				</Flex>
@@ -367,7 +367,7 @@ const handleViewRawTransaction = () => {
 						</div>
 					</Flex>
 					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
-						<Icon name="tree" size="24" color="support" />
+						<Icon name="hash" size="24" color="support" />
 						<Text size="13" weight="600" color="secondary">No internal transactions</Text>
 					</Flex>
 				</Flex>
