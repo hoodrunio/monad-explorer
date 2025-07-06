@@ -1,6 +1,6 @@
 <script setup>
 /** Vendor */
-import * as Sentry from "@sentry/vue"
+import * as Sentry from "@sentry/nuxt"
 
 /** Services */
 import amp from "@/services/amp"
@@ -89,7 +89,20 @@ onMounted(async () => {
 	activityStore.init()
 
 	const runtimeConfig = useRuntimeConfig()
-	amp.init(runtimeConfig.public.AMP)
+	
+	// Debug environment variables
+	console.log('🔧 Environment Variables Debug:')
+	console.log('AMP:', runtimeConfig.public.AMP)
+	console.log('SENTRY_DSN:', runtimeConfig.public.SENTRY_DSN)
+	console.log('isDev:', import.meta.dev)
+	
+	// Initialize Amplitude only if API key exists
+	if (runtimeConfig.public.AMP) {
+		amp.init(runtimeConfig.public.AMP)
+		console.log('✅ Amplitude initialized')
+	} else {
+		console.warn('❌ Amplitude not initialized - missing AMP environment variable')
+	}
 
 	legalStore.init()
 	if (!legalStore.isAccepted()) {
@@ -113,20 +126,38 @@ onMounted(async () => {
 		})
 	}
 
-	// Initialize Sentry with your own DSN
-	if (runtimeConfig.public.SENTRY_DSN && !import.meta.dev) {
-		Sentry.init({
-			dsn: runtimeConfig.public.SENTRY_DSN,
-			integrations: [
-				Sentry.replayIntegration({
-					maskAllText: false,
-					blockAllMedia: false,
-				}),
-			],
-			// Session Replay
-			replaysSessionSampleRate: 0.1, // 10% sampling rate in production
-			replaysOnErrorSampleRate: 1.0, // 100% when errors occur
-			environment: import.meta.dev ? "development" : "production",
+	// Initialize Sentry client-side with better error handling
+	if (runtimeConfig.public.SENTRY_DSN && !import.meta.dev && typeof window !== "undefined") {
+		try {
+			Sentry.init({
+				dsn: runtimeConfig.public.SENTRY_DSN,
+				integrations: [
+					Sentry.browserTracingIntegration(),
+					Sentry.replayIntegration({
+						maskAllText: false,
+						blockAllMedia: false,
+					}),
+				],
+				// Session Replay
+				replaysSessionSampleRate: 0.1, // 10% sampling rate in production
+				replaysOnErrorSampleRate: 1.0, // 100% when errors occur
+				environment: import.meta.dev ? "development" : "production",
+				// Set tracesSampleRate for performance monitoring
+				tracesSampleRate: 0.1,
+				// Add user information
+				sendDefaultPii: true,
+				// Enable debugging in development
+				debug: import.meta.dev,
+			})
+			console.log('✅ Sentry client initialized')
+		} catch (error) {
+			console.error('❌ Sentry client initialization failed:', error)
+		}
+	} else {
+		console.warn('❌ Sentry client not initialized:', {
+			hasDSN: !!runtimeConfig.public.SENTRY_DSN,
+			isDev: import.meta.dev,
+			isClient: typeof window !== "undefined"
 		})
 	}
 

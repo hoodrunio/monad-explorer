@@ -79,6 +79,10 @@ export default defineNuxtConfig({
 					name: "lang",
 					content: "en",
 				},
+				{
+					"http-equiv": "Content-Security-Policy",
+					content: "default-src 'self'; connect-src 'self' https://api2.amplitude.com https://sr-client-cfg.amplitude.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src 'self';"
+				},
 			],
 			link: [
 				{
@@ -94,6 +98,14 @@ export default defineNuxtConfig({
 					rel: "preconnect",
 					href: "https://fonts.gstatic.com",
 					crossorigin: "anonymous",
+				},
+				{
+					rel: "preconnect",
+					href: "https://api2.amplitude.com",
+				},
+				{
+					rel: "preconnect", 
+					href: "https://sr-client-cfg.amplitude.com",
 				},
 				{
 					rel: "preload",
@@ -120,8 +132,6 @@ export default defineNuxtConfig({
 	css: ["@/assets/styles/base.scss", "@/assets/styles/flex.scss", "@/assets/styles/text.scss"],
 
 	// Pinia configuration - using defaults
-
-
 
 	devtools: {
 		enabled: true,
