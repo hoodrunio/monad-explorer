@@ -13,7 +13,7 @@ const advertisements = [
 		link: 'https://docs.monad.xyz',
 		icon: 'zap',
 		header: 'Monad Documentation',
-		body: 'Learn about Monad\'s high-performance EVM blockchain.',
+		body: 'Learn about Monad\'s high-performance EVM-compatible blockchain.',
 		footer: 'View Docs',
 		weight: 0.3,
 	},

@@ -1,322 +1,325 @@
-<script setup>
-/** Vendor */
-import { DateTime } from "luxon"
-
-/** Constants */
-import { TERMS_OF_USE_DATE } from "@/services/constants/legal.js"
-
-useHead({
-	title: "Terms of Use - Monad Explorer",
-})
-
-/**
- * 
- * When updating the document, don't forget to change the date in the constants.
- * 
- */
-
-const lastUpdate = () => {
-	const dt = DateTime.fromISO(TERMS_OF_USE_DATE)
-	const day = dt.day
-	const suffix =
-		day % 10 === 1 && day !== 11 ? 'st' :
-		day % 10 === 2 && day !== 12 ? 'nd' :
-		day % 10 === 3 && day !== 13 ? 'rd' : 'th'
-
-	return dt.toFormat(`LLLL d'${suffix}', yyyy`)
-}
-</script>
-
 <template>
-	<Flex direction="column" align="start" gap="24" :class="$style.wrapper" wide>
-		<Flex direction="column" gap="6" wide>
-			<Text color="primary" size="18" :style="{fontWeight: 800}">Terms of Use</Text>
-			<Text color="tertiary" size="12"> {{ `Last Updated: ${lastUpdate()}` }} </Text>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Welcome to Monad Explorer, a blockchain explorer and analytics platform for the Monad network. When we refer to "user", "you" or "your" we mean you, the person accessing or using our website. These Terms govern your access to and use of <a href="https://monad.hoodscan.io" :class="$style.link">https://monad.hoodscan.io</a> (hereinafter the "<b>Website</b>").</Text>
-				<Text :class="$style.section_paragraph">Please read these Terms carefully before using our Website. We may revise and update these Terms from time to time at our sole discretion. All changes are effective immediately when we post them and apply to all access to and use of the Website thereafter. Your continued use of the Website following the posting of revised Terms means that you accept and agree to the changes. You are expected to check this page from time to time so you are aware of any changes, as they are binding on you. We may also post changes to our privacy policy under this <a href="https://monad.hoodscan.io/privacy-policy" :class="$style.link">https://monad.hoodscan.io/privacy-policy</a>. If you are not in agreement with these Terms, you may not access our Website.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">1. Services</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Through the Website, we offer various services (the "<b>Services</b>"), including the following:</Text>
-
-				<ul>
-					<li>Monad Explorer: access to a blockchain explorer for the Monad network.</li>
-					<li>Monad API: access to an API which allows clients to retrieve all indexed data from the Monad network.</li>
-				</ul>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">2. User account</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">In order to access certain services, users may be required to create an account. By registering, you confirm that you meet the following eligibility requirements and that the information you provide is accurate, complete, and up-to-date.</Text>
-				<Text :class="$style.section_paragraph">You must be at least 18 years old to register and use the Services. By registering, you represent and warrant that you have the legal capacity to enter into these Terms and that you are not prohibited from using the Services by any applicable law or regulation.</Text>
-				<Text :class="$style.section_paragraph">You are responsible for maintaining the confidentiality and security of your account information, including your login credentials. You agree to: (i) not share your account information with any third party, (ii) notify us immediately if you suspect any unauthorized access to or use of your account and (iii) ensure that you log out from your account at the end of each session if you access the Services from a shared or public device.</Text>
-				<Text :class="$style.section_paragraph">We will not be liable for any loss or damage arising from your failure to comply with these security obligations. You are solely responsible for all activities that occur under your account, whether or not authorized by you.</Text>
-				<Text :class="$style.section_paragraph">You agree to use your account solely for your own purposes and not to impersonate any other person or entity, or falsely state or otherwise misrepresent your affiliation with any person or entity.</Text>
-				<Text :class="$style.section_paragraph">You must promptly update your account information to keep it accurate, complete, and current. We reserve the right to suspend or terminate your account if any information provided during the registration process or thereafter proves to be inaccurate, false, or misleading.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">3. Fees</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Some of the Services may be subject to fees (the "<b>Fees</b>"). Payments of the Fees are processed through a third-party payment service provider (i.e. Stripe).</Text>
-				<Text :class="$style.section_paragraph">The Fees and/or subscription terms are displayed on the Website.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">4. Content of website</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">The Content is provided for general information purposes only. We do not warrant the accuracy, completeness or usefulness of the Content. Any reliance you place on such information is strictly at your own risk. Nothing in the Content should be used or relied upon as legal, financial, tax or other advice, or as an instruction or solicitation of action by any person.</Text>
-				<Text :class="$style.section_paragraph">The Website may contain links to websites and content that is controlled or operated by third parties ("<b>Third Party Links</b>"). The Company is providing these Third Party Links to you only for convenience and the inclusion of any Third Party Links on the Website does not imply any endorsement by the Company of the Third Party Links and/or their operators. The Company is not responsible for any and all content contained in or associated with the Third Party Links.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">5. Prohibited activities</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You must not disrupt, compromise, or otherwise damage data or property owned by other parties or do anything to disrupt any of our services, whether directly or indirectly. This includes attacking any devices or accounts other than your own (or those for which you have explicit, written permission from their owners), using phishing or social engineering techniques and/or using bots. Except as expressly permitted under this Agreement, you shall not, and shall not permit any third party to: (i) modify or create any derivative work of any part of our services, (ii) use our Website for commercial time-sharing or service bureau use, or (iii) reverse engineer, decompile, disassemble or otherwise attempt to discover the source code, object code or underlying structure, ideas, know-how or algorithms relevant to our Website. Immediately notify us as set forth in these Terms before any of the following occur:</Text>
-
-				<ul>
-					<li>You access any accounts or data other than your own (or those for which you have explicit, written permission from their owners)</li>
-					<li>You disrupt any of the Services; or</li>
-					<li>You access a non-customer-facing Company system.</li>
-				</ul>
-
-				<Text :class="$style.section_paragraph">You shall not nor cause or encourage others for any illegal, harmful, fraudulent, infringing, or objectionable activities, including but not limited to the following list of prohibited activities:</Text>
-
-				<ul>
-					<li>Any act which might bring the Company, and its affiliates into public disrepute;</li>
-					<li>Actions that would infringe any applicable laws and regulations, including Anti Money Laundering / Countering of the Financing of Terrorism laws and regulations;</li>
-					<li>Information and/or content in any submission or application that is illegal or criminal, false, fraudulent, deceptive, misleading, defamatory, threatening, libellous, slanderous, disparaging, unlawfully harassing, profane, obscene, pornographic, hateful, indecent, inappropriate or injurious to any individual or any third party;</li>
-					<li>Disrupting, manipulating, or degrading the Services;</li>
-					<li>Phishing, spamming, or pharming;</li>
-					<li>Unsolicited contacting of users or other abusive behaviour;</li>
-					<li>Illegal advertising or fraudulent marketing activities;</li>
-					<li>Infringing or misappropriating the rights of others;</li>
-					<li>Introduce any viruses, trojan horses, worms, logic bombs or other material which is malicious or technologically harmful;</li>
-					<li>Attempt to gain unauthorized access to, interfere with, damage or disrupt any parts of the Website;</li>
-					<li>Use any device, software or routine that interferes with the proper working of the Website;</li>
-					<li>Creating a security risk for the Company.</li>
-				</ul>
-				
-				<Text :class="$style.section_paragraph">In the event that the Company discovers or suspects that you have engaged in unfair, conflicting, excessive or abusive usage or conduct, the Company reserves the right to ban you and take such actions as may be necessary, to the fullest extent possible under law, to protect the Company from losses, damages, harm or degradation of any form and manner.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">6. Taxes</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You are responsible for the payment of all taxes and/or levies applicable to you in connection with any of the Services.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">7. Compliance with laws</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You agree to comply with all laws, rules, regulations, and any generally accepted practices or guidelines in the relevant jurisdictions applicable to you (including, without limitation, any laws regarding the export of data or software to and from the European Union / Switzerland or other relevant countries and all applicable privacy and data collection laws and regulations). To the extent required by law, you are solely responsible for obtaining or filing any approval, clearance, registration, permit, or other regulatory authorization applicable to you and shall comply with the requirements of such authorization.</Text>
-				<Text :class="$style.section_paragraph">The provider of the Website is based in Switzerland. We make no claims that the Website or any of its content is accessible or appropriate outside of Switzerland. Access to the Website may not be legal by certain persons or in certain countries. If you access the Website from outside Switzerland, you do so on your own initiative and are responsible for compliance with local laws.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">8. Sanctions and anti-money laundering</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You represent, warrant and covenant to us that you have not been, are not and will not be:</Text>
-
-				<ul :class="$style.letter_list">
-					<li>accessing the Website if the laws of your country of residence and/or citizenship prohibit you from doing so in accordance with these Terms;</li>
-					<li>a citizen, or resident of, or located in, or a legal entity or similar formed or incorporated within or subject to the laws of any jurisdiction in which the use of the Services is prohibited, restricted or unauthorised in any form or manner whether in full or in part under the laws, regulatory requirements or rules in such jurisdiction;</li>
-					<li>a Sanctioned Entity and/or a Sanctioned Person (as defined below) and/or an entity or person acting on behalf of a Sanctioned Entity or Sanctioned Person;</li>
-					<li>are not participating from, or are a national or resident of, any of the countries embargoed or restricted by, including without limitation, the Swiss State Secretariat for Economic Affairs (SECO) ("Prohibited Jurisdictions"); and</li>
-					<li>transacting with any Sanctioned Person or Sanctioned Entity or any person in any Prohibited Jurisdiction.</li>
-				</ul>
-
-				<Text :class="$style.section_paragraph">You further agree that you shall at all times, in all your activities in connection with the Website and the Services and the Company, comply with all regulations, laws and legislation, including, without limitation, Anti-Money Laundering Laws and Sanctions, applicable to you.</Text>
-				<Text :class="$style.section_paragraph">For the purposes of this clause, the following words shall have the following meanings:</Text>
-				<Text :class="$style.section_paragraph">"Anti-Money Laundering Laws" means, any Swiss anti-money laundering act, laws or regulation, in each case, as amended from time to time and all other similar laws, rules, and regulations of any jurisdiction applicable to you or us.</Text>
-				<Text :class="$style.section_paragraph">"Sanctioned Entity" means (i) a country or a government of a country, (ii) an agency of the government of a country, (iii) an organization directly or indirectly controlled by a country or its government, or (iv) a person resident in or determined to be resident in a country, in each case, that is subject to a country Sanctions program administered and enforced by Switzerland (SECO), any governmental body of any other relevant jurisdiction.</Text>
-				<Text :class="$style.section_paragraph">"Sanctioned Person" means (i) any person listed in any sanctions-related list of designated Persons maintained by any governmental body or (ii) a person named on the list of Specially Designated Nationals maintained by Swiss SECO's Overall List of Sanctioned Individuals, or any governmental body of any other relevant jurisdiction, in each case as amended, supplemented or substituted from time to time.</Text>
-				<Text :class="$style.section_paragraph">"Sanctions" means economic or financial sanctions or trade embargoes imposed, administered or enforced from time to time by Switzerland and any governmental body of any other relevant jurisdiction.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">9. Intellectual property rights</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">By using our Website you do not gain any rights thereto. All right, title, and interest in and to our Website, including all modifications, improvements, and enhancements made thereto, and all proprietary rights therein, as well as any products, materials and content prepared by you shall be and remain the Company's sole and exclusive property. There are no implied licenses under these Terms, and any rights not expressly granted to you hereunder are reserved by the Company.</Text>
-				<Text :class="$style.section_paragraph">If you want to use, reproduce, modify, distribute, or store any copyrights and trademarks of the Company for any purpose, applicants need prior written permission from the Company.</Text>
-				<Text :class="$style.section_paragraph">The name of the Company, its logo, and all related names, logos, product and service names, designs and slogans are trademarks of the Company or its affiliates or licensors. You must not use such marks without the prior written permission of the Company. We are the owner or licensee of all intellectual property rights in the Website and its entire content. This includes in particular but without limitation, page headers, texts, graphics, logos, images, digital downloads and the selection and arrangement of the same. You agree not to take any action(s) inconsistent with such ownership interests.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">10. Warranty disclaimer</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">Your use of the Website, its content and any services or items obtained through the Website is AT YOUR OWN RISK. The Website, its content and any services or items obtained through the Website are provided on an "as is" and "as available" basis, without any warranties of any kind, either express or implied. Neither the Company nor any person associated with the Company makes any warranty or representation with respect to the completeness, security, reliability, quality, accuracy or availability of the Website. Without limiting the foregoing, neither the Company nor anyone associated with the Company represents or warrants that the Website, its content or any services or items obtained through the Website will be accurate, reliable, error-free or uninterrupted, that defects will be corrected, that our site or the server that makes it available are free of viruses or other harmful components or that the Website or any services or items obtained through the Website will otherwise meet your needs or expectations.</Text>
-				<Text :class="$style.section_paragraph">To the extent permitted by applicable law, the Company hereby disclaims any and all warranties of any kind, whether express or implied, statutory or otherwise, including but not limited to any warranties of merchantability, non-infringement and fitness for particular purpose.</Text>
-				<Text :class="$style.section_paragraph">You understand that we cannot and do not guarantee or warrant that files available for downloading from the internet or the Website will be free of viruses or other destructive code. You are responsible for implementing sufficient procedures and checkpoints to satisfy your particular requirements for anti-virus protection and accuracy of data input and output, and for maintaining a means external to our site for any reconstruction of any lost data.</Text>
-				<Text :class="$style.section_paragraph">We will not be liable for any loss or damage caused by a distributed denial-of-service attack, viruses or other technologically harmful material that may infect your computer equipment, computer programs, data or other proprietary material due to your use of the Website or any services or items obtained through the Website or to your downloading of any material posted on it, or on any website linked to it.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">11. Limitation of liability</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL WE OR OUR SUPPLIERS, EMPLOYEES, ADVISORS, CORPORATE BODIES, OR LICENSORS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, OR FOR LOSS OF USE, LOST PROFITS, OR LOSS OF DATA ARISING OUT OF OR RELATED TO THESE TERMS OR THE WEBSITE, HOWEVER CAUSED AND REGARDLESS OF THE FORM OF ACTION, WHETHER IN CONTRACT, TORT, STRICT LIABILITY, OR OTHERWISE, EVEN IF WE OR OUR SUPPLIERS, EMPLOYEES, ADVISORS, CORPORATE BODIES, OR LICENSORS HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL THE CUMULATIVE LIABILITY OF US, OUR SUPPLIERS, EMPLOYEES, ADVISORS, CORPORATE BODIES, AND LICENSORS FOR ANY PROVEN CLAIMS ARISING OUT OF OR RELATED TO THESE TERMS OR THE WEBSITE EXCEED THE FEES YOU HAVE PAID TO US WITHIN THE 12 MONTHS PRIOR TO THE EVENT CAUSING SUCH DAMAGES. Some jurisdictions do not allow limitations of liability, so the foregoing limitation may not apply to you.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">12. Indemnification</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You agree to indemnify and hold us and our affiliates, and their officers, directors, employees, agents, suppliers, and licensors harmless from and against any and all claims, damages, losses, liabilities, costs and expenses (including, but not limited to, court costs and reasonable attorneys' fees) arising out of or in connection with any breach of these Terms by you or your participation in the Website and/or the Services.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">13. Termination</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph"><u>Termination by You</u></Text>
-				<Text :class="$style.section_paragraph">You may terminate your account and subscription at any time by providing us with 30 days' prior notice. This can be done by following the instructions provided on the website or by contacting our support team at <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a>. Upon termination, you will lose access to all Services provided through the Website, and any data associated with your account may be deleted.</Text>
-				<Text :class="$style.section_paragraph"><u>Termination by Us</u></Text>
-				<Text :class="$style.section_paragraph">We reserve the right to terminate or suspend your account and access to the Services, with or without notice, for any reason, including but not limited to, if you violate these Terms, engage in fraudulent or illegal activities, or if we cease to provide the Services. In the event of a termination initiated by us, we will provide you with 30 days' prior notice, except in cases of violations of these Terms, fraudulent or illegal activities, or other urgent circumstances.</Text>
-				<Text :class="$style.section_paragraph"><u>Effects of Termination</u></Text>
-				<Text :class="$style.section_paragraph">Upon termination of your account, all rights and licenses granted to you under these Terms will immediately cease. You will not be entitled to any refunds of fees or other amounts paid prior to termination, except as expressly stated in these Terms.</Text>
-				<Text :class="$style.section_paragraph"><u>Survival</u></Text>
-				<Text :class="$style.section_paragraph">The provisions of these Terms that by their nature should survive termination will survive termination, including, but not limited to, provisions regarding ownership, indemnity, disclaimers, and limitations of liability.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">14. Assignment</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">You may not sell, assign or transfer any of your rights, duties or obligations under these Terms without our prior written consent. We reserve the right to assign or transfer these Terms or any of its rights, duties and obligations hereunder to any third party.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">15. Waiver and severability</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">No waiver by the Company of any term or condition set forth in these Terms shall be deemed a further or continuing waiver of such term or condition or a waiver of any other term or condition, and any failure of the Company to assert a right or provision under these Terms shall not constitute a waiver of such right or provision.</Text>
-				<Text :class="$style.section_paragraph">If any of these Terms is rendered void, illegal or unenforceable by any legislation to which it is subject, it shall be rendered void, illegal or unenforceable to that extent and no further and, for the avoidance of doubt, the rest of these Terms shall continue to be valid and in full force and effect and shall in no way be affected, impaired or invalidated, and the parties hereto shall use their commercially reasonable efforts to find and employ an alternative means to achieve the same or substantially the same result as that contemplated by such term, provision, covenant or restriction.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">16. Governing law and jurisdiction</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">These Terms and any dispute or claim arising out of or in any way relating to this Agreement or its formation (including non-contractual disputes or claims) shall be governed by and construed in accordance with substantive Swiss law under the exclusion of the conflicts of law rules. The application of the United Nations Convention for Contracts for the International Sales of Goods ("CISG") is hereby expressly excluded. You and we irrevocably submit to the exclusive jurisdiction of the ordinary courts of the canton of Zug, Switzerland for the purpose of hearing and determining any dispute or claim (including non-contractual disputes or claims) arising out of these Terms or its subject matter or formation.</Text>
-			</Flex>
-		</Flex>
-
-		<Flex :class="$style.section">
-			<Text :class="$style.section_title">17. General provisions</Text>
-
-			<Flex :class="[$style.section, $style.section_content]">
-				<Text :class="$style.section_paragraph">These Terms do not create any relationship of association, partnership, joint venture or agency between us and you. Neither we nor you will have any right or authority to assume, create or incur any liability or obligation of any kind against or in the name of the other party. You shall not, under any circumstances, represent that you are an agent of the Company and you shall take all reasonable precautions to avoid any perception that such relationship exists. These Terms set forth the entire agreement and understanding between us and you with respect to the subject matter in these Terms. These Terms merge all previous discussions and negotiations between us and you and supersede them.</Text>
-				<Text :class="$style.section_paragraph">A person who is not a party to these Terms shall not have any rights whatsoever under these Terms or to enforce these Terms.</Text>
-				<Text :class="$style.section_paragraph">For support, contact us at <a href="mailto:infra@hoodrun.io" :class="$style.link">infra@hoodrun.io</a>.</Text>
-			</Flex>
-		</Flex>
-	</Flex>
-</template>
-
-<style module>
-.wrapper {
-	padding: 20px 24px 32px 24px;
-}
-
-.section {
-	flex-direction: column;
-	gap: 12px;
-}
-
-.wrapper > .section {
-	margin-top: 8px;
-}
-
-.section_title {
-	color: var(--txt-primary);
-	font-size: 14px;
+	<div class="terms-container">
+	  <div class="header">
+		<h1>Terms of Use</h1>
+		<p class="last-updated">Last Updated: {{ formatDate(lastUpdated) }}</p>
+	  </div>
+  
+	  <div class="content">
+		<section class="intro">
+		  <p>
+			Welcome to HoodRun's blockchain explorer platform. These Terms of Use govern your access to and use of our website located at 
+			<a href="https://monad.hoodscan.io" target="_blank" rel="noopener noreferrer">https://monad.hoodscan.io</a> 
+			(the "Platform"). By accessing or using our Platform, you agree to be bound by these terms.
+		  </p>
+		  <p>
+			Please review these terms carefully. If you do not agree with any part of these terms, you must not use our Platform. 
+			We may update these terms from time to time, and your continued use constitutes acceptance of any changes.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>1. Our Services</h2>
+		  <p>
+			HoodRun provides blockchain exploration and analytics services for the Monad network, including:
+		  </p>
+		  <ul>
+			<li>Blockchain data visualization and search capabilities</li>
+			<li>Transaction and block analysis tools</li>
+			<li>Network statistics and performance metrics</li>
+			<li>API access for blockchain data retrieval</li>
+		  </ul>
+		</section>
+  
+		<section>
+		  <h2>2. User Registration and Accounts</h2>
+		  <p>
+			Certain features may require account registration. When creating an account, you must:
+		  </p>
+		  <ul>
+			<li>Be at least 18 years of age</li>
+			<li>Provide accurate and complete information</li>
+			<li>Maintain the security of your login credentials</li>
+			<li>Promptly update any outdated information</li>
+		  </ul>
+		  <p>
+			You are fully responsible for all activities under your account. Notify us immediately if you suspect unauthorized access.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>3. Service Fees</h2>
+		  <p>
+			While basic services are free, premium features may require payment. All fees are clearly displayed before purchase. 
+			Payments are processed through secure third-party providers, and all transactions are final unless otherwise specified.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>4. Platform Content and Usage</h2>
+		  <p>
+			Our Platform provides blockchain data and analytics for informational purposes only. We do not guarantee the accuracy, 
+			completeness, or reliability of any information. Users should not rely on Platform data for financial, legal, or 
+			investment decisions without independent verification.
+		  </p>
+		  <p>
+			External links may be provided for convenience but do not constitute endorsements. We are not responsible for 
+			third-party content or services.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>5. Prohibited Conduct</h2>
+		  <p>You agree not to:</p>
+		  <ul>
+			<li>Violate any applicable laws or regulations</li>
+			<li>Interfere with or disrupt our Platform or servers</li>
+			<li>Attempt unauthorized access to any systems or data</li>
+			<li>Use automated tools to scrape or harvest data without permission</li>
+			<li>Transmit malicious code, viruses, or harmful content</li>
+			<li>Engage in fraudulent, misleading, or deceptive activities</li>
+			<li>Impersonate others or provide false information</li>
+			<li>Use our services for any illegal or unauthorized purpose</li>
+		  </ul>
+		  <p>
+			We reserve the right to suspend or terminate accounts that violate these terms.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>6. Tax Responsibilities</h2>
+		  <p>
+			You are solely responsible for determining and paying any taxes applicable to your use of our services 
+			in your jurisdiction.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>7. Legal Compliance</h2>
+		  <p>
+			You must comply with all applicable laws and regulations when using our Platform. This includes export controls, 
+			privacy laws, and financial regulations. Our services are provided from Turkey, and you are responsible for 
+			ensuring your use is legal in your jurisdiction.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>8. Sanctions and Anti-Money Laundering</h2>
+		  <p>
+			By using our Platform, you represent that you are not:
+		  </p>
+		  <ul>
+			<li>Subject to any economic sanctions or embargoes</li>
+			<li>Located in or a resident of any restricted jurisdiction</li>
+			<li>Engaging in money laundering or terrorist financing</li>
+			<li>Acting on behalf of any sanctioned entity or individual</li>
+		  </ul>
+		  <p>
+			You agree to comply with all applicable anti-money laundering and sanctions laws.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>9. Intellectual Property</h2>
+		  <p>
+			All content, trademarks, logos, and intellectual property on our Platform remain our exclusive property. 
+			You may not reproduce, distribute, or create derivative works without our written permission. 
+			Your use of the Platform does not grant you any ownership rights.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>10. Disclaimers</h2>
+		  <p>
+			OUR PLATFORM IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, 
+			INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT OUR 
+			SERVICES WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>11. Limitation of Liability</h2>
+		  <p>
+			TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, 
+			CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFITS, DATA LOSS, OR BUSINESS INTERRUPTION, ARISING 
+			FROM YOUR USE OF OUR PLATFORM, REGARDLESS OF THE THEORY OF LIABILITY AND EVEN IF WE HAVE BEEN ADVISED OF 
+			THE POSSIBILITY OF SUCH DAMAGES.
+		  </p>
+		  <p>
+			OUR TOTAL LIABILITY FOR ANY CLAIMS SHALL NOT EXCEED THE AMOUNT YOU PAID TO US IN THE TWELVE MONTHS PRECEDING 
+			THE CLAIM.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>12. Indemnification</h2>
+		  <p>
+			You agree to indemnify and hold us harmless from any claims, damages, losses, or expenses arising from 
+			your use of our Platform, violation of these terms, or infringement of any third-party rights.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>13. Termination</h2>
+		  <p>
+			Either party may terminate your account at any time. We may suspend or terminate your access immediately 
+			for violations of these terms. Upon termination, your right to use the Platform ends immediately, and 
+			we may delete your account data.
+		  </p>
+		  <p>
+			Sections regarding liability limitations, indemnification, and dispute resolution survive termination.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>14. Assignment</h2>
+		  <p>
+			You may not transfer or assign your rights under these terms. We may assign our rights and obligations 
+			to any third party without notice.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>15. Severability</h2>
+		  <p>
+			If any provision of these terms is found invalid or unenforceable, the remaining provisions continue 
+			in full force and effect.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>16. Governing Law</h2>
+		  <p>
+			These terms are governed by Turkish law. Any disputes shall be resolved in the courts of Turkey, 
+			and you consent to the jurisdiction of such courts.
+		  </p>
+		</section>
+  
+		<section>
+		  <h2>17. Contact Information</h2>
+		  <p>
+			For questions about these Terms of Use, please contact us at 
+			<a href="mailto:infra@hoodrun.io">infra@hoodrun.io</a>.
+		  </p>
+		</section>
+	  </div>
+	</div>
+  </template>
+  
+  <script setup>
+  import { ref } from 'vue'
+  
+  // Set last updated date
+  const lastUpdated = ref('2025-07-06')
+  
+  const formatDate = (dateString) => {
+	const date = new Date(dateString)
+	return date.toLocaleDateString('en-US', {
+	  year: 'numeric',
+	  month: 'long',
+	  day: 'numeric'
+	})
+  }
+  
+  // Set page title
+  useHead({
+	title: 'Terms of Use - HoodRun',
+	meta: [
+	  { name: 'description', content: 'Terms of Use for HoodRun blockchain explorer platform' }
+	]
+  })
+  </script>
+  
+  <style scoped>
+  .terms-container {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 2rem;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	line-height: 1.6;
+	color: #333;
+  }
+  
+  .header {
+	border-bottom: 2px solid #e5e7eb;
+	padding-bottom: 1.5rem;
+	margin-bottom: 2rem;
+  }
+  
+  .header h1 {
+	font-size: 2.5rem;
+	font-weight: 700;
+	color: #1f2937;
+	margin: 0 0 0.5rem 0;
+  }
+  
+  .last-updated {
+	color: #6b7280;
+	font-size: 0.9rem;
+	margin: 0;
+  }
+  
+  .content {
+	font-size: 1rem;
+  }
+  
+  .intro {
+	background: #f9fafb;
+	padding: 1.5rem;
+	border-radius: 8px;
+	margin-bottom: 2rem;
+	border-left: 4px solid #3b82f6;
+  }
+  
+  section {
+	margin-bottom: 2rem;
+  }
+  
+  h2 {
+	font-size: 1.5rem;
 	font-weight: 600;
-}
-
-.section_content {
-	color: var(--txt-secondary);
-	font-size: 14px;
-}
-
-.section_paragraph {
-	line-height: 1.2;
-}
-
-.sub_section {
-	padding-left: 12px;
-}
-
-.section > .sub_section {
-	margin-top: 4px;
-}
-
-li:not(li:last-child) {
-	margin-bottom: 4px;
-}
-
-@counter-style lower-alpha {
-	system: fixed;
-	symbols: (a) (b) (c) (d) (e);
-	suffix: " ";
-}
-
-.letter_list {
-	list-style: none;
-	counter-reset: letter;
-}
-
-.letter_list li {
-	counter-increment: letter;
-	position: relative;
-	padding-left: 26px;
-}
-
-.letter_list li::before {
-	content: "(" counter(letter, lower-alpha) ")";
-	position: absolute;
-	left: 0;
-}
-
-.link {
-	color: var(--txt-secondary);
-
-	&:hover {
-		color: var(--txt-primary);
-		text-decoration: underline;
+	color: #1f2937;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid #e5e7eb;
+	padding-bottom: 0.5rem;
+  }
+  
+  p {
+	margin-bottom: 1rem;
+	color: #4b5563;
+  }
+  
+  ul {
+	margin-bottom: 1rem;
+	padding-left: 1.5rem;
+  }
+  
+  li {
+	margin-bottom: 0.5rem;
+	color: #4b5563;
+  }
+  
+  a {
+	color: #3b82f6;
+	text-decoration: none;
+  }
+  
+  a:hover {
+	text-decoration: underline;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+	.terms-container {
+	  padding: 1rem;
 	}
-}
-</style>
+	
+	.header h1 {
+	  font-size: 2rem;
+	}
+	
+	h2 {
+	  font-size: 1.25rem;
+	}
+  }
+  </style> 

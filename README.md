@@ -1,5 +1,10 @@
 # Monad Explorer
 
+### Attribution
+
+This project uses a modified version of the Celenium Interface, originally developed for Celestia and licensed under the MIT License.
+
+
 -   Production: [monad.hoodscan.io](https://monad.hoodscan.io)
 -   Testnet: [dev.monad.hoodscan.io](https://monad.testnet.hoodscan.io)
 
@@ -16,7 +21,7 @@ pnpm install
 
 ## Development Server
 
-Start the development server on `http://localhost:3000`:
+Start the development server on `http://localhost:9090`:
 
 ```bash
 # pnpm

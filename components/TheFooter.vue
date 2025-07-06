@@ -170,6 +170,16 @@ const handleChangeTheme = (target) => {
 					<Text size="12" weight="500" color="tertiary">Privacy policy</Text>
 				</NuxtLink>
 			</Flex>
+
+			<Flex align="center">
+				<Text size="12" weight="500" color="secondary" :class="$style.attribution">
+					UI based on the open-source 
+					<a href="https://github.com/celenium-io/celenium-interface" target="_blank" rel="noopener noreferrer" :class="$style.attribution_link">
+						Celenium Interface
+					</a>
+					(MIT Licensed). Modified and reused for Monad Explorer.
+				</Text>
+			</Flex>
 		</Flex>
 	</Flex>
 </template>
@@ -270,6 +280,28 @@ const handleChangeTheme = (target) => {
 	}
 }
 
+.attribution {
+	text-align: right;
+	line-height: 1.4;
+	padding: 8px 12px;
+	background: var(--op-5);
+	border-radius: 6px;
+	border: 1px solid var(--op-8);
+}
+
+.attribution_link {
+	color: var(--txt-primary);
+	text-decoration: underline;
+	font-weight: 600;
+	transition: all 0.2s ease;
+
+	&:hover {
+		color: var(--brand);
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+	}
+}
+
 @media (max-width: 700px) {
 	.main {
 		flex-direction: column;
@@ -289,6 +321,18 @@ const handleChangeTheme = (target) => {
 
 	.left {
 		align-items: center;
+	}
+
+	.bottom_container {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.attribution {
+		text-align: center;
+		font-size: 11px;
+		padding: 6px 10px;
+		margin-top: 8px;
 	}
 }
 </style>
