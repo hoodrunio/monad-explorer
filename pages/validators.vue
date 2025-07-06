@@ -512,6 +512,14 @@ onMounted(() => {
 	
 	.table {
 		& table {
+			& tbody tr {
+				border-bottom: 1px solid var(--op-10);
+				
+				&:last-child {
+					border-bottom: none;
+				}
+			}
+			
 			& tr th:nth-child(6), /* Block Proposals */
 			& tr td:nth-child(6) {
 				display: none;
@@ -548,6 +556,14 @@ onMounted(() => {
 	
 	.table {
 		& table {
+			& tbody tr {
+				border-bottom: 1px solid var(--op-10);
+				
+				&:last-child {
+					border-bottom: none;
+				}
+			}
+			
 			& tr th:nth-child(1), /* Rank */
 			& tr td:nth-child(1) {
 				display: none;
@@ -574,7 +590,7 @@ onMounted(() => {
 				}
 				
 				& > a {
-					min-height: 36px;
+					min-height: 40px;
 					padding-right: 12px;
 				}
 			}
