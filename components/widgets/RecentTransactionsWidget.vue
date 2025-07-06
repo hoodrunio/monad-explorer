@@ -11,11 +11,10 @@ import { comma, shortHex } from "@/services/utils"
 /** API */
 import { fetchTransactions } from "@/services/api/tx"
 
-const transactions = ref([])
-const isLoading = ref(true)
 const isRefreshing = ref(false)
 
 // Ensure transactions is always an array
+const transactions = ref([])
 watch(transactions, (newTransactions) => {
 	if (!Array.isArray(newTransactions)) {
 		transactions.value = []
@@ -34,15 +33,42 @@ const getTransactionType = (tx) => {
 	return "Transfer"
 }
 
+// Use server-side data fetching for initial load
+const { data: initialData, pending: isLoading } = await useAsyncData('recent-transactions', async () => {
+	try {
+		const { data } = await fetchTransactions({ limit: 10 })
+		const response = data?.value?.data
+		const txList = Array.isArray(response?.transactions) ? response.transactions : []
+		
+		return txList.map(tx => ({
+			...tx,
+			status: tx.status === 1 ? "success" : "failed",
+		}))
+	} catch (error) {
+		console.error("Error fetching recent transactions:", error)
+		return []
+	}
+}, {
+	// Cache for 30 seconds on server side  
+	server: true,
+	default: () => [],
+	ttl: 30000
+})
+
+// Set initial data
+watch(initialData, (newData) => {
+	if (newData) {
+		transactions.value = newData
+	}
+}, { immediate: true })
 
 const getTransactions = async (isInitial = false) => {
 	if (isInitial) {
-		isLoading.value = true
-		isRefreshing.value = false
-	} else {
-		isRefreshing.value = true
-		isLoading.value = false
+		// Already loaded via useAsyncData
+		return
 	}
+	
+	isRefreshing.value = true
 	
 	try {
 		const { data } = await fetchTransactions({ limit: 10 })
@@ -50,7 +76,7 @@ const getTransactions = async (isInitial = false) => {
 		const txList = Array.isArray(response?.transactions) ? response.transactions : []
 		
 		// Add a small delay for smooth transition
-		if (!isInitial && transactions.value.length > 0) {
+		if (transactions.value.length > 0) {
 			await new Promise(resolve => setTimeout(resolve, 100))
 		}
 		
@@ -60,22 +86,17 @@ const getTransactions = async (isInitial = false) => {
 		}))
 	} catch (error) {
 		console.error("Error fetching recent transactions:", error)
-		if (isInitial) {
-			transactions.value = []
-		}
+		// Don't clear existing data on refresh error
 	}
 	
-	isLoading.value = false
 	isRefreshing.value = false
 }
 
-// Initial data fetch
+// Initial data fetch and refresh setup
 let refreshInterval = null
 
 onMounted(async () => {
-	await getTransactions(true)
-	
-	// Refresh every 5 seconds
+	// Data already loaded via useAsyncData, just start refresh interval
 	refreshInterval = setInterval(() => getTransactions(false), 5000)
 })
 

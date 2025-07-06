@@ -11,11 +11,10 @@ import { comma, formatBytes } from "@/services/utils"
 /** API */
 import { fetchBlocks } from "@/services/api/block"
 
-const blocks = ref([])
-const isLoading = ref(true)
 const isRefreshing = ref(false)
 
 // Ensure blocks is always an array
+const blocks = ref([])
 watch(blocks, (newBlocks) => {
 	if (!Array.isArray(newBlocks)) {
 		blocks.value = []
@@ -34,14 +33,37 @@ const getGasUsagePercent = (gasUsed, gasLimit) => {
 	return (used / limit) * 100
 }
 
+// Use server-side data fetching for initial load
+const { data: initialData, pending: isLoading } = await useAsyncData('recent-blocks', async () => {
+	try {
+		const { data } = await fetchBlocks({ limit: 10 })
+		const response = data?.value?.data
+		return Array.isArray(response?.blocks) ? response.blocks : []
+	} catch (error) {
+		console.error("Error fetching recent blocks:", error)
+		return []
+	}
+}, {
+	// Cache for 30 seconds on server side
+	server: true,
+	default: () => [],
+	ttl: 5000
+})
+
+// Set initial data
+watch(initialData, (newData) => {
+	if (newData) {
+		blocks.value = newData
+	}
+}, { immediate: true })
+
 const getBlocks = async (isInitial = false) => {
 	if (isInitial) {
-		isLoading.value = true
-		isRefreshing.value = false
-	} else {
-		isRefreshing.value = true
-		isLoading.value = false
+		// Already loaded via useAsyncData
+		return
 	}
+	
+	isRefreshing.value = true
 	
 	try {
 		const { data } = await fetchBlocks({ limit: 10 })
@@ -49,29 +71,24 @@ const getBlocks = async (isInitial = false) => {
 		const newBlocks = Array.isArray(response?.blocks) ? response.blocks : []
 		
 		// Add a small delay for smooth transition
-		if (!isInitial && blocks.value.length > 0) {
+		if (blocks.value.length > 0) {
 			await new Promise(resolve => setTimeout(resolve, 100))
 		}
 		
 		blocks.value = newBlocks
 	} catch (error) {
 		console.error("Error fetching recent blocks:", error)
-		if (isInitial) {
-			blocks.value = []
-		}
+		// Don't clear existing data on refresh error
 	}
 	
-	isLoading.value = false
 	isRefreshing.value = false
 }
 
-// Initial data fetch
+// Initial data fetch and refresh setup
 let refreshInterval = null
 
 onMounted(async () => {
-	await getBlocks(true)
-	
-	// Refresh every 5 seconds
+	// Data already loaded via useAsyncData, just start refresh interval
 	refreshInterval = setInterval(() => getBlocks(false), 5000)
 })
 
