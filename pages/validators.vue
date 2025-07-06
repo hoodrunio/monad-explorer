@@ -211,7 +211,7 @@ onMounted(() => {
 					<Text as="h1" size="14" weight="600" color="primary">Validators</Text>
 				</Flex>
 
-				<Flex align="center" gap="6">
+				<Flex align="center" gap="6" :class="$style.controls">
 					<!-- Time Window Selector -->
 					<Dropdown>
 						<template #trigger="{ isOpen }">
@@ -244,7 +244,7 @@ onMounted(() => {
 					<Dropdown>
 						<template #trigger="{ isOpen }">
 							<Button type="secondary" size="mini">
-								Sort: {{ sortOptions.find(so => so.value === selectedSort)?.label }}
+								<span :class="$style.sort_label">Sort: </span>{{ sortOptions.find(so => so.value === selectedSort)?.label }}
 								<Icon
 									name="chevron"
 									size="16"
@@ -269,7 +269,7 @@ onMounted(() => {
 					</Dropdown>
 
 					<!-- Pagination -->
-					<Flex align="center" gap="6">
+					<Flex align="center" gap="6" :class="$style.pagination">
 						<Button @click="page = 1" type="secondary" size="mini" :disabled="!hasPrevPage">
 							<Icon name="arrow-left-stop" size="12" color="primary" />
 						</Button>
@@ -485,17 +485,100 @@ onMounted(() => {
 	pointer-events: none;
 }
 
+@media (max-width: 768px) {
+	.wrapper {
+		padding: 20px 16px;
+	}
+
+	.header {
+		flex-direction: column;
+		gap: 12px;
+		height: initial;
+		padding: 12px;
+	}
+	
+	.controls {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	
+	.sort_label {
+		display: none;
+	}
+	
+	.pagination {
+		gap: 4px;
+	}
+	
+	.table {
+		& table {
+			& tr th:nth-child(6), /* Block Proposals */
+			& tr td:nth-child(6) {
+				display: none;
+			}
+			
+			& tr th:nth-child(7), /* Location */
+			& tr td:nth-child(7) {
+				display: none;
+			}
+		}
+	}
+}
+
 @media (max-width: 500px) {
 	.wrapper {
 		padding: 32px 12px;
 	}
 
 	.header {
-		gap: 4px;
-
-		height: initial;
-
+		gap: 8px;
 		padding: 8px;
+	}
+	
+	.controls {
+		flex-direction: column;
+		gap: 12px;
+		width: 100%;
+	}
+	
+	.pagination {
+		justify-content: center;
+		gap: 3px;
+	}
+	
+	.table {
+		& table {
+			& tr th:nth-child(1), /* Rank */
+			& tr td:nth-child(1) {
+				display: none;
+			}
+			
+			& tr th:nth-child(5), /* QC Participation */
+			& tr td:nth-child(5) {
+				display: none;
+			}
+			
+			& tr th {
+				padding-right: 8px;
+				padding-top: 12px;
+				padding-bottom: 6px;
+				
+				&:first-child {
+					padding-left: 12px;
+				}
+			}
+			
+			& tr td {
+				&:first-child {
+					padding-left: 12px;
+				}
+				
+				& > a {
+					min-height: 36px;
+					padding-right: 12px;
+				}
+			}
+		}
 	}
 }
 
