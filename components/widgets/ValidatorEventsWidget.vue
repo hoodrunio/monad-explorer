@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { DateTime } from 'luxon'
 
 /** API */
 import { fetchRecentEvents } from "@/services/api/main"
@@ -57,11 +58,31 @@ const getEventDescription = (event) => {
 }
 
 const formatTime = (timestamp) => {
-  try {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return '--:--'
-  }
+	try {
+		// Handle different timestamp formats
+		let parsedDate
+		
+		if (timestamp.includes('T')) {
+			// ISO format: "2025-07-01T10:18:43.891Z"
+			parsedDate = DateTime.fromISO(timestamp, { zone: 'utc' })
+		} else {
+			// SQL format: "2025-07-01 10:18:43.891"
+			parsedDate = DateTime.fromSQL(timestamp, { zone: 'utc' })
+		}
+		
+		const localDate = parsedDate.toLocal()
+		
+		return {
+			relative: localDate.toRelative({ locale: "en", style: "short" }),
+			absolute: localDate.toFormat("LLL dd, yyyy, HH:mm:ss")
+		}
+	} catch (error) {
+		console.error('Error parsing timestamp:', timestamp, error)
+		return {
+			relative: 'Unknown',
+			absolute: 'Unknown time'
+		}
+	}
 }
 
 const truncateValidator = (name) => {
@@ -111,7 +132,7 @@ const truncateValidator = (name) => {
                   {{ getEventDescription(event) }}
                 </Text>
                 <Text size="11" color="tertiary">
-                  {{ formatTime(event.timestamp) }}
+                  {{ formatTime(event.timestamp).relative }}
                 </Text>
               </Flex>
               
