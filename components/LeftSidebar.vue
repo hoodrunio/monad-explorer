@@ -48,6 +48,7 @@ const mainLinks = reactive([
 			{
 				name: "All Validators",
 				path: "/validators?window=7d&sortBy=uptime_score",
+				icon: "validator",
 				queryParam: { window: "7d" },
 				show: true,
 			},
@@ -55,12 +56,14 @@ const mainLinks = reactive([
 				name: "Top Performers",
 				path: "/validators?window=7d&sortBy=uptime_score",
 				queryParam: { sortBy: "uptime_score" },
+				icon: "sort-desc",
 				show: true,
 			},
 			{
 				name: "QC Leaders",
 				path: "/validators?window=7d&sortBy=qc_participation_rate",
 				queryParam: { sortBy: "qc_participation_rate" },
+				icon: "eye",
 				show: true,
 			},
 		],
