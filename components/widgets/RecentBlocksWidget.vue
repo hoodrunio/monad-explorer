@@ -185,7 +185,10 @@ onUnmounted(() => {
 	background: var(--card-background);
 	border-radius: 8px;
 	padding: 16px;
-	min-height: 400px;
+	height: 500px;
+	min-height: 500px;
+	display: flex;
+	flex-direction: column;
 }
 
 .header {
@@ -216,6 +219,8 @@ onUnmounted(() => {
 .table_wrapper {
 	width: 100%;
 	overflow-x: auto;
+	flex: 1;
+	position: relative;
 }
 
 .table {
@@ -300,6 +305,13 @@ onUnmounted(() => {
 	transition: opacity 0.3s ease;
 }
 
+/* Prevent layout shifts during transitions */
+.table_wrapper .table {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
 /* Fade transition */
 .fade-enter-active,
 .fade-leave-active {
@@ -315,6 +327,7 @@ onUnmounted(() => {
 .list-item-enter-active,
 .list-item-leave-active {
 	transition: all 0.3s ease;
+	will-change: transform, opacity;
 }
 
 .list-item-enter-from {
@@ -329,6 +342,16 @@ onUnmounted(() => {
 
 .list-item-move {
 	transition: transform 0.3s ease;
+	will-change: transform;
+}
+
+/* Force GPU acceleration for smoother animations */
+.fade-enter-active,
+.fade-leave-active,
+.list-item-enter-active,
+.list-item-leave-active {
+	backface-visibility: hidden;
+	transform: translateZ(0);
 }
 
 @media (max-width: 768px) {
