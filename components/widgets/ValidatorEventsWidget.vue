@@ -18,6 +18,7 @@ const recentProposalEvents = computed(() => {
     validatorName: event.infrastructure?.validator_name || 'Unknown',
     timestamp: event.timestamp || new Date().toISOString(),
     roundNumber: event.round_number || 0,
+    blockNumber: event.sequence_number || 0,
     status: event.details?.status || '',
     participated: event.details?.participated,
     location: event.infrastructure?.location || 'Unknown'
@@ -119,7 +120,7 @@ const truncateValidator = (name) => {
                   {{ truncateValidator(event.validatorName) }}
                 </Text>
                 <Text size="10" color="tertiary">
-                  #{{ event.roundNumber }}
+                  #{{ event.blockNumber }}
                 </Text>
               </Flex>
             </Flex>
