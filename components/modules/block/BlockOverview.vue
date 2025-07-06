@@ -46,8 +46,7 @@ const props = defineProps({
 
 const lastBlock = computed(() => appStore.latestBlocks[0])
 
-const preselectedTab = route.query.tab && ["transactions", "events"].includes(route.query.tab) ? route.query.tab : "transactions"
-const activeTab = ref(preselectedTab)
+// Removed activeTab logic since transactions are now in separate section
 
 const isLoading = ref(false)
 const transactions = ref([])
@@ -217,33 +216,13 @@ const getTransactions = async () => {
 await getTransactions()
 
 onMounted(() => {
-	router.replace({
-		query: {
-			tab: activeTab.value,
-		},
-	})
+	// Remove tab query logic since transactions are now in separate section
 })
 
 /** Refetch transactions */
 watch(
 	() => page.value,
 	() => {
-		if (activeTab.value === "transactions") {
-			getTransactions()
-		}
-	},
-)
-
-watch(
-	() => activeTab.value,
-	() => {
-		router.replace({
-			query: {
-				tab: activeTab.value,
-			},
-		})
-
-		page.value = 1
 		getTransactions()
 	},
 )
@@ -393,24 +372,13 @@ const handleViewRawTransactions = () => {
 				</Flex>
 			</Flex>
 
-			<Flex direction="column" gap="4" wide :class="$style.txs_wrapper">
+			<Flex direction="column" gap="4" wide :class="$style.logs_wrapper">
 				<Flex align="center" justify="between" :class="$style.tabs_wrapper">
 					<Flex gap="4" :class="$style.tabs">
 						<Flex
-							@click="activeTab = 'transactions'"
 							align="center"
 							gap="6"
-							:class="[$style.tab, activeTab === 'transactions' && $style.active]"
-						>
-							<Icon name="tx" size="12" color="secondary" />
-							<Text size="13" weight="600">Transactions</Text>
-						</Flex>
-
-						<Flex
-							@click="activeTab = 'events'"
-							align="center"
-							gap="6"
-							:class="[$style.tab, activeTab === 'events' && $style.active]"
+							:class="[$style.tab, $style.active]"
 						>
 							<Icon name="zap" size="12" color="secondary" />
 							<Text size="13" weight="600">Logs</Text>
@@ -418,208 +386,220 @@ const handleViewRawTransactions = () => {
 					</Flex>
 				</Flex>
 
-				<Flex v-if="activeTab === 'transactions'" direction="column" :class="[$style.table, isLoading && $style.disabled]">
-					<Flex wrap="wrap" align="center" justify="start" gap="8" :class="$style.filters">
-						<Popover :open="isStatusPopoverOpen" @on-close="onStatusPopoverClose" width="200">
-							<Button @click="handleOpenStatusPopover" type="secondary" size="mini" :disabled="!transactions.length">
-								<Icon name="plus-circle" size="12" color="tertiary" />
-								<Text color="secondary">Status</Text>
+				<Events :block="block" />
+			</Flex>
+		</Flex>
 
-								<template v-if="Object.keys(filters.status).find((f) => filters.status[f])">
-									<div :class="$style.vertical_divider" />
-									<Text size="12" weight="600" color="primary" style="text-transform: capitalize">
-										{{
-											Object.keys(filters.status)
-												.filter((f) => filters.status[f])
-												.join(", ")
-										}}
-									</Text>
-									<Icon @click.stop="resetFilters('status', true)" name="close-circle" size="12" color="secondary" />
-								</template>
-							</Button>
+		<!-- Transactions Section -->
+		<Flex direction="column" gap="4" wide :class="$style.transactions_section">
+			<Flex align="center" justify="between" :class="$style.section_header">
+				<Flex align="center" gap="8">
+					<Icon name="tx" size="14" color="primary" />
+					<Text size="16" weight="600" color="primary">Transactions</Text>
+					<Text size="13" weight="600" color="tertiary">{{ block.transactionCount }}</Text>
+				</Flex>
+			</Flex>
 
-							<template #content>
-								<Flex direction="column" gap="12">
-									<Text size="12" weight="500" color="secondary">Filter by Status</Text>
+			<Flex direction="column" :class="[$style.table, isLoading && $style.disabled]">
+				<Flex wrap="wrap" align="center" justify="start" gap="8" :class="$style.filters">
+					<Popover :open="isStatusPopoverOpen" @on-close="onStatusPopoverClose" width="200">
+						<Button @click="handleOpenStatusPopover" type="secondary" size="mini" :disabled="!transactions.length">
+							<Icon name="plus-circle" size="12" color="tertiary" />
+							<Text color="secondary">Status</Text>
 
-									<Flex direction="column" gap="8">
-										<Checkbox v-model="filters.status.success">
-											<Text size="12" weight="500" color="primary">Success</Text>
-										</Checkbox>
-										<Checkbox v-model="filters.status.failed">
-											<Text size="12" weight="500" color="primary">Failed</Text>
-										</Checkbox>
-									</Flex>
-
-									<Button @click="handleApplyStatusFilters" type="secondary" size="mini" wide>Apply</Button>
-								</Flex>
+							<template v-if="Object.keys(filters.status).find((f) => filters.status[f])">
+								<div :class="$style.vertical_divider" />
+								<Text size="12" weight="600" color="primary" style="text-transform: capitalize">
+									{{
+										Object.keys(filters.status)
+											.filter((f) => filters.status[f])
+											.join(", ")
+									}}
+								</Text>
+								<Icon @click.stop="resetFilters('status', true)" name="close-circle" size="12" color="secondary" />
 							</template>
-						</Popover>
-					</Flex>
+						</Button>
 
-					<Flex v-if="transactions.length" :class="$style.table_scroller">
-						<table>
-							<thead>
-								<tr>
-									<th><Text size="12" weight="600" color="tertiary">Hash</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">From</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">To</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Value</Text></th>
-									<th><Text size="12" weight="600" color="tertiary">Gas</Text></th>
-								</tr>
-							</thead>
+						<template #content>
+							<Flex direction="column" gap="12">
+								<Text size="12" weight="500" color="secondary">Filter by Status</Text>
 
-							<tbody>
-								<tr v-for="tx in transactions">
-									<td style="width: 1px">
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Tooltip position="start" delay="500">
-												<Flex align="center" gap="8">
-													<Icon
-														:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
-														size="13"
-														:color="tx.status === 'success' ? 'green' : 'red'"
-													/>
+								<Flex direction="column" gap="8">
+									<Checkbox v-model="filters.status.success">
+										<Text size="12" weight="500" color="primary">Success</Text>
+									</Checkbox>
+									<Checkbox v-model="filters.status.failed">
+										<Text size="12" weight="500" color="primary">Failed</Text>
+									</Checkbox>
+								</Flex>
 
-													<Text size="13" weight="600" color="primary" mono>{{
-														tx.hash.slice(0, 6)
-													}}</Text>
+								<Button @click="handleApplyStatusFilters" type="secondary" size="mini" wide>Apply</Button>
+							</Flex>
+						</template>
+					</Popover>
+				</Flex>
 
-													<Flex align="center" gap="3">
-														<div v-for="dot in 3" class="dot" />
-													</Flex>
+				<div v-if="transactions.length" :class="$style.table_scroller">
+					<table>
+						<thead>
+							<tr>
+								<th><Text size="12" weight="600" color="tertiary">Hash</Text></th>
+								<th><Text size="12" weight="600" color="tertiary">From</Text></th>
+								<th><Text size="12" weight="600" color="tertiary">To</Text></th>
+								<th><Text size="12" weight="600" color="tertiary">Value</Text></th>
+								<th><Text size="12" weight="600" color="tertiary">Gas</Text></th>
+							</tr>
+						</thead>
 
-													<Text size="13" weight="600" color="primary" mono>{{
-														tx.hash.slice(tx.hash.length - 4, tx.hash.length)
-													}}</Text>
+						<tbody>
+							<tr v-for="tx in transactions" :key="tx.hash">
+								<td>
+									<NuxtLink :to="`/tx/${tx.hash}`">
+										<Tooltip position="start" delay="500">
+											<Flex align="center" gap="8">
+												<Icon
+													:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
+													size="13"
+													:color="tx.status === 'success' ? 'green' : 'red'"
+												/>
 
-													<CopyButton :text="tx.hash" />
+												<Text size="13" weight="600" color="primary" mono>{{
+													tx.hash.slice(0, 6)
+												}}</Text>
+
+												<Flex align="center" gap="3">
+													<div v-for="dot in 3" class="dot" />
 												</Flex>
 
-												<template #content>
-													<Flex direction="column" gap="6">
-														<Flex align="center" gap="4">
-															<Icon
-																:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
-																size="13"
-																:color="tx.status === 'success' ? 'green' : 'red'"
-															/>
-															<Text size="13" weight="600" color="primary">
-																{{ tx.status === "success" ? "Successful" : "Failed" }} Transaction
-															</Text>
-														</Flex>
+												<Text size="13" weight="600" color="primary" mono>{{
+													tx.hash.slice(tx.hash.length - 4, tx.hash.length)
+												}}</Text>
 
-														<Text color="tertiary" mono>{{ tx.hash }}</Text>
+												<CopyButton :text="tx.hash" />
+											</Flex>
 
-														<Text v-if="tx.error" height="120" color="tertiary" style="max-width: 400px" mono align="left">
-															{{ tx.error }}
+											<template #content>
+												<Flex direction="column" gap="6">
+													<Flex align="center" gap="4">
+														<Icon
+															:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
+															size="13"
+															:color="tx.status === 'success' ? 'green' : 'red'"
+														/>
+														<Text size="13" weight="600" color="primary">
+															{{ tx.status === "success" ? "Successful" : "Failed" }} Transaction
 														</Text>
 													</Flex>
-												</template>
-											</Tooltip>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Tooltip position="start">
-												<Text size="13" weight="600" color="primary" mono>
-													{{ shortHex(tx.fromAddress) }}
-												</Text>
-												<template #content>
-													<Text color="primary" mono>{{ tx.fromAddress }}</Text>
-												</template>
-											</Tooltip>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Tooltip position="start">
-												<Text size="13" weight="600" color="primary" mono>
-													{{ shortHex(tx.toAddress) }}
-												</Text>
-												<template #content>
-													<Text color="primary" mono>{{ tx.toAddress }}</Text>
-												</template>
-											</Tooltip>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Text size="13" weight="600" color="primary">
-												{{ formatMonValue(tx.value) }} MON
-											</Text>
-										</NuxtLink>
-									</td>
-									<td style="width: 1px">
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Tooltip>
-												<Flex align="center" gap="8">
-													<GasBar :percent="getGasUsagePercent(tx.gas_used, tx.gas_wanted)" />
-													<Text size="13" weight="600" color="primary">
-														{{ formatGasValue(tx.gas_used) }}
+
+													<Text color="tertiary" mono>{{ tx.hash }}</Text>
+
+													<Text v-if="tx.error" height="120" color="tertiary" style="max-width: 400px" mono align="left">
+														{{ tx.error }}
 													</Text>
 												</Flex>
+											</template>
+										</Tooltip>
+									</NuxtLink>
+								</td>
+								<td>
+									<NuxtLink :to="`/tx/${tx.hash}`">
+										<Tooltip position="start">
+											<Text size="13" weight="600" color="primary" mono>
+												{{ shortHex(tx.fromAddress) }}
+											</Text>
+											<template #content>
+												<Text color="primary" mono>{{ tx.fromAddress }}</Text>
+											</template>
+										</Tooltip>
+									</NuxtLink>
+								</td>
+								<td>
+									<NuxtLink :to="`/tx/${tx.hash}`">
+										<Tooltip position="start">
+											<Text size="13" weight="600" color="primary" mono>
+												{{ shortHex(tx.toAddress) }}
+											</Text>
+											<template #content>
+												<Text color="primary" mono>{{ tx.toAddress }}</Text>
+											</template>
+										</Tooltip>
+									</NuxtLink>
+								</td>
+								<td>
+									<NuxtLink :to="`/tx/${tx.hash}`">
+										<Text size="13" weight="600" color="primary">
+											{{ formatMonValue(tx.value) }} MON
+										</Text>
+									</NuxtLink>
+								</td>
+								<td>
+									<NuxtLink :to="`/tx/${tx.hash}`">
+										<Tooltip>
+											<Flex align="center" gap="8">
+												<GasBar :percent="getGasUsagePercent(tx.gas_used, tx.gas_wanted)" />
+												<Text size="13" weight="600" color="primary">
+													{{ formatGasValue(tx.gas_used) }}
+												</Text>
+											</Flex>
 
-												<template #content>
-													<Flex align="center" gap="4">
-														<Text size="13" weight="600" color="primary">{{ formatGasValue(tx.gas_used) }}</Text>
-														<Text size="13" weight="600" color="tertiary">used</Text>
-													</Flex>
-												</template>
-											</Tooltip>
-										</NuxtLink>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</Flex>
-					<Flex
-						v-else-if="hasActiveFilters && !transactions.length"
-						align="center"
-						justify="center"
-						direction="column"
-						gap="20"
-						wide
-						:class="$style.empty"
-					>
-						<Icon name="search" size="24" color="support" />
+											<template #content>
+												<Flex align="center" gap="4">
+													<Text size="13" weight="600" color="primary">{{ formatGasValue(tx.gas_used) }}</Text>
+													<Text size="13" weight="600" color="tertiary">used</Text>
+												</Flex>
+											</template>
+										</Tooltip>
+									</NuxtLink>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<Flex
+					v-else-if="hasActiveFilters && !transactions.length"
+					align="center"
+					justify="center"
+					direction="column"
+					gap="20"
+					wide
+					:class="$style.empty"
+				>
+					<Icon name="search" size="24" color="support" />
 
-						<Flex direction="column" gap="8">
-							<Text size="13" weight="600" color="secondary" align="center"> Nothing was found </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								Clear filters to see all transactions
-							</Text>
-						</Flex>
-
-						<Button @click="handleClearAllFilters" type="secondary" size="small">Clear all filters</Button>
-					</Flex>
-
-					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
-						<Text size="13" weight="600" color="secondary" align="center"> No transactions </Text>
+					<Flex direction="column" gap="8">
+						<Text size="13" weight="600" color="secondary" align="center"> Nothing was found </Text>
 						<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-							This block does not contain any transactions
+							Clear filters to see all transactions
 						</Text>
 					</Flex>
 
-					<!-- Pagination -->
-					<Flex v-if="transactions.length" align="center" gap="6" :class="$style.pagination">
-						<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left-stop" size="12" color="primary" />
-						</Button>
-						<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left" size="12" color="primary" />
-						</Button>
-
-						<Button type="secondary" size="mini" disabled>
-							<Text size="12" weight="600" color="primary">Page {{ page }}</Text>
-						</Button>
-
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="transactions.length !== 10">
-							<Icon name="arrow-right" size="12" color="primary" />
-						</Button>
-					</Flex>
+					<Button @click="handleClearAllFilters" type="secondary" size="small">Clear all filters</Button>
 				</Flex>
-				<Events v-else :block="block"> </Events>
+
+				<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
+					<Text size="13" weight="600" color="secondary" align="center"> No transactions </Text>
+					<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
+						This block does not contain any transactions
+					</Text>
+				</Flex>
+
+				<!-- Pagination -->
+				<Flex v-if="transactions.length" align="center" gap="6" :class="$style.pagination">
+					<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
+						<Icon name="arrow-left-stop" size="12" color="primary" />
+					</Button>
+					<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
+						<Icon name="arrow-left" size="12" color="primary" />
+					</Button>
+
+					<Button type="secondary" size="mini" disabled>
+						<Text size="12" weight="600" color="primary">Page {{ page }}</Text>
+					</Button>
+
+					<Button @click="handleNext" type="secondary" size="mini" :disabled="transactions.length !== 10">
+						<Icon name="arrow-right" size="12" color="primary" />
+					</Button>
+				</Flex>
 			</Flex>
 		</Flex>
 	</Flex>
@@ -656,8 +636,19 @@ const handleViewRawTransactions = () => {
 	}
 }
 
-.txs_wrapper {
+.logs_wrapper {
 	min-width: 0;
+}
+
+.transactions_section {
+	margin-top: 16px;
+}
+
+.section_header {
+	height: 40px;
+	border-radius: 8px 8px 4px 4px;
+	background: var(--card-background);
+	padding: 0 12px;
 }
 
 .tabs_wrapper {
@@ -710,11 +701,28 @@ const handleViewRawTransactions = () => {
 }
 
 .table_scroller {
-	min-width: 100%;
-	width: 0;
+	width: 100%;
 	height: 100%;
-
 	overflow-x: auto;
+	overflow-y: visible;
+}
+
+.table_scroller::-webkit-scrollbar {
+	height: 8px;
+}
+
+.table_scroller::-webkit-scrollbar-track {
+	background: var(--op-3);
+	border-radius: 4px;
+}
+
+.table_scroller::-webkit-scrollbar-thumb {
+	background: var(--op-10);
+	border-radius: 4px;
+}
+
+.table_scroller::-webkit-scrollbar-thumb:hover {
+	background: var(--op-15);
 }
 
 .inner {
@@ -736,16 +744,14 @@ const handleViewRawTransactions = () => {
 
 	& table {
 		width: 100%;
+		min-width: 800px;
 		height: fit-content;
-
-		border-spacing: 0px;
-
-		padding-bottom: 8px;
+		border-spacing: 0;
+		table-layout: fixed;
 
 		& tbody {
 			& tr {
 				cursor: pointer;
-
 				transition: all 0.05s ease;
 
 				&:hover {
@@ -760,13 +766,29 @@ const handleViewRawTransactions = () => {
 
 		& tr th {
 			text-align: left;
-			padding: 0;
-			padding-right: 16px;
-			padding-top: 8px;
-			padding-bottom: 8px;
+			padding: 8px 16px;
+			white-space: nowrap;
+			vertical-align: top;
 
 			&:first-child {
+				width: 20%;
 				padding-left: 16px;
+			}
+
+			&:nth-child(2) {
+				width: 18%;
+			}
+
+			&:nth-child(3) {
+				width: 18%;
+			}
+
+			&:nth-child(4) {
+				width: 16%;
+			}
+
+			&:nth-child(5) {
+				width: 16%;
 			}
 
 			& span {
@@ -775,9 +797,10 @@ const handleViewRawTransactions = () => {
 		}
 
 		& tr td {
-			padding: 0;
-
+			padding: 8px 16px;
 			white-space: nowrap;
+			vertical-align: middle;
+			border-bottom: 1px solid var(--op-3);
 
 			&:first-child {
 				padding-left: 16px;
@@ -785,10 +808,9 @@ const handleViewRawTransactions = () => {
 
 			& > a {
 				display: flex;
-
+				align-items: center;
 				min-height: 40px;
-
-				padding-right: 24px;
+				width: 100%;
 			}
 		}
 	}
@@ -850,6 +872,17 @@ const handleViewRawTransactions = () => {
 	.table {
 		border-radius: 4px 4px 8px 8px;
 	}
+
+	.transactions_section {
+		margin-top: 12px;
+	}
+
+	.section_header {
+		height: initial;
+		flex-direction: column;
+		gap: 8px;
+		padding: 12px;
+	}
 }
 
 @media (max-width: 550px) {
@@ -859,6 +892,54 @@ const handleViewRawTransactions = () => {
 		gap: 12px;
 
 		padding: 12px 0;
+	}
+}
+
+@media (max-width: 1200px) {
+	.table {
+		& table {
+			min-width: 700px;
+		}
+	}
+}
+
+@media (max-width: 900px) {
+	.table {
+		& table {
+			min-width: 600px;
+
+			& tr th {
+				&:nth-child(3) {
+					display: none;
+				}
+			}
+
+			& tr td {
+				&:nth-child(3) {
+					display: none;
+				}
+			}
+		}
+	}
+}
+
+@media (max-width: 700px) {
+	.table {
+		& table {
+			min-width: 500px;
+
+			& tr th {
+				&:nth-child(4) {
+					display: none;
+				}
+			}
+
+			& tr td {
+				&:nth-child(4) {
+					display: none;
+				}
+			}
+		}
 	}
 }
 
@@ -877,6 +958,29 @@ const handleViewRawTransactions = () => {
 
 	.block_nav__txt {
 		display: none;
+	}
+
+	.table {
+		& table {
+			min-width: 400px;
+
+			& tr th {
+				padding: 8px 8px;
+				font-size: 11px;
+
+				&:first-child {
+					padding-left: 12px;
+				}
+			}
+
+			& tr td {
+				padding: 8px 8px;
+
+				&:first-child {
+					padding-left: 12px;
+				}
+			}
+		}
 	}
 }
 </style>
