@@ -6,7 +6,7 @@ import Badge from "@/components/ui/Badge.vue"
 import CopyButton from "@/components/CopyButton.vue"
 
 /** Services */
-import { shortHex } from "@/services/utils"
+import { shortHex, comma } from "@/services/utils"
 import { convertUTCToLocal } from "@/services/utils/validator"
 
 /** Components */
@@ -227,6 +227,19 @@ const getPerformanceColor = (score) => {
 							<CopyButton :text="validator.validator_id" />
 						</Flex>
 					</Flex>
+					
+					<!-- Stake Information -->
+					<Flex v-if="validator.stake" direction="column" gap="8" :class="$style.key_value">
+						<Flex align="center" justify="between">
+							<Text size="13" weight="600" color="primary">Voting Power</Text>
+						</Flex>
+						<Flex align="center" gap="6">
+							<Text size="12" weight="600" color="secondary"> 
+								{{ comma(validator.stake) }} 
+							</Text>
+						</Flex>
+					</Flex>
+					
 					<!-- Infrastructure Details -->
 					<Flex v-if="infrastructureDetails" direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Infrastructure Details</Text>
@@ -465,6 +478,11 @@ const getPerformanceColor = (score) => {
 	
 	.metrics_grid {
 		grid-template-columns: 1fr;
+	}
+	
+	.tabs_wrapper {
+		overflow-x: auto;
+		padding-bottom: 2px;
 	}
 }
 </style>

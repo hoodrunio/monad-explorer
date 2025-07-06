@@ -247,7 +247,7 @@ onMounted(() => {
 		<!-- Event Filters -->
 		<Flex direction="column" gap="12" :class="$style.filters_section">
 			<Text size="12" weight="600" color="secondary">Event Filters</Text>
-			<Flex align="center" gap="16" wrap>
+			<Flex align="center" gap="16" wrap :class="$style.filters_container">
 				<Flex align="center" gap="8">
 					<Checkbox 
 						v-model="filters.block_proposal"
@@ -490,6 +490,44 @@ onMounted(() => {
 	.filters_section {
 		padding: 12px;
 	}
+	
+	.pagination {
+		padding: 12px;
+	}
+	
+	.page_info {
+		padding: 0 12px;
+		min-width: 80px;
+	}
+}
+
+@media (max-width: 640px) {
+	.filters_section {
+		padding: 12px;
+	}
+	
+	.filters_container {
+		flex-direction: column;
+		gap: 12px;
+		align-items: flex-start;
+	}
+	
+	.events_table th:nth-child(3), /* Round column */
+	.events_table td:nth-child(3) {
+		display: none;
+	}
+	
+	.type_cell {
+		min-width: 120px;
+	}
+	
+	.description_cell {
+		max-width: 180px;
+	}
+	
+	.time_cell {
+		min-width: 100px;
+	}
 }
 
 @media (max-width: 480px) {
@@ -498,12 +536,32 @@ onMounted(() => {
 	}
 	
 	.description_cell {
-		max-width: 150px;
+		max-width: 120px;
+		min-width: 100px;
+	}
+	
+	.time_cell {
+		min-width: 80px;
 	}
 	
 	.events_table th,
 	.events_table td {
 		padding: 6px 8px;
+		font-size: 11px;
+	}
+	
+	.filters_section {
+		padding: 10px;
+	}
+	
+	.pagination {
+		padding: 10px;
+		gap: 4px;
+	}
+	
+	.page_info {
+		padding: 0 8px;
+		min-width: 60px;
 		font-size: 11px;
 	}
 }
