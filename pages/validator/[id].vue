@@ -73,11 +73,7 @@ const validatorName = computed(() => {
 	)
 })
 
-defineOgImageComponent("ValidatorImage", {
-	title: "Validator",
-	validator: validator.value,
-	cacheKey: validatorName.value,
-})
+
 
 useHead({
 	title: `Validator ${validatorName.value} - Monad Explorer`,
@@ -92,30 +88,7 @@ useHead({
 			name: "description",
 			content: `Monitor ${validatorName.value} performance metrics, uptime score, QC participation rate, infrastructure details and historical data on Monad network.`,
 		},
-		{
-			property: "og:title",
-			content: `Validator ${validatorName.value} - Monad Explorer`,
-		},
-		{
-			property: "og:description",
-			content: `Monitor ${validatorName.value} performance metrics, uptime score, QC participation rate, infrastructure details and historical data on Monad network.`,
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: `Validator ${validatorName.value} - Monad Explorer`,
-		},
-		{
-			name: "twitter:description",
-			content: `Monitor ${validatorName.value} performance metrics, uptime score, QC participation rate, infrastructure details and historical data on Monad network.`,
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 </script>

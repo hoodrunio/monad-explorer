@@ -139,30 +139,7 @@ useHead({
 			name: "description",
 			content: "Browse all transactions on the Monad network. View transaction details, gas usage, token transfers, and more.",
 		},
-		{
-			property: "og:title",
-			content: "Transactions - Monad Explorer",
-		},
-		{
-			property: "og:description",
-			content: "Browse all transactions on the Monad network. View transaction details, gas usage, token transfers, and more.",
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: "Transactions - Monad Explorer",
-		},
-		{
-			name: "twitter:description",
-			content: "Browse all transactions on the Monad network. View transaction details, gas usage, token transfers, and more.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 </script>

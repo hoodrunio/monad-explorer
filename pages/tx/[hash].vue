@@ -67,11 +67,7 @@ const shortTxHash = computed(() => {
 	return shortHex(txHash.value)
 })
 
-defineOgImageComponent("TxImage", {
-	title: "Transaction",
-	transaction: transaction.value,
-	cacheKey: txHash.value,
-})
+
 
 useHead({
 	title: `Transaction ${shortTxHash.value} - Monad Explorer`,
@@ -86,30 +82,7 @@ useHead({
 			name: "description",
 			content: `Explore transaction ${shortTxHash.value} on Monad network. View token transfers, internal transactions, gas usage, and other details.`,
 		},
-		{
-			property: "og:title",
-			content: `Transaction ${shortTxHash.value} - Monad Explorer`,
-		},
-		{
-			property: "og:description",
-			content: `Explore transaction ${shortTxHash.value} on Monad network. View token transfers, internal transactions, gas usage, and other details.`,
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: `Transaction ${shortTxHash.value} - Monad Explorer`,
-		},
-		{
-			name: "twitter:description",
-			content: `Explore transaction ${shortTxHash.value} on Monad network. View token transfers, internal transactions, gas usage, and other details.`,
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 </script>

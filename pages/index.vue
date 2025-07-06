@@ -26,38 +26,7 @@ useHead({
 			name: "description",
 			content: "Comprehensive network monitoring and analytics for the Monad blockchain ecosystem.",
 		},
-		{
-			property: "og:title",
-			content: "Monad Explorer - Network Monitoring",
-		},
-		{
-			property: "og:description",
-			content: "Monitor validator performance, network health, and geographic distribution in real-time.",
-		},
-		{
-			property: "og:url",
-			content: "/",
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/main.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Monad",
-		},
-		{
-			name: "twitter:description",
-			content: "Monad",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "/img/seo/main.png",
-		},
+
 	],
 })
 

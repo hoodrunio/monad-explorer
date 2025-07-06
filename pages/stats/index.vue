@@ -24,26 +24,7 @@ useHead({
 			name: "description",
 			content: "Monad network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
 		},
-		{
-			property: "og:title",
-			content: "Analytics - Monad Explorer",
-		},
-		{
-			property: "og:description",
-			content: "Monad network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
-		},
-		{
-			name: "twitter:title",
-			content: "Monad",
-		},
-		{
-			name: "twitter:description",
-			content: "Monad FDN",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 

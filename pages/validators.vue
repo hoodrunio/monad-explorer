@@ -27,40 +27,7 @@ useHead({
 			content:
 				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
 		},
-		{
-			property: "og:title",
-			content: "Validators - Monad Explorer",
-		},
-		{
-			property: "og:description",
-			content:
-				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
-		},
-		{
-			property: "og:url",
-			content: "/validators",
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/validators.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Validators - Monad Explorer",
-		},
-		{
-			name: "twitter:description",
-			content:
-				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "/img/seo/validators.png",
-		},
+
 	],
 })
 

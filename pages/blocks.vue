@@ -121,30 +121,7 @@ useHead({
 			name: "description",
 			content: "Browse all blocks on the Monad network. View block details, transactions, gas usage, and timestamps.",
 		},
-		{
-			property: "og:title",
-			content: "Blocks - Monad Explorer",
-		},
-		{
-			property: "og:description",
-			content: "Browse all blocks on the Monad network. View block details, transactions, gas usage, and timestamps.",
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: "Blocks - Monad Explorer",
-		},
-		{
-			name: "twitter:description",
-			content: "Browse all blocks on the Monad network. View block details, transactions, gas usage, and timestamps.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 </script>

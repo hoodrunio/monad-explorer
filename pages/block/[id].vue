@@ -76,11 +76,7 @@ const blockNumber = computed(() => {
 	return block.value?.number || route.params.id
 })
 
-defineOgImageComponent("BlockImage", {
-	title: "Block",
-	block: block.value,
-	cacheKey: blockNumber.value,
-})
+
 
 useHead({
 	title: `Block ${comma(blockNumber.value)} - Monad Explorer`,
@@ -95,30 +91,7 @@ useHead({
 			name: "description",
 			content: `Explore block ${comma(blockNumber.value)} on Monad network. View transactions, gas usage, block size, and other details.`,
 		},
-		{
-			property: "og:title",
-			content: `Block ${comma(blockNumber.value)} - Monad Explorer`,
-		},
-		{
-			property: "og:description",
-			content: `Explore block ${comma(blockNumber.value)} on Monad network. View transactions, gas usage, block size, and other details.`,
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: `Block ${comma(blockNumber.value)} - Monad Explorer`,
-		},
-		{
-			name: "twitter:description",
-			content: `Explore block ${comma(blockNumber.value)} on Monad network. View transactions, gas usage, block size, and other details.`,
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
+
 	],
 })
 </script>

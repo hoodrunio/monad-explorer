@@ -5,7 +5,7 @@ import topLevelAwait from "vite-plugin-top-level-await"
 import path from "path"
 
 export default defineNuxtConfig({
-	modules: ["nuxt-site-config", "@pinia/nuxt", "nuxt-og-image", "@nuxtjs/sitemap"],
+	modules: ["nuxt-site-config", "@pinia/nuxt", "@nuxtjs/sitemap"],
 
 	site: {
 		url: "https://monad.hoodscan.io",
@@ -121,9 +121,7 @@ export default defineNuxtConfig({
 
 	// Pinia configuration - using defaults
 
-	ogImage: {
-		fonts: ["Inter:400", "Inter:600", "IBM+Plex+Mono:400"],
-	},
+
 
 	devtools: {
 		enabled: true,
