@@ -12,6 +12,7 @@ import { fetchTransactions } from "@/services/api/tx"
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
 import Badge from "@/components/ui/Badge.vue"
+import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -38,8 +39,14 @@ const formatMonValue = (value) => {
 const getTransactionType = (tx) => {
 	if (tx.isContractCreation) return "Contract Creation"
 	if (tx.isContractInteraction) return "Contract Call"
+	if(tx.toAddress && tx.value !== "0") return "Mon Transfer"
 	if (tx.toAddress) return "Transfer"
 	return "Unknown"
+}
+
+// MessageTypeBadge için array format
+const getTransactionTypes = (tx) => {
+	return [getTransactionType(tx)]
 }
 
 const getStatusColor = (status) => {
@@ -236,9 +243,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
-													{{ getTransactionType(tx) }}
-												</Text>
+												<MessageTypeBadge :types="getTransactionTypes(tx)" />
 											</Flex>
 										</NuxtLink>
 									</td>
