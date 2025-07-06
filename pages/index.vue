@@ -1,7 +1,6 @@
 <script setup>
 /** Components */
 import Widgets from "@/components/widgets/Widgets.vue"
-import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.vue"
 
 /** Services */
 import { parseRedirectQueryError } from "@/services/notifications"
@@ -42,13 +41,6 @@ onBeforeMount(async () => {
 	<Flex direction="column" wide :class="$style.wrapper">
 		<!-- API-Aligned Widget Sections -->
 		<Widgets :class="$style.widgets" />
-
-		<!-- Validator Rankings Table -->
-		<Flex direction="column" gap="40" :class="$style.main">
-			<div :class="$style.table_section">
-				<ValidatorNetworkSummary />
-			</div>
-		</Flex>
 	</Flex>
 </template>
 
@@ -60,15 +52,6 @@ onBeforeMount(async () => {
 
 .widgets {
 	margin-top: 20px;
-}
-
-.main {
-	max-width: 100%;
-	margin-top: 40px;
-}
-
-.table_section {
-	max-width: 100%;
 }
 
 @media (max-width: 500px) {

@@ -6,8 +6,9 @@ import { getNetworkName } from "@/services/utils/general"
 import ValidatorStatsWidget from "./ValidatorStatsWidget.vue"
 import ValidatorEventsWidget from "./ValidatorEventsWidget.vue"
 import GeographicDistributionWidget from "./GeographicDistributionWidget.vue"
-import CentralizationRiskWidget from "./CentralizationRiskWidget.vue"
 import EpochWidget from "./EpochWidget.vue"
+import RecentBlocksWidget from "./RecentBlocksWidget.vue"
+import RecentTransactionsWidget from "./RecentTransactionsWidget.vue"
 
 const tablet = ref(false)
 
@@ -26,14 +27,17 @@ onBeforeMount(() => {
 			<ValidatorStatsWidget :class="$style.stats_widget" />
 		</Flex>
 
-		<!-- Section 2: Validator Analysis & Risk -->
+		<!-- Section 2: Validator Analysis & Recent Data -->
 		<Flex gap="20" :class="$style.section">
-			<Flex direction="column" gap="20" wide :class="$style.column">
-				<GeographicDistributionWidget />
-				<CentralizationRiskWidget />
-			</Flex>
+			<GeographicDistributionWidget :class="$style.column" />
 			
 			<ValidatorEventsWidget :class="$style.events_widget" />
+		</Flex>
+
+		<!-- Section 3: Recent Blocks & Transactions -->
+		<Flex gap="20" :class="$style.section">
+			<RecentBlocksWidget :class="$style.recent_widget" />
+			<RecentTransactionsWidget :class="$style.recent_widget" />
 		</Flex>
 	</Flex>
 </template>
@@ -66,6 +70,11 @@ onBeforeMount(() => {
 	flex: 1;
 }
 
+.recent_widget {
+	flex: 1;
+	min-width: 400px;
+}
+
 @media (max-width: 1100px) {
 	.section {
 		flex-direction: column;
@@ -79,7 +88,8 @@ onBeforeMount(() => {
 @media (max-width: 500px) {
 	.stats_widget,
 	.epoch_widget,
-	.events_widget {
+	.events_widget,
+	.recent_widget {
 		min-width: initial;
 	}
 }
