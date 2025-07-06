@@ -1,5 +1,5 @@
 const advertisements = [
-	{
+/* 	{
 		name: 'monad_api',
 		modal: 'api',
 		icon: 'slash',
@@ -7,7 +7,7 @@ const advertisements = [
 		body: 'Explore the power of Monad: Fast, Scalable and EVM-compatible Blockchain.',
 		footer: 'Get started',
 		weight: 0.5,
-	},
+	}, */
 	{
 		name: 'monad_docs',
 		link: 'https://docs.monad.xyz',
@@ -29,26 +29,29 @@ const advertisements = [
 ]
 
 export function getRandomAdv() {
+    const validAds = advertisements.filter(el => el.weight <= 1)
+    
+    if (validAds.length === 0) {
+        return null
+    }
+    
     const randomNum = Math.random()
-
     let cumWeight = 0
-    for (let ad of advertisements.filter(el => el.weight <= 1)) {
+    
+    for (let ad of validAds) {
         cumWeight += ad.weight
         if (randomNum <= cumWeight) {
             return ad
         }
     }
+    
+    // If no ad was selected (due to weights not adding up to 1), return the first one
+    return validAds[0]
 }
 
 export function getAdvByName(name) {
-	let adv = {}
-	advertisements.forEach(el => {
-		if (el.name === name) {
-			adv = el
-		}
-	})
-
-	return adv
+	const adv = advertisements.find(el => el.name === name)
+	return adv || null
 }
 
 export const banners = [
