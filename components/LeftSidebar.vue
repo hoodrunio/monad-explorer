@@ -12,6 +12,9 @@ import { getNetworkName } from "@/services/utils/general"
 import { StatusMap } from "@/services/constants/node"
 import { isMainnet, isMobile } from "@/services/utils"
 
+/** API */
+import { fetchHealthStatus } from "@/services/api/main"
+
 /** Store */
 import { useAppStore } from "@/store/app.store"
 import { useNodeStore } from "@/store/node.store"
@@ -22,7 +25,25 @@ const modalsStore = useModalsStore()
 
 const developerMode = useCookie("developerMode", { default: () => false })
 
-const head = computed(() => appStore.lastHead)
+// Health status data
+const { data: healthData, pending: healthLoading, error: healthError } = await fetchHealthStatus()
+
+const isHealthy = computed(() => {
+	if (healthLoading.value || healthError.value) return false
+	return healthData.value?.status === 'healthy'
+})
+
+const healthUptime = computed(() => {
+	if (!healthData.value?.uptime) return 0
+	// Convert seconds to hours
+	return Math.floor(healthData.value.uptime / 3600)
+})
+
+const networkStatus = computed(() => {
+	if (healthLoading.value) return 'Loading...'
+	if (healthError.value) return 'Connection Error'
+	return isHealthy.value ? 'Testnet Active' : 'Service Unavailable'
+})
 
 const mainLinks = reactive([
 	{
@@ -215,29 +236,31 @@ const handleOnClose = () => {
 		</Flex>
 
 		<Flex direction="column" gap="16" style="margin-right: 20px">
-			<Flex @click="modalsStore.open('nodeStatus')" align="center" gap="8" justify="between" :class="$style.light_node_btn">
+			<Flex align="center" gap="8" justify="between" :class="$style.light_node_btn">
 				<Flex align="center" gap="8">
 					<Icon
-						v-if="head?.synced"
+						v-if="isHealthy"
 						name="check-circle"
 						size="14"
 						color="brand"
 						:class="$style.light_node_running_icon"
 					/>
+					<Icon v-else-if="healthLoading" name="refresh" size="14" color="secondary" />
 					<Icon v-else name="close-circle" size="14" color="red" />
 
-					<Text v-if="head?.synced" size="13" weight="600" color="primary">Network</Text>
+					<Text v-if="isHealthy" size="13" weight="600" color="primary">Service</Text>
 					<Text size="13" weight="600" color="secondary">Status</Text>
 				</Flex>
 
-				<Icon v-if="!head?.synced" name="arrow-narrow-right" size="14" color="secondary" />
-				<Text v-else size="12" weight="600" color="tertiary">{{ head?.active_validators || 0 }}</Text>
+				<Icon v-if="!isHealthy && !healthLoading" name="arrow-narrow-right" size="14" color="secondary" />
+				<Text v-else-if="isHealthy" size="12" weight="600" color="tertiary">{{ healthUptime }}h uptime</Text>
+				<Text v-else size="12" weight="600" color="tertiary">...</Text>
 			</Flex>
 
 			<Dropdown position="end" fullWidth>
 				<Flex align="center" gap="8" justify="between" :class="$style.network_selector">
 					<Flex align="center" gap="8">
-						<Icon name="globe" size="14" :color="head?.synced ? 'brand' : 'red'" />
+						<Icon name="globe" size="14" :color="isHealthy ? 'brand' : 'red'" />
 						<Text size="13" weight="600" color="secondary">
 							Network
 						</Text>
@@ -248,27 +271,39 @@ const handleOnClose = () => {
 
 				<template #popup>
 					<DropdownTitle>
-						<Flex v-if="head?.synced" gap="8">
+						<Flex v-if="isHealthy" gap="8">
 							<Icon name="check" size="12" color="brand" />
 							<Flex direction="column" gap="6">
-								<Text color="secondary">Network Synced</Text>
-								<Text color="tertiary">{{ head?.total_validators || 0 }} validators</Text>
+								<Text color="secondary">{{ networkStatus }}</Text>
+								<Text color="tertiary">Monad Testnet</Text>
 							</Flex>
 						</Flex>
 						<Flex v-else gap="8">
 							<Icon name="close" size="12" color="red" />
 							<Flex direction="column" gap="6">
-								<Text color="secondary">Network Issues</Text>
-								<Text color="tertiary">Connection Problems</Text>
+								<Text color="secondary">{{ networkStatus }}</Text>
+								<Text color="tertiary">Check connection</Text>
 							</Flex>
 						</Flex>
 					</DropdownTitle>
 					<DropdownDivider />
-					<DropdownTitle>Network Info</DropdownTitle>
+					<DropdownTitle>Network Selection</DropdownTitle>
+					<DropdownItem>
+						<Flex align="center" gap="8">
+							<Icon name="check" size="12" color="brand" />
+							<Flex direction="column" gap="4">
+								<Text color="secondary">Monad Testnet</Text>
+								<Text color="tertiary">Currently active network</Text>
+							</Flex>
+						</Flex>
+					</DropdownItem>
 					<DropdownItem disabled>
-						<Flex direction="column" gap="4">
-							<Text color="secondary">Active Validators: {{ head?.active_validators || 0 }}</Text>
-							<Text color="tertiary">Network Health: {{ head?.synced ? 'Good' : 'Poor' }}</Text>
+						<Flex align="center" gap="8">
+							<Icon name="clock" size="12" color="tertiary" />
+							<Flex direction="column" gap="4">
+								<Text color="tertiary">Monad Mainnet</Text>
+								<Text color="tertiary">Coming soon...</Text>
+							</Flex>
 						</Flex>
 					</DropdownItem>
 				</template>

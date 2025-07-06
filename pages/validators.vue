@@ -1,6 +1,7 @@
 <script setup>
 /** UI */
 import Button from "@/components/ui/Button.vue"
+import Input from "@/components/ui/Input.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import BookmarkButton from "@/components/BookmarkButton.vue"
 
@@ -33,6 +34,8 @@ useHead({
 
 const isLoading = ref(false)
 const validators = ref([])
+const allValidators = ref([]) // Store all validators for filtering
+const searchTerm = ref(route.query.search || "")
 
 // Time window options
 const timeWindows = ref([
@@ -59,19 +62,51 @@ const hasNextPage = ref(false)
 const hasPrevPage = ref(false)
 const pages = computed(() => totalPages.value || 1)
 
+// Filtered validators based on search term
+const filteredValidators = computed(() => {
+	if (!searchTerm.value.trim()) {
+		return allValidators.value
+	}
+	
+	const search = searchTerm.value.toLowerCase().trim()
+	return allValidators.value.filter(validator => 
+		validator.name.toLowerCase().includes(search) ||
+		validator.validatorId.toLowerCase().includes(search)
+	)
+})
+
+// Paginated validators for display
+const paginatedValidators = computed(() => {
+	const filtered = filteredValidators.value
+	const startIndex = (page.value - 1) * limit.value
+	const endIndex = startIndex + limit.value
+	
+	// Update pagination info for filtered results
+	const filteredTotal = filtered.length
+	const filteredPages = Math.ceil(filteredTotal / limit.value)
+	
+	// Update reactive pagination values
+	totalValidators.value = filteredTotal
+	totalPages.value = filteredPages || 1
+	hasNextPage.value = page.value < filteredPages
+	hasPrevPage.value = page.value > 1
+	
+	return filtered.slice(startIndex, endIndex)
+})
+
 const getValidators = async () => {
 	isLoading.value = true
 
 	try {
 		const { data } = await fetchValidatorRankings({
-			limit: limit.value,
+			limit: 1000, // Fetch more validators to enable client-side search
 			sortBy: selectedSort.value,
 			window: selectedTimeWindow.value,
-			page: page.value
+			page: 1 // Always fetch from page 1 to get all validators
 		})
 
 		if (data.value?.data) {
-			validators.value = data.value.data.map(validator => ({
+			const validatorsList = data.value.data.map(validator => ({
 				rank: validator.rank || 0,
 				validatorId: validator.validator_id || '',
 				name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
@@ -86,15 +121,8 @@ const getValidators = async () => {
 				qcParticipations: validator.details?.qc_participations || 0,
 				totalQcOpportunities: validator.details?.total_qc_opportunities || 0
 			}))
-
-			// Handle pagination metadata
-			if (data.value?.pagination) {
-				const pagination = data.value.pagination
-				totalValidators.value = parseInt(pagination.total_count || 0)
-				totalPages.value = pagination.total_pages || 1
-				hasNextPage.value = pagination.has_next_page || false
-				hasPrevPage.value = pagination.has_prev_page || false
-			}
+			
+			allValidators.value = validatorsList
 		}
 	} catch (error) {
 		console.error('Error fetching validators:', error)
@@ -113,6 +141,16 @@ const handlePrev = () => {
 	page.value -= 1
 }
 
+const handleSearchInput = () => {
+	// Reset to first page when searching
+	page.value = 1
+}
+
+const clearSearch = () => {
+	searchTerm.value = ""
+	page.value = 1
+}
+
 const formatPercentage = (value) => {
 	return `${value.toFixed(1)}%`
 }
@@ -126,15 +164,28 @@ const getPerformanceColor = (score) => {
 // Initialize data
 await getValidators()
 
-// Update URL and refetch when parameters change
-watch([page, selectedSort, selectedTimeWindow], async () => {
+// Update URL and refetch when parameters change (excluding search)
+watch([selectedSort, selectedTimeWindow], async () => {
 	await getValidators()
 	
 	router.replace({ 
 		query: { 
 			page: page.value,
 			sortBy: selectedSort.value,
-			window: selectedTimeWindow.value
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
+		} 
+	})
+})
+
+// Update URL when page or search changes (no refetch needed)
+watch([page, searchTerm], () => {
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
 		} 
 	})
 })
@@ -146,6 +197,7 @@ watch(
 		if (route.query.page) page.value = parseInt(route.query.page)
 		if (route.query.sortBy) selectedSort.value = route.query.sortBy
 		if (route.query.window) selectedTimeWindow.value = route.query.window
+		if (route.query.search !== undefined) searchTerm.value = route.query.search || ""
 	},
 )
 
@@ -154,7 +206,8 @@ onMounted(() => {
 		query: { 
 			page: page.value,
 			sortBy: selectedSort.value,
-			window: selectedTimeWindow.value
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
 		} 
 	})
 })
@@ -176,9 +229,32 @@ onMounted(() => {
 				<Flex align="center" gap="8">
 					<Icon name="validator" size="16" color="secondary" />
 					<Text as="h1" size="14" weight="600" color="primary">Validators</Text>
+					<Text v-if="searchTerm && filteredValidators.length !== allValidators.length" size="12" color="tertiary">
+						({{ filteredValidators.length }} of {{ allValidators.length }})
+					</Text>
 				</Flex>
 
 				<Flex align="center" gap="6" :class="$style.controls">
+					<!-- Search Input -->
+					<div :class="$style.search_wrapper">
+						<Input
+							v-model="searchTerm"
+							placeholder="Search validators..."
+							icon="search"
+							size="small"
+							@input="handleSearchInput"
+							:class="$style.search_input"
+						/>
+						<button 
+							v-if="searchTerm"
+							@click="clearSearch"
+							:class="$style.clear_button"
+							type="button"
+						>
+							<Icon name="close" size="10" color="tertiary" />
+						</button>
+					</div>
+
 					<!-- Time Window Selector -->
 					<Dropdown>
 						<template #trigger="{ isOpen }">
@@ -259,7 +335,7 @@ onMounted(() => {
 			</Flex>
 
 			<Flex direction="column" gap="16" wide :class="[$style.table, isLoading && $style.disabled]">
-				<div v-if="validators.length" :class="$style.table_scroller">
+				<div v-if="paginatedValidators.length" :class="$style.table_scroller">
 					<table>
 						<thead>
 							<tr>
@@ -275,7 +351,7 @@ onMounted(() => {
 						</thead>
 
 						<tbody>
-							<tr v-for="validator in validators" :key="validator.validatorId">
+							<tr v-for="validator in paginatedValidators" :key="validator.validatorId">
 								<td style="width: 1px">
 									<Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
 								</td>
@@ -333,6 +409,14 @@ onMounted(() => {
 						</tbody>
 					</table>
 				</div>
+				<Flex v-else-if="!isLoading && allValidators.length > 0" direction="column" gap="20" align="center" :class="$style.empty">
+					<Flex direction="column" gap="8" align="center">
+						<Text size="13" weight="600" color="secondary"> No validators found </Text>
+						<Text size="12" weight="400" color="tertiary"> 
+							{{ searchTerm ? 'Try adjusting your search term' : 'Try adjusting the time window or sort options' }}
+						</Text>
+					</Flex>
+				</Flex>
 				<Flex v-else-if="!isLoading" direction="column" gap="20" align="center" :class="$style.empty">
 					<Flex direction="column" gap="8" align="center">
 						<Text size="13" weight="600" color="secondary"> No validators found </Text>
@@ -452,6 +536,42 @@ onMounted(() => {
 	pointer-events: none;
 }
 
+.search_wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.search_input {
+	min-width: 200px;
+}
+
+.search_input :global(.base) {
+	padding-right: 32px !important;
+}
+
+.clear_button {
+	position: absolute;
+	right: 8px;
+	z-index: 2;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	transition: background-color 0.2s ease;
+}
+
+.clear_button:hover {
+	background-color: var(--op-5);
+}
+
 @media (max-width: 768px) {
 	.wrapper {
 		padding: 20px 16px;
@@ -513,6 +633,16 @@ onMounted(() => {
 	.controls {
 		flex-direction: column;
 		gap: 12px;
+		width: 100%;
+	}
+	
+	.search_wrapper {
+		width: 100%;
+		order: -1; /* Show search first on mobile */
+	}
+	
+	.search_input {
+		min-width: auto;
 		width: 100%;
 	}
 	

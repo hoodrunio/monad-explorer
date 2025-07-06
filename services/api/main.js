@@ -1,6 +1,20 @@
 /** Services */
 import { useServerURL } from "@/services/config"
 
+// Health Status API
+export const fetchHealthStatus = () => {
+	try {
+		const url = new URL(`${useServerURL()}/health`)
+
+		return useFetch(url.href, {
+			key: "health_status",
+			server: false, // Client-side only to avoid SSR issues
+		})
+	} catch (error) {
+		console.error(error)
+	}
+}
+
 // Network Health & Summary APIs
 export const fetchNetworkSummary = () => {
 	try {
