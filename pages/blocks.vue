@@ -127,8 +127,8 @@ useHead({
 </script>
 
 <template>
-	<Flex direction="column" gap="32" wide :class="$style.wrapper">
-		<Flex direction="column" gap="16">
+	<Flex direction="column" gap="20" wide :class="$style.wrapper">
+		<Flex direction="column" gap="12">
 			<Flex align="end" justify="between" :class="$style.header">
 				<Breadcrumbs
 					:items="[
@@ -138,7 +138,7 @@ useHead({
 				/>
 			</Flex>
 
-			<Flex direction="column" gap="24">
+			<Flex direction="column" gap="16">
 				<Flex align="center" justify="between">
 					<Flex align="center" gap="8">
 						<Icon name="block" size="16" color="primary" />
@@ -156,19 +156,19 @@ useHead({
 					<Text size="13" weight="600" color="secondary">Loading blocks...</Text>
 				</Flex>
 
-				<Flex v-else direction="column" gap="16" :class="$style.content">
+				<Flex v-else direction="column" gap="8" :class="$style.content">
 					<!-- Desktop Table View -->
 					<div :class="$style.desktop_table">
 						<table :class="$style.table">
 							<thead>
 								<tr>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Block Number</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Transactions</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Gas Used</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Gas Limit</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Size</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Base Fee</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Block Number</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Transactions</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas Used</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas Limit</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Size</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Base Fee</Text></th>
 								</tr>
 							</thead>
 
@@ -178,9 +178,9 @@ useHead({
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex align="center">
 												<Outline>
-													<Flex align="center" gap="6">
-														<Icon name="block" size="14" color="primary" />
-														<Text size="13" weight="600" color="primary" tabular>
+													<Flex align="center" gap="4">
+														<Icon name="block" size="12" color="primary" />
+														<Text size="12" weight="600" color="primary" tabular>
 															{{ comma(block.number) }}
 														</Text>
 													</Flex>
@@ -192,7 +192,7 @@ useHead({
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex direction="column" gap="4">
 												<Tooltip position="start" delay="500">
-													<Text size="12" weight="600" color="primary">
+													<Text size="11" weight="600" color="primary">
 														{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
 													</Text>
 
@@ -206,7 +206,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ comma(block.transactionCount || 0) }}
 												</Text>
 											</Flex>
@@ -214,11 +214,11 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/block/${block.number}`">
-											<Flex align="center" gap="4">
-												<Text size="13" weight="600" color="primary">
+											<Flex align="center" gap="2">
+												<Text size="12" weight="600" color="primary">
 													{{ formatGasValue(block.gasUsed) }}
 												</Text>
-												<Text size="12" weight="600" color="tertiary">
+												<Text size="11" weight="600" color="tertiary">
 													({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
 												</Text>
 											</Flex>
@@ -227,7 +227,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ formatGasValue(block.gasLimit) }}
 												</Text>
 											</Flex>
@@ -236,7 +236,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ formatBytes(block.size, 0) }}
 												</Text>
 											</Flex>
@@ -245,7 +245,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ formatGasValue(block.baseFeePerGas) }}
 												</Text>
 											</Flex>
@@ -360,22 +360,22 @@ useHead({
 
 .table {
 	width: 100%;
-	min-width: 1200px; /* Ensure all columns are visible */
+	min-width: 1000px; /* Ensure all columns are visible */
 	border-spacing: 0;
 	
 	& thead {
 		& tr {
 			& th {
 				text-align: left;
-				padding: 16px 16px 8px 16px;
+				padding: 12px 8px 6px 8px;
 				border-bottom: 1px solid var(--op-5);
 				
 				&:first-child {
-					padding-left: 24px;
+					padding-left: 16px;
 				}
 				
 				&:last-child {
-					padding-right: 24px;
+					padding-right: 16px;
 				}
 				
 				& span {
@@ -400,22 +400,22 @@ useHead({
 		}
 		
 		& td {
-			padding: 12px 16px 12px 16px;
+			padding: 6px 8px 6px 8px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
 			
 			&:first-child {
-				padding-left: 24px;
+				padding-left: 16px;
 			}
 			
 			&:last-child {
-				padding-right: 24px;
+				padding-right: 16px;
 			}
 			
 			& > a {
 				display: flex;
 				align-items: center;
-				min-height: 32px;
+				min-height: 24px;
 			}
 		}
 	}
@@ -454,14 +454,14 @@ useHead({
 }
 
 .pagination {
-	padding: 16px;
+	padding: 12px;
 	border-top: 1px solid var(--op-5);
 }
 
 /* Responsive Breakpoints - Progressive column hiding */
-@media (max-width: 1400px) {
+@media (max-width: 1200px) {
 	.table {
-		min-width: 1050px;
+		min-width: 850px;
 		& thead th:nth-child(6),
 		& tbody td:nth-child(6) {
 			display: none; /* Hide Size column */
@@ -469,9 +469,9 @@ useHead({
 	}
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1000px) {
 	.table {
-		min-width: 950px;
+		min-width: 750px;
 		& thead th:nth-child(7),
 		& tbody td:nth-child(7) {
 			display: none; /* Hide Base Fee column */
@@ -479,9 +479,9 @@ useHead({
 	}
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
 	.table {
-		min-width: 800px;
+		min-width: 650px;
 		& thead th:nth-child(5),
 		& tbody td:nth-child(5) {
 			display: none; /* Hide Gas Limit column */
@@ -489,9 +489,9 @@ useHead({
 	}
 }
 
-@media (max-width: 900px) {
+@media (max-width: 800px) {
 	.table {
-		min-width: 700px;
+		min-width: 550px;
 		& thead th:nth-child(4),
 		& tbody td:nth-child(4) {
 			display: none; /* Hide Gas Used column */
