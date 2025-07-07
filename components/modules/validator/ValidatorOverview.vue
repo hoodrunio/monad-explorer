@@ -1,6 +1,7 @@
 <script setup>
 /** UI */
 import Badge from "@/components/ui/Badge.vue"
+import Toggle from "@/components/ui/Toggle.vue"
 
 /** Components */
 import CopyButton from "@/components/CopyButton.vue"
@@ -51,6 +52,9 @@ const tabs = ref([
 const preselectedTab = route.query.tab && tabs.value.map((tab) => tab.name).includes(route.query.tab) ? route.query.tab : tabs.value[0].name
 const activeTab = ref(preselectedTab)
 
+// QC Participation toggle state
+const showQcMetrics = ref(false)
+
 onMounted(() => {
 	router.replace({
 		query: {
@@ -61,6 +65,15 @@ onMounted(() => {
 
 const validatorStatus = computed(() => {
 	const uptime = validatorMetrics.value.uptimeScore
+	
+	// Handle case where uptime score is null (no block opportunities)
+	if (uptime === null) {
+		return {
+			name: "No Block Opportunities",
+			color: "var(--txt-tertiary)",
+			description: ["No block proposals yet"]
+		}
+	}
 	
 	if (uptime >= 99) {
 		return {
@@ -111,8 +124,12 @@ const validatorMetrics = computed(() => {
 	// If validator had no block opportunities, don't show 0% as it's misleading
 	const blockProposalRatio = totalBlockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
 	
+	// NEW: Use block proposal ratio as the primary uptime score (instead of combined uptime_score)
+	// QC participation is now a separate metric
+	const uptimeScore = blockProposalRatio
+	
 	return {
-		uptimeScore: metrics.uptime_score || 0,
+		uptimeScore,
 		qcParticipationRate: metrics.qc_participation_rate || 0,
 		blockProposalRatio,
 	}
@@ -183,10 +200,12 @@ const performanceHistory = computed(() => {
 })
 
 const formatPercentage = (value) => {
+	if (value === null || value === undefined) return 'N/A'
 	return `${value.toFixed(1)}%`
 }
 
 const getPerformanceColor = (score) => {
+	if (score === null || score === undefined) return 'tertiary'
 	if (score >= 99) return 'green'
 	if (score >= 95) return 'brand'
 	if (score >= 90) return 'yellow'
@@ -217,7 +236,7 @@ const validatorLogoUrl = computed(() => {
 
 			<Flex align="center" gap="12">
 				<Text size="12" weight="600" color="secondary">
-					{{ formatPercentage(validatorMetrics.uptimeScore) }} uptime
+					{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) + ' uptime' : 'No block opportunities' }}
 				</Text>
 			</Flex>
 		</Flex>
@@ -321,20 +340,23 @@ const validatorLogoUrl = computed(() => {
 					<!-- Performance Tab -->
 					<template v-if="activeTab === 'Performance'">
 						<Flex direction="column" gap="12">
-							<Text size="13" weight="600" color="primary">Real-time Performance Metrics</Text>
-							
-							<Flex direction="column" gap="8" :class="$style.metrics_grid">
-								<Flex direction="column" gap="4" :class="$style.metric_card">
-									<Text size="11" weight="500" color="tertiary">Uptime Score</Text>
-									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.uptimeScore)">
-										{{ formatPercentage(validatorMetrics.uptimeScore) }}
-									</Text>
+							<Flex align="center" justify="between">
+								<Flex direction="column" gap="4">
+									<Text size="13" weight="600" color="primary">Performance Metrics</Text>
+									<Text size="11" weight="500" color="tertiary">Primary uptime score based on block proposal performance.</Text>
 								</Flex>
 								
+								<Flex align="center" gap="8" :class="$style.qc_toggle_wrapper">
+									<Text size="11" weight="500" color="secondary">Show QC Metrics</Text>
+									<Toggle v-model="showQcMetrics" />
+								</Flex>
+							</Flex>
+							
+							<Flex direction="column" gap="8" :class="[showQcMetrics ? $style.metrics_grid_expanded : $style.metrics_grid]">
 								<Flex direction="column" gap="4" :class="$style.metric_card">
-									<Text size="11" weight="500" color="tertiary">QC Participation Rate</Text>
-									<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
-										{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
+									<Text size="11" weight="500" color="tertiary">Uptime Score (Block Proposals)</Text>
+									<Text size="16" weight="600" :color="validatorMetrics.uptimeScore !== null ? getPerformanceColor(validatorMetrics.uptimeScore) : 'tertiary'">
+										{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) : 'N/A' }}
 									</Text>
 								</Flex>
 								
@@ -344,6 +366,16 @@ const validatorLogoUrl = computed(() => {
 										{{ validatorMetrics.blockProposalRatio !== null ? formatPercentage(validatorMetrics.blockProposalRatio) : 'N/A' }}
 									</Text>
 								</Flex>
+								
+								<Transition name="fade">
+									<Flex v-if="showQcMetrics" direction="column" gap="4" :class="[$style.metric_card, $style.qc_metric_card]">
+										<Text size="11" weight="500" color="primary">QC Participation Rate</Text>
+										<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
+											{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
+										</Text>
+										<Text size="10" weight="500" color="brand">Additional metric</Text>
+									</Flex>
+								</Transition>
 							</Flex>
 
 							<Flex direction="column" gap="8">
@@ -364,15 +396,19 @@ const validatorLogoUrl = computed(() => {
 									<Text size="11" weight="600" color="secondary">{{ validatorDetails.blocksSkipped }}</Text>
 								</Flex>
 								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">QC Opportunities</Text>
-									<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalQcOpportunities }}</Text>
-								</Flex>
-								
-								<Flex align="center" justify="between">
-									<Text size="11" weight="500" color="tertiary">QC Participations</Text>
-									<Text size="11" weight="600" color="secondary">{{ validatorDetails.qcParticipations }}</Text>
-								</Flex>
+								<Transition name="fade">
+									<div v-if="showQcMetrics" :class="$style.qc_activity_wrapper">
+										<Flex align="center" justify="between">
+											<Text size="11" weight="500" color="primary">QC Opportunities</Text>
+											<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalQcOpportunities }}</Text>
+										</Flex>
+										
+										<Flex align="center" justify="between">
+											<Text size="11" weight="500" color="primary">QC Participations</Text>
+											<Text size="11" weight="600" color="secondary">{{ validatorDetails.qcParticipations }}</Text>
+										</Flex>
+									</div>
+								</Transition>
 							</Flex>
 						</Flex>
 					</template>
@@ -468,11 +504,58 @@ const validatorLogoUrl = computed(() => {
 	gap: 12px;
 }
 
+.metrics_grid_expanded {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 12px;
+}
+
 .metric_card {
 	padding: 12px;
 	border: 1px solid var(--op-8);
 	border-radius: 6px;
 	background: var(--op-3);
+	transition: all 0.3s ease;
+}
+
+.qc_metric_card {
+	border: 1px solid var(--brand);
+	background: linear-gradient(135deg, var(--op-3) 0%, rgba(var(--brand-rgb), 0.05) 100%);
+	box-shadow: 0 2px 8px rgba(var(--brand-rgb), 0.1);
+}
+
+.qc_toggle_wrapper {
+	border: 1px solid var(--op-8);
+	border-radius: 6px;
+	padding: 8px 12px;
+	background: var(--op-3);
+	transition: all 0.2s ease;
+}
+
+.qc_toggle_wrapper:hover {
+	background: var(--op-5);
+}
+
+.qc_activity_wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+/* Fade transition for QC metrics */
+.fade-enter-active,
+.fade-leave-active {
+	transition: all 0.3s ease;
+}
+
+.fade-enter-from {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.95);
+}
+
+.fade-leave-to {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.95);
 }
 
 @media (max-width: 768px) {
@@ -485,8 +568,15 @@ const validatorLogoUrl = computed(() => {
 		max-width: 100%;
 	}
 	
-	.metrics_grid {
+	.metrics_grid,
+	.metrics_grid_expanded {
 		grid-template-columns: 1fr;
+	}
+	
+	.qc_toggle_wrapper {
+		flex-direction: column;
+		gap: 4px;
+		text-align: center;
 	}
 	
 	.tabs_wrapper {
@@ -495,4 +585,5 @@ const validatorLogoUrl = computed(() => {
 	}
 }
 </style>
+
 

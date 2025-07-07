@@ -3,17 +3,18 @@
  */
 
 /**
- * Calculate effective score based on block opportunities
+ * Calculate effective score based on block proposal ratio only
+ * Note: QC participation is now tracked separately as an additional metric
  * @param {Object} entry - Performance entry
- * @returns {number} - Effective score
+ * @returns {number} - Effective score based on block proposals only
  */
 export const getEffectiveScore = (entry) => {
-	// If no block opportunities, use QC participation rate as uptime score
+	// If no block opportunities, return null to indicate no data available
 	if (entry.blockOpportunities === 0) {
-		return entry.qcParticipationRate || 0
+		return null
 	}
-	// Otherwise use regular uptime score
-	return entry.uptimeScore || 0
+	// Use block proposal ratio as the primary uptime metric
+	return entry.blockProposalRatio || 0
 }
 
 /**
@@ -46,7 +47,7 @@ export const calculateDailyPerformance = (hourlyData) => {
 			dailyData.push({
 				day: day + 1,
 				date: dayDate,
-				avgUptimeScore: 0,
+				avgUptimeScore: null,
 				avgQcParticipationRate: 0,
 				avgBlockProposalRatio: null,
 				totalBlocksProposed: 0,
@@ -54,14 +55,18 @@ export const calculateDailyPerformance = (hourlyData) => {
 				totalBlockOpportunities: 0,
 				totalQcOpportunities: 0,
 				hoursWithData: 0,
-				effectiveScore: 0,
+				effectiveScore: null,
 				isEmpty: true
 			})
 			continue
 		}
 
 		// Calculate averages for the day
-		const avgUptimeScore = dayHours.reduce((sum, h) => sum + getEffectiveScore(h), 0) / dayHours.length
+		// For uptime score, only include hours with block opportunities
+		const hoursWithScores = dayHours.filter(h => getEffectiveScore(h) !== null)
+		const avgUptimeScore = hoursWithScores.length > 0 
+			? hoursWithScores.reduce((sum, h) => sum + getEffectiveScore(h), 0) / hoursWithScores.length
+			: null
 		const avgQcParticipationRate = dayHours.reduce((sum, h) => sum + (h.qcParticipationRate || 0), 0) / dayHours.length
 		
 		// Calculate block proposal ratio average (only for hours with opportunities)

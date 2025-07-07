@@ -2,6 +2,9 @@
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
 
+/** Services */
+import { getEffectiveScore, formatPercentage } from "@/services/utils/validator"
+
 const props = defineProps({
 	performanceHistory: {
 		type: Array,
@@ -9,22 +12,11 @@ const props = defineProps({
 	},
 })
 
-const formatPercentage = (value) => {
-	if (value === null || value === undefined) return 'N/A'
-	return `${value.toFixed(1)}%`
-}
-
-const getEffectiveScore = (entry) => {
-	// If no block opportunities, use QC participation rate as uptime score
-	if (entry.blockOpportunities === 0) {
-		return entry.qcParticipationRate || 0
-	}
-	// Otherwise use regular uptime score
-	return entry.uptimeScore || 0
-}
-
 const getPerformanceColor = (entry) => {
 	const score = getEffectiveScore(entry)
+	
+	// Handle null values (no block opportunities)
+	if (score === null) return 'var(--op-8)'
 	
 	if (score >= 99) return 'var(--green)'
 	if (score >= 95) return 'var(--brand)'
@@ -35,6 +27,9 @@ const getPerformanceColor = (entry) => {
 
 const getPerformanceOpacity = (entry) => {
 	const score = getEffectiveScore(entry)
+	
+	// Handle null values (no block opportunities)
+	if (score === null) return 0.3
 	
 	if (score >= 99) return 1
 	if (score >= 95) return 0.9
@@ -91,7 +86,7 @@ const getGridData = () => {
 			// Create empty entry for missing hours
 			data.push({
 				hour: i,
-				uptimeScore: 0,
+				uptimeScore: null,
 				qcParticipationRate: 0,
 				blockProposalRatio: null,
 				blockOpportunities: 0,
@@ -132,21 +127,19 @@ const gridData = computed(() => getGridData())
 									
 									<Flex direction="column" gap="4">
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" :color="entry.blockOpportunities === 0 ? 'primary' : 'tertiary'">
-												{{ entry.blockOpportunities === 0 ? 'Effective Score (QC)' : 'Uptime Score' }}
-											</Text>
-											<Text size="11" weight="600" :color="entry.blockOpportunities === 0 ? 'primary' : 'secondary'">
-												{{ formatPercentage(getEffectiveScore(entry)) }}
+											<Text size="11" weight="500" color="tertiary">Uptime Score (Block Proposals)</Text>
+											<Text size="11" weight="600" color="secondary">
+												{{ getEffectiveScore(entry) !== null ? formatPercentage(getEffectiveScore(entry)) : 'No opportunities' }}
 											</Text>
 										</Flex>
 										
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" color="tertiary">QC Participation</Text>
+											<Text size="11" weight="500" color="primary">QC Participation</Text>
 											<Text size="11" weight="600" color="secondary">{{ formatPercentage(entry.qcParticipationRate) }}</Text>
 										</Flex>
 										
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" color="tertiary">Block Proposal</Text>
+											<Text size="11" weight="500" color="tertiary">Block Proposal Ratio</Text>
 											<Text size="11" weight="600" color="secondary">{{ formatPercentage(entry.blockProposalRatio) }}</Text>
 										</Flex>
 									</Flex>

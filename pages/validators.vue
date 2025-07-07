@@ -107,22 +107,31 @@ const getValidators = async () => {
 		})
 
 		if (data.value?.data) {
-			const validatorsList = data.value.data.map(validator => ({
-				rank: validator.rank || 0,
-				validatorId: validator.validator_id || '',
-				name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
-				stake: validator.stake || 0,
-				uptimeScore: validator.metrics?.uptime_score || 0,
-				qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
-				blockProposalRatio: validator.metrics?.block_proposal_ratio || 0,
-				provider: validator.infrastructure?.provider || 'Unknown',
-				location: validator.infrastructure?.location || 'Unknown',
-				blocksProposed: validator.details?.blocks_proposed || 0,
-				totalBlockOpportunities: validator.details?.total_block_opportunities || 0,
-				qcParticipations: validator.details?.qc_participations || 0,
-				totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-				logoUrl: validator.keybase?.logo_url || null
-			}))
+			const validatorsList = data.value.data.map(validator => {
+				const totalBlockOpportunities = validator.details?.total_block_opportunities || 0
+				const blockProposalRatio = validator.metrics?.block_proposal_ratio || 0
+				
+				// NEW: Use block proposal ratio as uptime score (instead of combined uptime_score)
+				// If no block opportunities, uptime score is null
+				const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
+				
+				return {
+					rank: validator.rank || 0,
+					validatorId: validator.validator_id || '',
+					name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+					stake: validator.stake || 0,
+					uptimeScore,
+					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+					blockProposalRatio,
+					provider: validator.infrastructure?.provider || 'Unknown',
+					location: validator.infrastructure?.location || 'Unknown',
+					blocksProposed: validator.details?.blocks_proposed || 0,
+					totalBlockOpportunities,
+					qcParticipations: validator.details?.qc_participations || 0,
+					totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+					logoUrl: validator.keybase?.logo_url || null
+				}
+			})
 			
 			allValidators.value = validatorsList
 		}
@@ -154,10 +163,12 @@ const clearSearch = () => {
 }
 
 const formatPercentage = (value) => {
+	if (value === null || value === undefined) return 'N/A'
 	return `${value.toFixed(1)}%`
 }
 
 const getPerformanceColor = (score) => {
+	if (score === null || score === undefined) return 'tertiary'
 	if (score >= 99) return 'green'
 	if (score >= 95) return 'yellow'
 	return 'red'
@@ -345,8 +356,6 @@ onMounted(() => {
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Stake</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>QC Participation</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Block Proposals</Text></th>
 								<th><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 								<th style="width: 1px;"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
@@ -387,20 +396,6 @@ onMounted(() => {
 									<NuxtLink :to="`/validator/${validator.validatorId}`">
 										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
 											{{ formatPercentage(validator.uptimeScore) }}
-										</Text>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
-										<Text size="13" weight="600" color="primary">
-											{{ formatPercentage(validator.qcParticipationRate) }}
-										</Text>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
-										<Text size="13" weight="600" color="primary">
-											{{ formatPercentage(validator.blockProposalRatio) }}
 										</Text>
 									</NuxtLink>
 								</td>
@@ -616,13 +611,8 @@ onMounted(() => {
 				}
 			}
 			
-			& tr th:nth-child(6), /* Block Proposals */
-			& tr td:nth-child(6) {
-				display: none;
-			}
-			
-			& tr th:nth-child(7), /* Location */
-			& tr td:nth-child(7) {
+			& tr th:nth-child(5), /* Location */
+			& tr td:nth-child(5) {
 				display: none;
 			}
 		}

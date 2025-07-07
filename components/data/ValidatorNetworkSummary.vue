@@ -19,28 +19,39 @@ const topValidators = computed(() => {
     return []
   }
   
-  return validatorsData.value.data.map(validator => ({
-    rank: validator.rank || 0,
-    validatorId: validator.validator_id || '',
-    name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
-    uptimeScore: validator.metrics?.uptime_score || 0,
-    qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
-    blockProposalRatio: validator.metrics?.block_proposal_ratio || 0,
-    provider: validator.infrastructure?.provider || 'Unknown',
-    location: validator.infrastructure?.location || 'Unknown',
-    blocksProposed: validator.details?.blocks_proposed || 0,
-    totalBlockOpportunities: validator.details?.total_block_opportunities || 0,
-    qcParticipations: validator.details?.qc_participations || 0,
-    totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-    logoUrl: validator.keybase?.logo_url || null
-  }))
+  return validatorsData.value.data.map(validator => {
+    const totalBlockOpportunities = validator.details?.total_block_opportunities || 0
+    const blockProposalRatio = validator.metrics?.block_proposal_ratio || 0
+    
+    // NEW: Use block proposal ratio as uptime score (instead of combined uptime_score)
+    // If no block opportunities, uptime score is null
+    const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
+    
+    return {
+      rank: validator.rank || 0,
+      validatorId: validator.validator_id || '',
+      name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+      uptimeScore,
+      qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+      blockProposalRatio,
+      provider: validator.infrastructure?.provider || 'Unknown',
+      location: validator.infrastructure?.location || 'Unknown',
+      blocksProposed: validator.details?.blocks_proposed || 0,
+      totalBlockOpportunities,
+      qcParticipations: validator.details?.qc_participations || 0,
+      totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+      logoUrl: validator.keybase?.logo_url || null
+    }
+  })
 })
 
 const formatPercentage = (value) => {
+  if (value === null || value === undefined) return 'N/A'
   return `${value.toFixed(1)}%`
 }
 
 const getPerformanceColor = (score) => {
+  if (score === null || score === undefined) return 'tertiary'
   if (score >= 99) return 'green'
   if (score >= 95) return 'yellow'
   return 'red'
@@ -79,8 +90,6 @@ const getPerformanceColor = (score) => {
             <th><Text size="12" weight="600" color="tertiary">Rank</Text></th>
             <th><Text size="12" weight="600" color="tertiary">Validator</Text></th>
             <th><Text size="12" weight="600" color="tertiary">Uptime Score</Text></th>
-            <th><Text size="12" weight="600" color="tertiary">QC Rate</Text></th>
-            <th><Text size="12" weight="600" color="tertiary">Block Ratio</Text></th>
             <th><Text size="12" weight="600" color="tertiary">Location</Text></th>
           </tr>
         </thead>
@@ -110,18 +119,6 @@ const getPerformanceColor = (score) => {
             <td>
               <Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
                 {{ formatPercentage(validator.uptimeScore) }}
-              </Text>
-            </td>
-            
-            <td>
-              <Text size="13" weight="600" color="primary">
-                {{ formatPercentage(validator.qcParticipationRate) }}
-              </Text>
-            </td>
-            
-            <td>
-              <Text size="13" weight="600" color="primary">
-                {{ formatPercentage(validator.blockProposalRatio) }}
               </Text>
             </td>
             

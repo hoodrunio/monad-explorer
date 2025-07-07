@@ -57,7 +57,7 @@ const dailyData = computed(() => {
 									
 									<Flex direction="column" gap="4">
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" color="primary">Effective Score</Text>
+											<Text size="11" weight="500" color="primary">Effective Score (Block Proposals)</Text>
 											<Text size="11" weight="600" color="primary">{{ formatPercentage(day.effectiveScore) }}</Text>
 										</Flex>
 										
@@ -69,12 +69,12 @@ const dailyData = computed(() => {
 										</Flex>
 										
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" color="tertiary">Avg QC Participation</Text>
+											<Text size="11" weight="500" color="primary">Avg QC Participation</Text>
 											<Text size="11" weight="600" color="secondary">{{ formatPercentage(day.avgQcParticipationRate) }}</Text>
 										</Flex>
 										
 										<Flex align="center" justify="between" gap="16">
-											<Text size="11" weight="500" color="tertiary">Avg Block Proposal</Text>
+											<Text size="11" weight="500" color="tertiary">Avg Block Proposal Ratio</Text>
 											<Text size="11" weight="600" color="secondary">{{ formatPercentage(day.avgBlockProposalRatio) }}</Text>
 										</Flex>
 									</Flex>
@@ -116,7 +116,7 @@ const dailyData = computed(() => {
 			
 			<!-- Legend -->
 			<Flex direction="column" gap="8">
-				<Text size="11" weight="600" color="secondary">Uptime Score Legend</Text>
+				<Text size="11" weight="600" color="secondary">Uptime Score Legend (Block Proposal Performance)</Text>
 				<Flex align="center" gap="16" wrap>
 					<Flex align="center" gap="4">
 						<div :class="$style.legend_square" :style="{ backgroundColor: 'var(--green)' }" />
