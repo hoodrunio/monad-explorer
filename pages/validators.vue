@@ -47,12 +47,12 @@ const selectedTimeWindow = ref(route.query.window || "7d")
 
 // Sort options 
 const sortOptions = ref([
-	{ label: "Uptime Score", value: "uptime_score" },
+	{ label: "Uptime Score", value: "block_proposal_ratio" },
 	{ label: "Stake", value: "stake" },
 	{ label: "QC Participation", value: "qc_participation_rate" },
 	{ label: "Block Proposals", value: "block_proposal_ratio" },
 ])
-const selectedSort = ref(route.query.sortBy || "uptime_score")
+const selectedSort = ref(route.query.sortBy || "block_proposal_ratio")
 
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
@@ -352,22 +352,24 @@ onMounted(() => {
 					<table>
 						<thead>
 							<tr>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Stake</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
-								<th style="width: 1px;"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
+								<th :class="$style.col_rank"><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
+								<th :class="$style.col_validator"><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
+								<th :class="$style.col_stake"><Text size="12" weight="600" color="tertiary" noWrap>Stake</Text></th>
+								<th :class="$style.col_uptime"><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
+								<th :class="$style.col_location"><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
+								<th :class="$style.col_bookmark"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
 						</thead>
 
 						<tbody>
 							<tr v-for="validator in paginatedValidators" :key="validator.validatorId">
-								<td style="width: 1px">
-									<Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
+								<td :class="$style.col_rank">
+									<div :class="$style.cell_content">
+										<Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
+									</div>
 								</td>
-								<td style="width: 1px">
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
+								<td :class="$style.col_validator">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Flex align="center" gap="8">
 											<ValidatorLogo 
 												:logo-url="validator.logoUrl" 
@@ -385,29 +387,31 @@ onMounted(() => {
 										</Flex>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
+								<td :class="$style.col_stake">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Text size="13" weight="600" color="primary">
 											{{ comma(validator.stake) }}
 										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
+								<td :class="$style.col_uptime">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
 											{{ formatPercentage(validator.uptimeScore) }}
 										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${validator.validatorId}`">
+								<td :class="$style.col_location">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Text size="12" color="tertiary">
 											{{ validator.location }}
 										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<BookmarkButton type="validator" :id="validator.validatorId" />
+								<td :class="$style.col_bookmark">
+									<div :class="$style.cell_content">
+										<BookmarkButton type="validator" :id="validator.validatorId" />
+									</div>
 								</td>
 							</tr>
 						</tbody>
@@ -464,8 +468,9 @@ onMounted(() => {
 	transition: all 0.2s ease;
 
 	& table {
-		width: 100%;
+		width: calc(100% - 12px);
 		height: fit-content;
+		table-layout: fixed;
 
 		border-spacing: 0px;
 
@@ -489,19 +494,12 @@ onMounted(() => {
 
 		& tr th {
 			text-align: left;
-
-			padding: 0;
-			padding-right: 16px;
-			padding-top: 16px;
-			padding-bottom: 8px;
+			padding: 16px 16px 8px 16px;
+			white-space: nowrap;
+			vertical-align: middle;
 
 			& span {
 				display: flex;
-			}
-
-			&:first-child {
-				padding-left: 16px;
-				width: 16px;
 			}
 
 			&.sortable {
@@ -517,22 +515,53 @@ onMounted(() => {
 
 		& tr td {
 			padding: 0;
-
 			white-space: nowrap;
+			vertical-align: middle;
+		}
 
-			&:first-child {
-				padding-left: 16px;
-			}
+		/* Column specific styles */
+		& .col_rank {
+			width: 60px;
+		}
 
-			& > a {
-				display: flex;
-
-				min-height: 44px;
-
-				padding-right: 24px;
+		& .col_validator {
+			width: 220px;
+			
+			& .cell_link {
+				overflow: hidden;
 			}
 		}
+
+		& .col_stake {
+			width: 130px;
+		}
+
+		& .col_uptime {
+			width: 130px;
+		}
+
+		& .col_location {
+			width: 150px;
+		}
+
+		& .col_bookmark {
+			width: 80px;
+		}
 	}
+}
+
+.cell_content {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 16px;
+}
+
+.cell_link {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 16px;
 }
 
 .table.disabled {
@@ -611,8 +640,7 @@ onMounted(() => {
 				}
 			}
 			
-			& tr th:nth-child(5), /* Location */
-			& tr td:nth-child(5) {
+			& .col_location {
 				display: none;
 			}
 		}
@@ -660,37 +688,28 @@ onMounted(() => {
 				}
 			}
 			
-			& tr th:nth-child(1), /* Rank */
-			& tr td:nth-child(1) {
+			& .col_rank {
 				display: none;
 			}
 			
-			& tr th:nth-child(5), /* QC Participation */
-			& tr td:nth-child(5) {
+			& .col_location {
 				display: none;
 			}
 			
 			& tr th {
-				padding-right: 8px;
-				padding-top: 12px;
-				padding-bottom: 6px;
-				
-				&:first-child {
-					padding-left: 12px;
-				}
-			}
-			
-			& tr td {
-				&:first-child {
-					padding-left: 12px;
-				}
-				
-				& > a {
-					min-height: 40px;
-					padding-right: 12px;
-				}
+				padding: 12px 8px 6px 12px;
 			}
 		}
+	}
+	
+	.cell_content {
+		min-height: 40px !important;
+		padding: 0 8px 0 12px !important;
+	}
+	
+	.cell_link {
+		min-height: 40px !important;
+		padding: 0 8px 0 12px !important;
 	}
 }
 
