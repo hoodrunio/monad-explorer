@@ -11,7 +11,6 @@ import { fetchTransactions } from "@/services/api/tx"
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
-import Badge from "@/components/ui/Badge.vue"
 import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 
 const route = useRoute()
@@ -49,13 +48,7 @@ const getTransactionTypes = (tx) => {
 	return [getTransactionType(tx)]
 }
 
-const getStatusColor = (status) => {
-	return status === "success" || status === 1 ? "green" : "red"
-}
 
-const getStatusText = (status) => {
-	return status === "success" || status === 1 ? "Success" : "Failed"
-}
 
 const loadTransactions = async (page = 1) => {
 	isLoading.value = true
@@ -152,8 +145,8 @@ useHead({
 </script>
 
 <template>
-	<Flex direction="column" gap="32" wide :class="$style.wrapper">
-		<Flex direction="column" gap="16">
+	<Flex direction="column" gap="20" wide :class="$style.wrapper">
+		<Flex direction="column" gap="12">
 			<Flex align="end" justify="between" :class="$style.header">
 				<Breadcrumbs
 					:items="[
@@ -163,7 +156,7 @@ useHead({
 				/>
 			</Flex>
 
-			<Flex direction="column" gap="24">
+			<Flex direction="column" gap="16">
 				<Flex align="center" justify="between">
 					<Flex align="center" gap="8">
 						<Icon name="tx" size="16" color="primary" />
@@ -181,21 +174,20 @@ useHead({
 					<Text size="13" weight="600" color="secondary">Loading transactions...</Text>
 				</Flex>
 
-				<Flex v-else direction="column" gap="16" :class="$style.content">
+				<Flex v-else direction="column" gap="8" :class="$style.content">
 					<!-- Desktop Table View -->
 					<div :class="$style.desktop_table">
 						<table :class="$style.table">
 							<thead>
 								<tr>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Hash</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Status</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Block</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Type</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>From</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>To</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Value</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Gas</Text></th>
-									<th><Text size="12" weight="600" color="tertiary" noWrap>Time</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Hash</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Block</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Type</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>From</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>To</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Value</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Time</Text></th>
 								</tr>
 							</thead>
 
@@ -206,8 +198,13 @@ useHead({
 											<Flex align="center">
 												<Outline>
 													<Flex align="center" gap="6">
-														<Icon name="tx" size="14" color="primary" />
-														<Text size="13" weight="600" color="primary" mono>
+														<Icon 
+															:name="(tx.status === 'success' || tx.status === 1) ? 'check' : 'close'" 
+															size="10" 
+															:color="(tx.status === 'success' || tx.status === 1) ? 'green' : 'red'" 
+														/>
+														<Icon name="tx" size="12" color="primary" />
+														<Text size="12" weight="600" color="primary" mono>
 															{{ shortHex(tx.hash) }}
 														</Text>
 													</Flex>
@@ -216,23 +213,12 @@ useHead({
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Badge size="small" :color="getStatusColor(tx.status)">
-													<Text size="11" weight="600" color="primary">
-														{{ getStatusText(tx.status) }}
-													</Text>
-												</Badge>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
 										<NuxtLink :to="`/block/${tx.blockNumber}`">
 											<Flex align="center">
 												<Outline>
-													<Flex align="center" gap="6">
-														<Icon name="block" size="14" color="secondary" />
-														<Text size="13" weight="600" color="primary" tabular>
+													<Flex align="center" gap="4">
+														<Icon name="block" size="12" color="secondary" />
+														<Text size="12" weight="600" color="primary" tabular>
 															{{ comma(tx.blockNumber) }}
 														</Text>
 													</Flex>
@@ -243,14 +229,14 @@ useHead({
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<MessageTypeBadge :types="getTransactionTypes(tx)" />
+												<MessageTypeBadge :types="getTransactionTypes(tx)" compact />
 											</Flex>
 										</NuxtLink>
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary" mono>
+												<Text size="12" weight="600" color="primary" mono>
 													{{ shortHex(tx.fromAddress) }}
 												</Text>
 											</Flex>
@@ -259,7 +245,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary" mono>
+												<Text size="12" weight="600" color="primary" mono>
 													{{ tx.toAddress ? shortHex(tx.toAddress) : "—" }}
 												</Text>
 											</Flex>
@@ -268,7 +254,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ formatMonValue(tx.value) }} MON
 												</Text>
 											</Flex>
@@ -277,7 +263,7 @@ useHead({
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="13" weight="600" color="primary">
+												<Text size="12" weight="600" color="primary">
 													{{ formatGasValue(tx.gasUsed) }}
 												</Text>
 											</Flex>
@@ -287,7 +273,7 @@ useHead({
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
 												<Tooltip position="start" delay="500">
-													<Text size="12" weight="600" color="primary">
+													<Text size="11" weight="600" color="primary">
 														{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
 													</Text>
 
@@ -311,16 +297,16 @@ useHead({
 									<!-- Header with hash and status -->
 									<Flex align="center" justify="between">
 										<Flex align="center" gap="8">
+											<Icon 
+												:name="(tx.status === 'success' || tx.status === 1) ? 'check' : 'close'" 
+												size="12" 
+												:color="(tx.status === 'success' || tx.status === 1) ? 'green' : 'red'" 
+											/>
 											<Icon name="tx" size="14" color="primary" />
 											<Text size="13" weight="600" color="primary" mono>
 												{{ shortHex(tx.hash) }}
 											</Text>
 										</Flex>
-										<Badge size="small" :color="getStatusColor(tx.status)">
-											<Text size="11" weight="600" color="primary">
-												{{ getStatusText(tx.status) }}
-											</Text>
-										</Badge>
 									</Flex>
 
 									<!-- Transaction details -->
@@ -410,22 +396,22 @@ useHead({
 
 .table {
 	width: 100%;
-	min-width: 1200px; /* Ensure all columns are visible */
+	min-width: 1000px; /* Ensure all columns are visible */
 	border-spacing: 0;
 	
 	& thead {
 		& tr {
 			& th {
 				text-align: left;
-				padding: 16px 16px 8px 16px;
+				padding: 12px 12px 6px 12px;
 				border-bottom: 1px solid var(--op-5);
 				
 				&:first-child {
-					padding-left: 24px;
+					padding-left: 16px;
 				}
 				
 				&:last-child {
-					padding-right: 24px;
+					padding-right: 16px;
 				}
 				
 				& span {
@@ -450,22 +436,22 @@ useHead({
 		}
 		
 		& td {
-			padding: 12px 16px 12px 16px;
+			padding: 6px 12px 6px 12px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
 			
 			&:first-child {
-				padding-left: 24px;
+				padding-left: 16px;
 			}
 			
 			&:last-child {
-				padding-right: 24px;
+				padding-right: 16px;
 			}
 			
 			& > a {
 				display: flex;
 				align-items: center;
-				min-height: 32px;
+				min-height: 24px;
 			}
 		}
 	}
@@ -504,16 +490,16 @@ useHead({
 }
 
 .pagination {
-	padding: 16px;
+	padding: 12px;
 	border-top: 1px solid var(--op-5);
 }
 
 /* Responsive Breakpoints - Progressive column hiding */
 @media (max-width: 1400px) {
 	.table {
-		min-width: 1000px;
-		& thead th:nth-child(4),
-		& tbody td:nth-child(4) {
+		min-width: 900px;
+		& thead th:nth-child(3),
+		& tbody td:nth-child(3) {
 			display: none; /* Hide Type column */
 		}
 	}
@@ -521,9 +507,9 @@ useHead({
 
 @media (max-width: 1200px) {
 	.table {
-		min-width: 900px;
-		& thead th:nth-child(8),
-		& tbody td:nth-child(8) {
+		min-width: 800px;
+		& thead th:nth-child(7),
+		& tbody td:nth-child(7) {
 			display: none; /* Hide Gas column */
 		}
 	}
@@ -531,9 +517,9 @@ useHead({
 
 @media (max-width: 1024px) {
 	.table {
-		min-width: 800px;
-		& thead th:nth-child(3),
-		& tbody td:nth-child(3) {
+		min-width: 700px;
+		& thead th:nth-child(2),
+		& tbody td:nth-child(2) {
 			display: none; /* Hide Block column */
 		}
 	}
@@ -541,9 +527,9 @@ useHead({
 
 @media (max-width: 900px) {
 	.table {
-		min-width: 700px;
-		& thead th:nth-child(6),
-		& tbody td:nth-child(6) {
+		min-width: 600px;
+		& thead th:nth-child(5),
+		& tbody td:nth-child(5) {
 			display: none; /* Hide To column */
 		}
 	}
