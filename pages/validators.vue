@@ -53,6 +53,7 @@ const sortOptions = ref([
 	{ label: "Block Proposals", value: "block_proposal_ratio" },
 ])
 const selectedSort = ref(route.query.sortBy || "block_proposal_ratio")
+const sortDirection = ref(route.query.sortDir || "desc") // "asc" or "desc"
 
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
@@ -65,15 +66,18 @@ const pages = computed(() => totalPages.value || 1)
 
 // Filtered validators based on search term
 const filteredValidators = computed(() => {
-	if (!searchTerm.value.trim()) {
-		return allValidators.value
+	let filtered = allValidators.value
+	
+	if (searchTerm.value.trim()) {
+		const search = searchTerm.value.toLowerCase().trim()
+		filtered = filtered.filter(validator => 
+			validator.name.toLowerCase().includes(search) ||
+			validator.validatorId.toLowerCase().includes(search)
+		)
 	}
 	
-	const search = searchTerm.value.toLowerCase().trim()
-	return allValidators.value.filter(validator => 
-		validator.name.toLowerCase().includes(search) ||
-		validator.validatorId.toLowerCase().includes(search)
-	)
+	// Apply client-side sorting to filtered results
+	return sortValidators(filtered)
 })
 
 // Paginated validators for display
@@ -174,17 +178,75 @@ const getPerformanceColor = (score) => {
 	return 'red'
 }
 
+// Column sorting handler - connects to existing sort system
+const handleColumnSort = (sortKey) => {
+	if (selectedSort.value === sortKey) {
+		// If clicking the same column, toggle direction
+		sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc"
+	} else {
+		// If clicking a different column, start with descending (higher values first)
+		selectedSort.value = sortKey
+		sortDirection.value = "desc"
+	}
+}
+
+// Get sort field mapping for column headers
+const getSortKeyForColumn = (column) => {
+	switch (column) {
+		case 'stake': return 'stake'
+		case 'uptime': return 'block_proposal_ratio'
+		default: return null
+	}
+}
+
+// Client-side sorting function
+const sortValidators = (validators) => {
+	if (!validators || validators.length === 0) return validators
+	
+	const sorted = [...validators].sort((a, b) => {
+		let valueA, valueB
+		
+		switch (selectedSort.value) {
+			case 'stake':
+				valueA = a.stake || 0
+				valueB = b.stake || 0
+				break
+			case 'block_proposal_ratio':
+				valueA = a.uptimeScore || 0
+				valueB = b.uptimeScore || 0
+				break
+			case 'qc_participation_rate':
+				valueA = a.qcParticipationRate || 0
+				valueB = b.qcParticipationRate || 0
+				break
+			default:
+				// For other sorts, keep original order
+				return 0
+		}
+		
+		// Handle null/undefined values
+		if (valueA === null || valueA === undefined) valueA = -1
+		if (valueB === null || valueB === undefined) valueB = -1
+		
+		const comparison = valueB - valueA // Default descending order
+		return sortDirection.value === 'asc' ? -comparison : comparison
+	})
+	
+	return sorted
+}
+
 // Initialize data
 await getValidators()
 
 // Update URL and refetch when parameters change (excluding search)
-watch([selectedSort, selectedTimeWindow], async () => {
+watch([selectedSort, sortDirection, selectedTimeWindow], async () => {
 	await getValidators()
 	
 	router.replace({ 
 		query: { 
 			page: page.value,
 			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
 			search: searchTerm.value || undefined
 		} 
@@ -197,6 +259,7 @@ watch([page, searchTerm], () => {
 		query: { 
 			page: page.value,
 			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
 			search: searchTerm.value || undefined
 		} 
@@ -209,6 +272,7 @@ watch(
 	() => {
 		if (route.query.page) page.value = parseInt(route.query.page)
 		if (route.query.sortBy) selectedSort.value = route.query.sortBy
+		if (route.query.sortDir) sortDirection.value = route.query.sortDir
 		if (route.query.window) selectedTimeWindow.value = route.query.window
 		if (route.query.search !== undefined) searchTerm.value = route.query.search || ""
 	},
@@ -219,6 +283,7 @@ onMounted(() => {
 		query: { 
 			page: page.value,
 			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
 			search: searchTerm.value || undefined
 		} 
@@ -354,8 +419,46 @@ onMounted(() => {
 							<tr>
 								<th :class="$style.col_rank"><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
 								<th :class="$style.col_validator"><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
-								<th :class="$style.col_stake"><Text size="12" weight="600" color="tertiary" noWrap>Stake</Text></th>
-								<th :class="$style.col_uptime"><Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text></th>
+								<th 
+									:class="[$style.col_stake, $style.sortable]" 
+									@click="handleColumnSort('stake')"
+								>
+									<Flex align="center" gap="4" :class="$style.header_content">
+										<Text size="12" weight="600" color="tertiary" noWrap>Stake</Text>
+										<Icon 
+											name="chevron" 
+											size="10" 
+											:color="selectedSort === 'stake' ? 'tertiary' : 'support'"
+											:style="{ 
+												transform: selectedSort === 'stake' 
+													? (sortDirection === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)')
+													: 'rotate(0deg)',
+												opacity: selectedSort === 'stake' ? 1 : 0.5,
+												transition: 'all 0.2s ease'
+											}"
+										/>
+									</Flex>
+								</th>
+								<th 
+									:class="[$style.col_uptime, $style.sortable]" 
+									@click="handleColumnSort('block_proposal_ratio')"
+								>
+									<Flex align="center" gap="4" :class="$style.header_content">
+										<Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text>
+										<Icon 
+											name="chevron" 
+											size="10" 
+											:color="selectedSort === 'block_proposal_ratio' ? 'tertiary' : 'support'"
+											:style="{ 
+												transform: selectedSort === 'block_proposal_ratio' 
+													? (sortDirection === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)')
+													: 'rotate(0deg)',
+												opacity: selectedSort === 'block_proposal_ratio' ? 1 : 0.5,
+												transition: 'all 0.2s ease'
+											}"
+										/>
+									</Flex>
+								</th>
 								<th :class="$style.col_location"><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 								<th :class="$style.col_bookmark"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
@@ -504,11 +607,17 @@ onMounted(() => {
 
 			&.sortable {
 				cursor: pointer;
+				user-select: none;
 			}
 
 			&.sortable:hover {
 				& span {
 					color: var(--txt-secondary);
+				}
+				
+				& svg {
+					opacity: 1 !important;
+					color: var(--txt-secondary) !important;
 				}
 			}
 		}
@@ -562,6 +671,11 @@ onMounted(() => {
 	align-items: center;
 	min-height: 44px;
 	padding: 0 16px;
+}
+
+.header_content {
+	justify-content: flex-start;
+	min-height: 20px;
 }
 
 .table.disabled {
