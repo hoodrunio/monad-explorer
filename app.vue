@@ -41,6 +41,14 @@ let watchInterval = null
 
 onMounted(async () => {
 	/**
+	 * Watch for route changes and close sidebar to prevent state issues
+	 */
+	const route = useRoute()
+	watch(() => route.path, () => {
+		appStore.showSidebar = false
+	})
+
+	/**
 	 * Watch for package.json->version and notify users about the new version
 	 */
 	appStore.version = (await $fetch("/api/version")).version
