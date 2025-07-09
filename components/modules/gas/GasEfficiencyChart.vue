@@ -23,7 +23,28 @@ const chartWrapperEl = ref()
 const gasUsageChartEl = ref()
 
 /** Data */
-const gasUsageSeries = ref([])
+// Memoized data processing to avoid re-computation
+const processedGasData = computed(() => {
+	if (!props.gasHistory || props.gasHistory.length === 0) {
+		return []
+	}
+
+	// Only process once when gasHistory changes
+	return props.gasHistory
+		.slice(0, 14)
+		.map(item => ({
+			date: DateTime.fromISO(item.date).toJSDate(),
+			value: parseInt(item.totalGasUsed) || 0,
+			txCount: item.transactionCount || 0
+		}))
+		.filter(item => item.value > 0)
+})
+
+// Cached max value computation for Y-axis
+const maxGasValue = computed(() => {
+	if (!processedGasData.value.length) return 0
+	return Math.max(...processedGasData.value.map(d => d.value))
+})
 
 /** Tooltip */
 const showTooltip = ref(false)
@@ -39,10 +60,15 @@ const badgeEl = ref()
 const badgeText = ref("")
 const badgeOffset = ref(0)
 
+// Chart instance reference to avoid rebuilding
+const chartInstance = ref(null)
+
 const buildChart = (chartEl, data, onEnter, onLeave) => {
 	if (!data || data.length === 0) return
 	
-	const width = chartWrapperEl.value.wrapper.getBoundingClientRect().width
+	// Cache DOM measurements to avoid layout thrashing
+	const rect = chartWrapperEl.value.wrapper.getBoundingClientRect()
+	const width = rect.width
 	const height = 180
 	const marginTop = 0
 	const marginRight = 0
@@ -97,6 +123,11 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	const onPointerleft = () => {
 		onLeave()
 		badgeText.value = ""
+	}
+
+	// Remove existing chart content efficiently
+	if (chartEl.children[0]) {
+		chartEl.removeChild(chartEl.children[0])
 	}
 
 	/** SVG Container */
@@ -154,61 +185,57 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.attr("fill", "var(--brand)")
 		.attr("r", 3)
 
-	if (chartEl.children[0]) chartEl.children[0].remove()
-	chartEl.append(svg.node())
-}
-
-const processGasUsageData = () => {
-	if (!props.gasHistory || props.gasHistory.length === 0) {
-		gasUsageSeries.value = []
-		return
-	}
-
-	// Process gas usage data from analytics API (last 14 days)
-	gasUsageSeries.value = props.gasHistory
-		.slice(0, 14)
-		.map(item => ({
-			date: DateTime.fromISO(item.date).toJSDate(),
-			value: parseInt(item.totalGasUsed) || 0,
-			txCount: item.transactionCount || 0
-		}))
-		.filter(item => item.value > 0) // Filter out empty days
+	chartEl.appendChild(svg.node())
+	chartInstance.value = svg
 }
 
 const buildGasUsageCharts = () => {
-	if (props.isLoading || !gasUsageChartEl.value) return
+	if (props.isLoading || !gasUsageChartEl.value || !processedGasData.value.length) return
 	
-	processGasUsageData()
-	
-	if (gasUsageSeries.value.length > 0) {
-		buildChart(
-			gasUsageChartEl.value.wrapper,
-			gasUsageSeries.value,
-			() => (showTooltip.value = true),
-			() => (showTooltip.value = false),
-		)
-	}
+	buildChart(
+		gasUsageChartEl.value.wrapper,
+		processedGasData.value,
+		() => (showTooltip.value = true),
+		() => (showTooltip.value = false),
+	)
 }
 
+// Optimized watching - only rebuild when necessary
 watch(
-	() => [props.gasHistory, props.isLoading],
-	() => {
-		buildGasUsageCharts()
-	},
-	{ deep: true }
+	() => [props.gasHistory?.length, props.isLoading],
+	([newLength, newIsLoading], [oldLength, oldIsLoading]) => {
+		// Only rebuild if loading state changes or data length changes
+		if (newIsLoading !== oldIsLoading || newLength !== oldLength) {
+			buildGasUsageCharts()
+		}
+	}
 )
 
-const debouncedRedraw = useDebounceFn((e) => {
-	buildGasUsageCharts()
-}, 500)
+// Separate watch for data changes to avoid unnecessary rebuilds
+watch(
+	processedGasData,
+	(newData) => {
+		if (newData.length > 0 && !props.isLoading) {
+			buildGasUsageCharts()
+		}
+	}
+)
 
-onMounted(async () => {
-	window.addEventListener("resize", debouncedRedraw)
+const debouncedRedraw = useDebounceFn(() => {
 	buildGasUsageCharts()
+}, 300) // Reduced debounce time
+
+onMounted(() => {
+	window.addEventListener("resize", debouncedRedraw)
+	nextTick(() => {
+		buildGasUsageCharts()
+	})
 })
 
 onBeforeUnmount(() => {
 	window.removeEventListener("resize", debouncedRedraw)
+	// Clean up chart instance
+	chartInstance.value = null
 })
 </script>
 
@@ -238,17 +265,17 @@ onBeforeUnmount(() => {
 
 		<Flex v-else ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">
 			<Flex direction="column" justify="between" :class="[$style.axis, $style.y]">
-				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary">
-					{{ abbreviate(Math.max(...gasUsageSeries.map(d => d.value))) }}
+				<Text v-if="processedGasData.length" size="12" weight="600" color="tertiary">
+					{{ abbreviate(maxGasValue) }}
 				</Text>
 				<Skeleton v-else w="32" h="12" />
 
-				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary">
-					{{ abbreviate(Math.max(...gasUsageSeries.map(d => d.value)) / 2) }}
+				<Text v-if="processedGasData.length" size="12" weight="600" color="tertiary">
+					{{ abbreviate(maxGasValue / 2) }}
 				</Text>
 				<Skeleton v-else w="24" h="12" />
 
-				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary"> 0 </Text>
+				<Text v-if="processedGasData.length" size="12" weight="600" color="tertiary"> 0 </Text>
 				<Skeleton v-else w="16" h="12" />
 			</Flex>
 
