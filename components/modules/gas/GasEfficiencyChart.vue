@@ -23,27 +23,42 @@ const chartWrapperEl = ref()
 const gasUsageChartEl = ref()
 
 /** Data */
-// Memoized data processing to avoid re-computation
+// Optimized data processing with better memoization
 const processedGasData = computed(() => {
 	if (!props.gasHistory || props.gasHistory.length === 0) {
 		return []
 	}
 
-	// Only process once when gasHistory changes
-	return props.gasHistory
-		.slice(0, 14)
-		.map(item => ({
-			date: DateTime.fromISO(item.date).toJSDate(),
-			value: parseInt(item.totalGasUsed) || 0,
-			txCount: item.transactionCount || 0
-		}))
-		.filter(item => item.value > 0)
+	// More efficient data processing with early filtering
+	const processedData = []
+	const maxItems = Math.min(14, props.gasHistory.length)
+	
+	for (let i = 0; i < maxItems; i++) {
+		const item = props.gasHistory[i]
+		const gasUsed = parseInt(item.totalGasUsed) || 0
+		
+		// Skip items with no gas usage
+		if (gasUsed > 0) {
+			processedData.push({
+				date: DateTime.fromISO(item.date).toJSDate(),
+				value: gasUsed,
+				txCount: item.transactionCount || 0
+			})
+		}
+	}	
+	return processedData.reverse() // Reverse data to match reversed scale domain
 })
 
 // Cached max value computation for Y-axis
 const maxGasValue = computed(() => {
 	if (!processedGasData.value.length) return 0
 	return Math.max(...processedGasData.value.map(d => d.value))
+})
+
+// Memoize data hash to avoid unnecessary rebuilds
+const dataHash = computed(() => {
+	if (!processedGasData.value.length) return 'empty'
+	return `${processedGasData.value.length}-${maxGasValue.value}-${props.isLoading}`
 })
 
 /** Tooltip */
@@ -60,26 +75,35 @@ const badgeEl = ref()
 const badgeText = ref("")
 const badgeOffset = ref(0)
 
-// Chart instance reference to avoid rebuilding
+// Chart instance reference and cached dimensions
 const chartInstance = ref(null)
+const cachedDimensions = ref(null)
 
 const buildChart = (chartEl, data, onEnter, onLeave) => {
 	if (!data || data.length === 0) return
 	
-	// Cache DOM measurements to avoid layout thrashing
-	const rect = chartWrapperEl.value.wrapper.getBoundingClientRect()
-	const width = rect.width
-	const height = 180
+	// Use cached dimensions if available and valid
+	let width, height
+	if (cachedDimensions.value) {
+		width = cachedDimensions.value.width
+		height = cachedDimensions.value.height
+	} else {
+		const rect = chartWrapperEl.value.wrapper.getBoundingClientRect()
+		width = rect.width
+		height = 180
+		cachedDimensions.value = { width, height }
+	}
+	
 	const marginTop = 0
 	const marginRight = 0
 	const marginBottom = 24
 	const marginLeft = 40
 
-	const MAX_VALUE = d3.max(data, (d) => d.value) ? d3.max(data, (d) => d.value) : 1
+	const MAX_VALUE = d3.max(data, (d) => d.value) || 1
 
 	/** Scale */
 	const x = d3.scaleUtc(
-		d3.extent(data, (d) => d.date),
+		d3.extent(data, (d) => d.date), // Normal extent: oldest (left) to newest (right)
 		[marginLeft, width - marginRight],
 	)
 	const y = d3.scaleLinear([0, MAX_VALUE], [height - marginBottom - 6, marginTop])
@@ -88,49 +112,58 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.x((d) => x(d.date))
 		.y((d) => y(d.value))
 
-	/** Tooltip */
+	/** Optimized tooltip */
 	const bisect = d3.bisector((d) => d.date).center
 	const onPointermoved = (event) => {
 		onEnter()
 
-		const idx = bisect(data, x.invert(d3.pointer(event)[0]))
+		// Now that scale is correctly set up, use bisector normally
+		const mouseX = d3.pointer(event)[0]
+		const invertedDate = x.invert(mouseX)
+		const idx = bisect(data, invertedDate)
+		const validIdx = Math.max(0, Math.min(idx, data.length - 1))
+		const point = data[validIdx]
 
-		tooltipXOffset.value = x(data[idx].date)
+		tooltipXOffset.value = x(point.date)
 		tooltipYOffset.value = event.layerY
-		tooltipYDataOffset.value = y(data[idx].value)
-		tooltipGasUsed.value = data[idx].value
-		tooltipTxCount.value = data[idx].txCount
+		tooltipYDataOffset.value = y(point.value)
+		tooltipGasUsed.value = point.value
+		tooltipTxCount.value = point.txCount
 
-		if (tooltipEl.value) {
-			if (idx > data.length / 2) {
-				tooltipDynamicXPosition.value = tooltipXOffset.value - tooltipEl.value.wrapper.getBoundingClientRect().width - 16
+		// Optimize tooltip positioning
+		if (tooltipEl.value?.wrapper) {
+			const tooltipWidth = tooltipEl.value.wrapper.getBoundingClientRect().width
+			tooltipDynamicXPosition.value = validIdx > data.length / 2 
+				? tooltipXOffset.value - tooltipWidth - 16
+				: tooltipXOffset.value + 16
+		}
+
+		badgeText.value = DateTime.fromJSDate(point.date).toFormat("LLL dd")
+
+		// Optimize badge positioning
+		if (badgeEl.value) {
+			const badgeWidth = badgeEl.value.getBoundingClientRect().width
+			if (validIdx < 1) {
+				badgeOffset.value = 0
+			} else if (validIdx > data.length - 2) {
+				badgeOffset.value = badgeWidth
 			} else {
-				tooltipDynamicXPosition.value = tooltipXOffset.value + 16
+				badgeOffset.value = badgeWidth / 2
 			}
 		}
-
-		badgeText.value = DateTime.fromJSDate(data[idx].date).toFormat("LLL dd")
-
-		if (!badgeEl.value) return
-		if (idx < 1) {
-			badgeOffset.value = 0
-		} else if (idx > data.length - 2) {
-			badgeOffset.value = badgeEl.value.getBoundingClientRect().width
-		} else {
-			badgeOffset.value = badgeEl.value.getBoundingClientRect().width / 2
-		}
 	}
+	
 	const onPointerleft = () => {
 		onLeave()
 		badgeText.value = ""
 	}
 
-	// Remove existing chart content efficiently
-	if (chartEl.children[0]) {
-		chartEl.removeChild(chartEl.children[0])
+	// Efficiently clear existing chart
+	if (chartEl.firstChild) {
+		chartEl.removeChild(chartEl.firstChild)
 	}
 
-	/** SVG Container */
+	/** Optimized SVG Container */
 	const svg = d3
 		.create("svg")
 		.attr("width", width)
@@ -143,26 +176,27 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.on("pointerleave", onPointerleft)
 		.on("touchstart", (event) => event.preventDefault())
 
-	/** Vertical Lines */
-	svg.append("path")
-		.attr("fill", "none")
-		.attr("stroke", "var(--op-10)")
-		.attr("stroke-width", 2)
-		.attr("d", `M${marginLeft},${height - marginBottom + 2} L${marginLeft},${height - marginBottom - 5}`)
-	svg.append("path")
-		.attr("fill", "none")
-		.attr("stroke", "var(--op-10)")
-		.attr("stroke-width", 2)
-		.attr("d", `M${width - 1},${height - marginBottom + 2} L${width - 1},${height - marginBottom - 5}`)
+	// Batch DOM operations for better performance
+	const paths = [
+		// Vertical lines
+		`M${marginLeft},${height - marginBottom + 2} L${marginLeft},${height - marginBottom - 5}`,
+		`M${width - 1},${height - marginBottom + 2} L${width - 1},${height - marginBottom - 5}`,
+		// Horizontal line
+		`M${0},${height - marginBottom - 6} L${width},${height - marginBottom - 6}`
+	]
 
-	/** Default Horizontal Line  */
-	svg.append("path")
+	// Add all grid lines at once
+	svg.selectAll('.grid-line')
+		.data(paths)
+		.enter()
+		.append("path")
+		.attr("class", "grid-line")
 		.attr("fill", "none")
 		.attr("stroke", "var(--op-10)")
 		.attr("stroke-width", 2)
-		.attr("d", `M${0},${height - marginBottom - 6} L${width},${height - marginBottom - 6}`)
+		.attr("d", d => d)
 
-	/** Chart Line */
+	// Chart line (solid part)
 	svg.append("path")
 		.attr("fill", "none")
 		.attr("stroke", "var(--brand)")
@@ -170,6 +204,8 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.attr("stroke-linecap", "round")
 		.attr("stroke-linejoin", "round")
 		.attr("d", line(data.slice(0, data.length - 1)))
+
+	// Chart line (dashed part)
 	svg.append("path")
 		.attr("fill", "none")
 		.attr("stroke", "var(--brand)")
@@ -179,9 +215,11 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.attr("stroke-dasharray", "4")
 		.attr("d", line(data.slice(data.length - 2, data.length)))
 
+	// End point circle
+	const lastPoint = data[data.length - 1]
 	svg.append("circle")
-		.attr("cx", x(data[data.length - 1].date))
-		.attr("cy", y(data[data.length - 1].value))
+		.attr("cx", x(lastPoint.date))
+		.attr("cy", y(lastPoint.value))
 		.attr("fill", "var(--brand)")
 		.attr("r", 3)
 
@@ -190,7 +228,9 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 }
 
 const buildGasUsageCharts = () => {
-	if (props.isLoading || !gasUsageChartEl.value || !processedGasData.value.length) return
+	if (props.isLoading || !gasUsageChartEl.value?.wrapper || !processedGasData.value.length) {
+		return
+	}
 	
 	buildChart(
 		gasUsageChartEl.value.wrapper,
@@ -200,42 +240,69 @@ const buildGasUsageCharts = () => {
 	)
 }
 
-// Optimized watching - only rebuild when necessary
+// Single optimized watcher to prevent double rendering
+const lastDataHash = ref('')
 watch(
-	() => [props.gasHistory?.length, props.isLoading],
-	([newLength, newIsLoading], [oldLength, oldIsLoading]) => {
-		// Only rebuild if loading state changes or data length changes
-		if (newIsLoading !== oldIsLoading || newLength !== oldLength) {
-			buildGasUsageCharts()
+	dataHash,
+	(newHash) => {
+		if (newHash !== lastDataHash.value && !props.isLoading && processedGasData.value.length > 0) {
+			lastDataHash.value = newHash
+			nextTick(() => {
+				buildGasUsageCharts()
+			})
 		}
-	}
+	},
+	{ immediate: false }
 )
 
-// Separate watch for data changes to avoid unnecessary rebuilds
-watch(
-	processedGasData,
-	(newData) => {
-		if (newData.length > 0 && !props.isLoading) {
-			buildGasUsageCharts()
-		}
-	}
-)
-
+// Optimized resize handler with frame throttling
 const debouncedRedraw = useDebounceFn(() => {
+	// Clear cached dimensions on resize
+	cachedDimensions.value = null
 	buildGasUsageCharts()
-}, 300) // Reduced debounce time
+}, 250)
+
+// Intersection observer for performance optimization
+const isVisible = ref(true)
+let intersectionObserver
 
 onMounted(() => {
 	window.addEventListener("resize", debouncedRedraw)
+	
+	// Set up intersection observer for performance
+	if ('IntersectionObserver' in window && chartWrapperEl.value?.wrapper) {
+		intersectionObserver = new IntersectionObserver(
+			(entries) => {
+				isVisible.value = entries[0].isIntersecting
+			},
+			{ threshold: 0.1 }
+		)
+		intersectionObserver.observe(chartWrapperEl.value.wrapper)
+	}
+	
 	nextTick(() => {
-		buildGasUsageCharts()
+		if (processedGasData.value.length > 0 && !props.isLoading) {
+			buildGasUsageCharts()
+		}
 	})
 })
 
 onBeforeUnmount(() => {
 	window.removeEventListener("resize", debouncedRedraw)
-	// Clean up chart instance
+	if (intersectionObserver) {
+		intersectionObserver.disconnect()
+	}
 	chartInstance.value = null
+	cachedDimensions.value = null
+})
+
+// Only rebuild when component becomes visible and has data
+watch(isVisible, (visible) => {
+	if (visible && processedGasData.value.length > 0 && !props.isLoading) {
+		nextTick(() => {
+			buildGasUsageCharts()
+		})
+	}
 })
 </script>
 

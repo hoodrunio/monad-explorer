@@ -1,4 +1,7 @@
 <script setup>
+/** Vendor */
+import { useDebounceFn } from "@vueuse/core"
+
 /** Modules */
 import GasPriceChart from "@/components/modules/gas/GasPriceChart.vue"
 import GasPriceHeatmap from "@/components/modules/gas/GasPriceHeatmap.vue"
@@ -27,7 +30,12 @@ const gasPrice = ref({
 const gasHistory = ref([])
 const isLoading = ref(true)
 
-// Fetch gas data
+// Memoized gas history to prevent unnecessary child re-renders
+const memoizedGasHistory = computed(() => {
+	return gasHistory.value
+})
+
+// Fetch gas data with better error handling and optimization
 const fetchGasData = async () => {
 	try {
 		console.log('⛽ Fetching gas data for gas page...')
@@ -43,23 +51,36 @@ const fetchGasData = async () => {
 		// Process current gas prices
 		if (currentData?.success && currentData?.data?.recommendations) {
 			const recommendations = currentData.data.recommendations
-			gasPrice.value = {
+			const newGasPrice = {
 				fast: convertFromWei(recommendations.fast, 9), // gwei
 				median: convertFromWei(recommendations.standard, 9),
 				slow: convertFromWei(recommendations.slow, 9),
 			}
+			
+			// Only update if values actually changed to prevent unnecessary re-renders
+			if (JSON.stringify(gasPrice.value) !== JSON.stringify(newGasPrice)) {
+				gasPrice.value = newGasPrice
+			}
 		} else {
 			// Fallback data
-			gasPrice.value = {
+			const fallbackPrice = {
 				fast: 51.0,
 				median: 51.0,
 				slow: 51.0,
+			}
+			
+			if (JSON.stringify(gasPrice.value) !== JSON.stringify(fallbackPrice)) {
+				gasPrice.value = fallbackPrice
 			}
 		}
 		
 		// Process gas history
 		if (historyData?.success && historyData?.data?.data) {
-			gasHistory.value = historyData.data.data
+			// Only update if data actually changed
+			const newHistoryData = historyData.data.data
+			if (JSON.stringify(gasHistory.value) !== JSON.stringify(newHistoryData)) {
+				gasHistory.value = newHistoryData
+			}
 		}
 		
 		console.log('💰 Processed gas prices:', gasPrice.value)
@@ -68,21 +89,39 @@ const fetchGasData = async () => {
 	} catch (error) {
 		console.error('❌ Error fetching gas data:', error)
 		// Fallback data
-		gasPrice.value = {
+		const fallbackPrice = {
 			fast: 51.0,
 			median: 51.0,
 			slow: 51.0,
+		}
+		
+		if (JSON.stringify(gasPrice.value) !== JSON.stringify(fallbackPrice)) {
+			gasPrice.value = fallbackPrice
 		}
 	} finally {
 		isLoading.value = false
 	}
 }
 
+// Debounced fetch to prevent too frequent API calls
+const debouncedFetchGasData = useDebounceFn(fetchGasData, 1000)
+
+let fetchInterval = null
+
 onMounted(() => {
 	fetchGasData()
 	
-	// Refresh gas data every 30 seconds
-	setInterval(fetchGasData, 30000)
+	// Use interval with cleanup and error handling
+	fetchInterval = setInterval(() => {
+		debouncedFetchGasData()
+	}, 30000)
+})
+
+onBeforeUnmount(() => {
+	if (fetchInterval) {
+		clearInterval(fetchInterval)
+		fetchInterval = null
+	}
 })
 
 const visualizations = ref([
@@ -223,19 +262,19 @@ useHead({
 						<GasPriceChart 
 							v-if="selectedVisualization === 'line'" 
 							:selectedPeriod="selectedPeriod" 
-							:gasHistory="gasHistory"
+							:gasHistory="memoizedGasHistory"
 							:isLoading="isLoading"
 						/>
 						<GasPriceHeatmap 
 							v-else-if="selectedVisualization === 'heatmap'" 
 							:selectedPeriod="periods[0]" 
-							:gasHistory="gasHistory"
+							:gasHistory="memoizedGasHistory"
 							:isLoading="isLoading"
 						/>
 					</Flex>
 
 					<div :class="$style.card">
-						<GasEfficiencyChart :gasHistory="gasHistory" :isLoading="isLoading" />
+						<GasEfficiencyChart :gasHistory="memoizedGasHistory" :isLoading="isLoading" />
 					</div>
 				</Flex>
 			</Flex>

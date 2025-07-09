@@ -20,7 +20,7 @@ const props = defineProps({
 	}
 })
 
-const days = [7, 6, 5, 4, 3, 2, 1]
+const days = [1, 2, 3, 4, 5, 6, 7]
 const seriesData = ref([])
 const minValue = ref(0)
 const maxValue = ref(0)
@@ -46,7 +46,6 @@ const processGasData = () => {
 			value: item.averageGasPrice !== "0" ? convertFromWei(item.averageGasPrice, 9) : 0,
 			transactionCount: item.transactionCount
 		}))
-
 	seriesData.value = processedData
 	
 	const validValues = processedData.filter(d => d.value > 0).map(d => d.value)

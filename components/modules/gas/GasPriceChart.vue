@@ -54,7 +54,7 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 
 	/** Scale */
 	const x = d3.scaleUtc(
-		d3.extent(data, (d) => d.date),
+		d3.extent(data, (d) => d.date), // Extent: oldest (left) to newest (right)
 		[marginLeft, width - marginRight],
 	)
 	const y = d3.scaleLinear([0, MAX_VALUE], [height - marginBottom - 6, marginTop])
@@ -68,27 +68,32 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	const onPointermoved = (event) => {
 		onEnter()
 
-		const idx = bisect(data, x.invert(d3.pointer(event)[0]))
+		// Now that scale is correctly set up, use bisector normally
+		const mouseX = d3.pointer(event)[0]
+		const invertedDate = x.invert(mouseX)
+		const idx = bisect(data, invertedDate)
+		const validIdx = Math.max(0, Math.min(idx, data.length - 1))
+		const point = data[validIdx]
 
-		tooltipXOffset.value = x(data[idx].date)
-		tooltipYDataOffset.value = y(data[idx].value)
+		tooltipXOffset.value = x(point.date)
+		tooltipYDataOffset.value = y(point.value)
 		tooltipYOffset.value = event.layerY
-		tooltipText.value = data[idx].value
+		tooltipText.value = point.value
 
 		if (tooltipEl.value) {
-			if (idx > 12) {
+			if (validIdx > 12) {
 				tooltipDynamicXPosition.value = tooltipXOffset.value - tooltipEl.value.wrapper.getBoundingClientRect().width - 16
 			} else {
 				tooltipDynamicXPosition.value = tooltipXOffset.value + 16
 			}
 		}
 
-		badgeText.value = DateTime.fromJSDate(data[idx].date).toFormat("LLL dd")
+		badgeText.value = DateTime.fromJSDate(point.date).toFormat("LLL dd")
 
 		if (!badgeEl.value) return
-		if (idx < 1) {
+		if (validIdx < 1) {
 			badgeOffset.value = 0
-		} else if (idx > data.length - 2) {
+		} else if (validIdx > data.length - 2) {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width
 		} else {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width / 2
@@ -172,6 +177,7 @@ const processGasHistoryData = () => {
 			value: convertFromWei(item.averageGasPrice, 9) // Convert to gwei
 		}))
 		.filter(item => item.value > 0) // Filter out empty days
+		.reverse() // Reverse to show oldest to newest (left to right)
 }
 
 const buildGasTrackingCharts = () => {
