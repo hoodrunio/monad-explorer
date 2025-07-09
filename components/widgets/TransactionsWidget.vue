@@ -9,88 +9,123 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 import { comma, abbreviate } from "@/services/utils"
 
 /** API */
-import { fetchSeries } from "@/services/api/stats"
+import { fetchTransactionAnalytics } from "@/services/api/analytics"
 
-const histogram = ref([])
-
-const sectors = ref([[], [], [], []])
-const hoursMap = [
-	[0, 1, 2, 3, 4, 5],
-	[6, 7, 8, 9, 10, 11],
-	[12, 13, 14, 15, 16, 17],
-	[18, 19, 20, 21, 22, 23],
-]
-
-const min = ref(0)
-const max = ref(0)
-const roundedMax = ref(0)
+const transactionData = ref([])
 const isLoading = ref(true)
+const period = ref('daily') // 'daily' or 'weekly'
 
-const getHistogram = async (sectorOffset) => {
-	const data = await fetchSeries({
-		table: "tx_count",
-		period: "hour",
-		from: parseInt(DateTime.now().minus({ hours: 24 - sectorOffset }).ts / 1_000),
-	})
-	histogram.value = data.reverse()
+const max = ref(0)
+const min = ref(0)
+const roundedMax = ref(0)
+
+const togglePeriod = () => {
+	period.value = period.value === 'daily' ? 'weekly' : 'daily'
+	fetchTransactionData()
 }
 
-const buildHistogram = async () => {
-	sectors.value.forEach((s) => {
-		while (s.length) {
-			s.pop()
+const fetchTransactionData = async () => {
+	try {
+		isLoading.value = true
+		console.log(`🔄 Fetching transaction analytics (${period.value})...`)
+		
+		const limit = period.value === 'daily' ? 7 : 12 // 7 days or 12 weeks
+		const data = await fetchTransactionAnalytics({ period: period.value, limit })
+		
+		console.log('📊 Transaction analytics response:', data)
+		
+		if (data?.success && data?.data?.data) {
+			// Get data in natural order (newest to oldest, left to right)
+			transactionData.value = data.data.data.slice(0, limit)
+			
+			console.log('📈 Transaction data processed:', transactionData.value)
+			
+			// Calculate min, max for chart scaling
+			const values = transactionData.value.map(item => item.transactionCount)
+			max.value = Math.max(...values)
+			min.value = Math.min(...values)
+			roundedMax.value = Math.ceil(max.value / 5) * 5
+			
+			console.log('🎯 Chart values - min:', min.value, 'max:', max.value, 'roundedMax:', roundedMax.value)
+		} else {
+			console.warn('⚠️ No transaction data received or invalid format')
 		}
-	})
-
-	const currentHour = DateTime.now().hour
-	const currentSector = hoursMap.find((m) => m.includes(currentHour))
-	const currentHourIdx = currentSector.indexOf(currentHour)
-	const sectorOffset = 5 - currentHourIdx
-
-	await getHistogram(sectorOffset)
-
-	const items = [...histogram.value]
-
-	let target = 0
-	while (items.length) {
-		if (sectors.value[target].length === 6) target += 1
-		sectors.value[target].push(items[0])
-
-		items.shift()
+	} catch (error) {
+		console.error("❌ Error fetching transaction data:", error)
+	} finally {
+		isLoading.value = false
 	}
-
-	while (sectors.value[sectors.value.length - 1].length < 6) {
-		sectors.value[sectors.value.length - 1].push({
-			time: null,
-			value: 0,
-		})
-	}
-
-	max.value = Math.max(...histogram.value.map((item) => parseInt(item.value)))
-	roundedMax.value = Math.ceil(max.value / 5) * 5
-
-	setTimeout(() => {
-		buildHistogram()
-	}, (60 - DateTime.now().minute) * 60 * 1_000)
 }
 
-onMounted(async () => {
-	isLoading.value = true
-	await buildHistogram()
-	isLoading.value = false
+onMounted(() => {
+	fetchTransactionData()
+	
+	// Refresh data every 5 minutes
+	setInterval(fetchTransactionData, 300000)
 })
 
 const txCounter = computed(() => {
-	return histogram.value.reduce((a, b) => (a += parseInt(b.value)), 0)
+	return transactionData.value.reduce((a, b) => (a += parseInt(b.transactionCount)), 0)
 })
 
-const getPercentageRatio = (v) => {
-	return (parseInt(v) * 100) / roundedMax.value
+const getPercentageRatio = (value) => {
+	if (!value || roundedMax.value === 0) return 0
+	const ratio = (parseInt(value) * 100) / roundedMax.value
+	// Ensure minimum 2% height for visibility
+	return Math.max(ratio, 2)
 }
 
-const getSectorName = (item) => {
-	return item?.time ? DateTime.fromISO(item?.time).hour : DateTime.now().hour
+const formatDate = (item) => {
+	if (period.value === 'weekly') {
+		// For weekly data, show shorter format
+		if (item.weekStart) {
+			return DateTime.fromISO(item.weekStart).toFormat('M/d')
+		}
+		return DateTime.fromISO(item.week?.split(' ')[0] || item.date).toFormat('M/d')
+	} else {
+		// For daily data
+		return DateTime.fromISO(item.date).toFormat('MM/dd')
+	}
 }
+
+const getDateLabel = (item) => {
+	if (period.value === 'weekly') {
+		// For weekly data
+		if (item.week) return item.week
+		if (item.weekStart && item.weekEnd) {
+			return `${DateTime.fromISO(item.weekStart).toFormat('MMM dd')} - ${DateTime.fromISO(item.weekEnd).toFormat('MMM dd')}`
+		}
+		return DateTime.fromISO(item.weekStart || item.date).toFormat('MMM dd')
+	} else {
+		// For daily data
+		const date = DateTime.fromISO(item.date)
+		const today = DateTime.now()
+		const yesterday = today.minus({ days: 1 })
+		
+		if (date.hasSame(today, 'day')) return 'Today'
+		if (date.hasSame(yesterday, 'day')) return 'Yesterday'
+		return date.toFormat('MMM dd')
+	}
+}
+
+const isCurrentPeriod = (item) => {
+	if (period.value === 'weekly') {
+		// Check if this week contains today
+		if (item.weekStart && item.weekEnd) {
+			const start = DateTime.fromISO(item.weekStart)
+			const end = DateTime.fromISO(item.weekEnd)
+			const today = DateTime.now()
+			return today >= start && today <= end
+		}
+		return false
+	} else {
+		// For daily data
+		return DateTime.fromISO(item.date).hasSame(DateTime.now(), 'day')
+	}
+}
+
+const periodLabel = computed(() => period.value === 'daily' ? '7d' : '12w')
+const periodSuffix = computed(() => period.value === 'daily' ? 'TXs/7d' : 'TXs/12w')
 </script>
 
 <template>
@@ -109,15 +144,33 @@ const getSectorName = (item) => {
 						</Flex>
 						<template #content>
 							<Flex gap="4" align="end">
-								<Text size="14" weight="600" color="primary">{{ txCounter }}</Text>
-								<Text size="11" weight="700" color="tertiary">TXs/24h</Text>
+								<Text size="14" weight="600" color="primary">{{ comma(txCounter) }}</Text>
+								<Text size="11" weight="700" color="tertiary">{{ periodSuffix }}</Text>
 							</Flex>
 						</template>
 					</Tooltip>
 				</Flex>
 			</Flex>
 
-			<Text size="12" weight="600" color="tertiary">24h</Text>
+			<Flex align="center" gap="8">
+				<!-- Period Toggle -->
+				<Flex align="center" :class="$style.toggle">
+					<button 
+						@click="togglePeriod"
+						:class="[$style.toggle_btn, period === 'daily' && $style.active]"
+					>
+						<Text size="11" weight="600" :color="period === 'daily' ? 'primary' : 'tertiary'">Daily</Text>
+					</button>
+					<button 
+						@click="togglePeriod"
+						:class="[$style.toggle_btn, period === 'weekly' && $style.active]"
+					>
+						<Text size="11" weight="600" :color="period === 'weekly' ? 'primary' : 'tertiary'">Weekly</Text>
+					</button>
+				</Flex>
+				
+				<Text size="12" weight="600" color="tertiary">{{ periodLabel }}</Text>
+			</Flex>
 		</Flex>
 
 		<!-- Chart -->
@@ -127,59 +180,62 @@ const getSectorName = (item) => {
 				<Text v-else-if="roundedMax" size="12" weight="600" color="tertiary">{{ abbreviate(roundedMax) }}</Text>
 
 				<Skeleton v-if="isLoading" w="15" h="12" />
-				<Text v-else-if="min" size="12" weight="600" color="tertiary">{{ comma(min) }}</Text>
+				<Text v-else-if="min >= 0" size="12" weight="600" color="tertiary">{{ comma(min) }}</Text>
 			</Flex>
 
-			<Flex v-if="!sectors[0].length" wide :class="$style.sectors">
-				<Flex v-for="i in 4" direction="column" gap="8" wide :class="$style.sector">
-					<Flex justify="between" wide :class="$style.hours">
-						<Flex v-for="j in 6" direction="column" justify="end" gap="6" :class="$style.hour">
-							<div :class="$style.dot" />
-						</Flex>
+			<Flex v-if="isLoading" wide :class="$style.days">
+				<Flex v-for="i in (period === 'daily' ? 7 : 12)" direction="column" gap="8" wide :class="[$style.day, period === 'weekly' && $style.day_weekly]">
+					<Flex direction="column" justify="end" gap="6" :class="$style.dayColumn">
+						<div :class="[$style.dot, period === 'weekly' && $style.dot_weekly]" />
 					</Flex>
-
-					<Skeleton w="20" h="12" />
+					<Skeleton :w="period === 'weekly' ? '15' : '20'" h="12" />
 				</Flex>
 			</Flex>
 
-			<Flex v-else wide :class="$style.sectors">
-				<Flex v-for="(sector, idx) in sectors" direction="column" gap="8" wide :class="$style.sector">
-					<Flex justify="between" :class="$style.hours">
-						<Tooltip v-for="item in sector" :disabled="!item.time">
-							<Flex
-								direction="column"
-								justify="end"
-								gap="6"
-								:class="[$style.hour, DateTime.now().hour === DateTime.fromISO(item.time).hour && $style.current]"
-							>
-								<div
-									:style="{ flex: getPercentageRatio(item.value) / 100 }"
-									:class="[$style.bar, getPercentageRatio(item.value) > 20 && $style.green]"
-								/>
+			<Flex v-else wide :class="$style.days">
+				<Flex v-for="item in transactionData" direction="column" gap="8" wide :class="[$style.day, period === 'weekly' && $style.day_weekly]">
+					<Tooltip>
+						<Flex
+							direction="column"
+							justify="end"
+							gap="6"
+							:class="[$style.dayColumn, isCurrentPeriod(item) && $style.current]"
+						>
+							<div
+								:style="{ flex: getPercentageRatio(item.transactionCount) / 100 }"
+								:class="[$style.bar, getPercentageRatio(item.transactionCount) > 20 && $style.green, period === 'weekly' && $style.bar_weekly]"
+							/>
 
-								<div :class="$style.dot" />
-							</Flex>
+							<div :class="[$style.dot, period === 'weekly' && $style.dot_weekly]" />
+						</Flex>
 
-							<template #content>
-								<Flex direction="column" gap="4">
-									<Flex justify="between" align="center" gap="8">
-										<Text color="secondary">Time</Text>
-										<Text color="primary">
-											{{ DateTime.fromISO(item.time).setLocale("en").toLocaleString(DateTime.TIME_SIMPLE) }}
-										</Text>
-									</Flex>
-
-									<Flex justify="between" align="center" gap="8">
-										<Text color="secondary">Txs</Text>
-										<Text color="primary">{{ comma(item.value) }}</Text>
-									</Flex>
+						<template #content>
+							<Flex direction="column" gap="4">
+								<Flex justify="between" align="center" gap="8">
+									<Text color="secondary">{{ period === 'weekly' ? 'Week' : 'Date' }}</Text>
+									<Text color="primary">{{ getDateLabel(item) }}</Text>
 								</Flex>
-							</template>
-						</Tooltip>
-					</Flex>
 
-					<Text size="12" weight="600" color="tertiary">
-						{{ getSectorName(sector[0]) }}
+								<Flex justify="between" align="center" gap="8">
+									<Text color="secondary">Txs</Text>
+									<Text color="primary">{{ comma(item.transactionCount) }}</Text>
+								</Flex>
+
+								<Flex v-if="period === 'weekly' && item.daysIncluded" justify="between" align="center" gap="8">
+									<Text color="secondary">Days</Text>
+									<Text color="primary">{{ item.daysIncluded }}/7</Text>
+								</Flex>
+
+								<Flex justify="between" align="center" gap="8">
+									<Text color="secondary">Blocks</Text>
+									<Text color="primary">{{ comma(item.blockCount) }}</Text>
+								</Flex>
+							</Flex>
+						</template>
+					</Tooltip>
+
+					<Text :size="period === 'weekly' ? '10' : '12'" weight="600" color="tertiary">
+						{{ formatDate(item) }}
 					</Text>
 				</Flex>
 			</Flex>
@@ -199,31 +255,75 @@ const getSectorName = (item) => {
 	padding: 16px;
 }
 
+.toggle {
+	background: var(--op-5);
+	border-radius: 6px;
+	padding: 2px;
+	display: flex;
+}
+
+.toggle_btn {
+	padding: 4px 8px;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.toggle_btn.active {
+	background: var(--card-background);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle_btn:hover {
+	background: var(--op-8);
+}
+
+.toggle_btn.active:hover {
+	background: var(--card-background);
+}
+
 .chart {
 	flex: 1;
+	min-height: 80px;
+	height: 80px;
 }
 
 .yAxis {
-	height: auto;
-
+	height: 80px;
 	padding-bottom: 20px;
 }
 
-.sector {
+.days {
 	border-left: 2px solid var(--op-5);
-
-	padding: 0 8px;
-
-	&:last-child {
-		border-right: 2px solid var(--op-5);
-	}
+	border-right: 2px solid var(--op-5);
+	height: 80px;
 }
 
-.hours {
+.day {
+	border-right: 1px solid var(--op-5);
+	padding: 0 8px;
 	height: 100%;
 }
 
-.hour.current {
+.day_weekly {
+	padding: 0 3px;
+	border-right: 1px solid var(--op-3);
+}
+
+.day:last-child {
+	border-right: none;
+}
+
+.dayColumn {
+	height: 60px;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+}
+
+.dayColumn.current {
 	.bar {
 		background: var(--supply);
 		animation: blink 1.5s ease infinite;
@@ -246,25 +346,31 @@ const getSectorName = (item) => {
 
 .bar {
 	width: 4px;
-
+	min-height: 2px;
 	border-radius: 50px;
 	background: var(--txt-tertiary);
+	transition: all 0.2s ease;
+}
 
-	&.green {
-		background: var(--brand);
-	}
+.bar_weekly {
+	width: 2px;
+	border-radius: 2px;
+}
+
+.bar.green {
+	background: var(--brand);
 }
 
 .dot {
 	min-width: 4px;
 	min-height: 4px;
-
 	border-radius: 50%;
 	background: var(--op-5);
 }
 
-.empty {
-	height: 100%;
+.dot_weekly {
+	min-width: 2px;
+	min-height: 2px;
 }
 
 @media (max-width: 1100px) {

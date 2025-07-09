@@ -51,7 +51,7 @@ const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
 	// Convert wei to MON (divide by 10^18)
 	const monValue = parseInt(value) / Math.pow(10, 18)
-	return monValue.toFixed(6)
+	return monValue.toFixed(18)
 }
 
 const formatGwei = (value) => {

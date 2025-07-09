@@ -132,3 +132,21 @@ export const spaces = (num) => {
 	
 	return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
+
+/**
+ * Convert wei to other units (gwei, ether)
+ * @param {string|number} weiAmount - Amount in wei
+ * @param {number} decimals - Number of decimals to divide by (9 for gwei, 18 for ether)
+ * @returns {number} - Converted amount
+ */
+export const convertFromWei = (weiAmount, decimals = 18) => {
+	if (!weiAmount || weiAmount === "0") return 0
+	
+	const wei = BigInt(weiAmount.toString())
+	const divisor = BigInt(10 ** decimals)
+	
+	// Convert to floating point number
+	const result = Number(wei) / Number(divisor)
+	
+	return result
+}
