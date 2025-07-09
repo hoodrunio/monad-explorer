@@ -7,17 +7,23 @@ import { useDebounceFn } from "@vueuse/core"
 /** Services */
 import { abbreviate } from "@/services/utils"
 
-/** API */
-import { fetchGasLimitSeries, fetchGasUsedSeries, fetchGasEfficiencySeries } from "@/services/api/gas"
+const props = defineProps({
+	gasHistory: {
+		type: Array,
+		default: () => []
+	},
+	isLoading: {
+		type: Boolean,
+		default: false
+	}
+})
 
 /** Chart El */
 const chartWrapperEl = ref()
-const gasEfficiencyChartEl = ref()
+const gasUsageChartEl = ref()
 
 /** Data */
-const gasEfficiencySeries = ref([])
-const gasLimitSeries = ref([])
-const gasUsedSeries = ref([])
+const gasUsageSeries = ref([])
 
 /** Tooltip */
 const showTooltip = ref(false)
@@ -26,15 +32,16 @@ const tooltipXOffset = ref(0)
 const tooltipYOffset = ref(0)
 const tooltipYDataOffset = ref(0)
 const tooltipDynamicXPosition = ref(0)
-const tooltipEfficiencyText = ref("")
-const tooltipLimitText = ref("")
-const tooltipUsedText = ref("")
+const tooltipGasUsed = ref("")
+const tooltipTxCount = ref("")
 
 const badgeEl = ref()
 const badgeText = ref("")
 const badgeOffset = ref(0)
 
 const buildChart = (chartEl, data, onEnter, onLeave) => {
+	if (!data || data.length === 0) return
+	
 	const width = chartWrapperEl.value.wrapper.getBoundingClientRect().width
 	const height = 180
 	const marginTop = 0
@@ -42,71 +49,46 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	const marginBottom = 24
 	const marginLeft = 40
 
-	const MAX_VALUE_EFFICIENCY = d3.max(data, (d) => d.value) ? d3.max(data, (d) => d.value) : 1
-	const MAX_VALUE_LIMIT = d3.max(gasLimitSeries.value, (d) => d.value) ? d3.max(gasLimitSeries.value, (d) => d.value) : 1
-	const MAX_VALUE_USED = d3.max(gasUsedSeries.value, (d) => d.value) ? d3.max(gasUsedSeries.value, (d) => d.value) : 1
+	const MAX_VALUE = d3.max(data, (d) => d.value) ? d3.max(data, (d) => d.value) : 1
 
-	/** Scale Efficiency */
-	const xScaleEfficiency = d3.scaleUtc(
+	/** Scale */
+	const x = d3.scaleUtc(
 		d3.extent(data, (d) => d.date),
 		[marginLeft, width - marginRight],
 	)
-	const yScaleEfficiency = d3.scaleLinear([0, 1], [height - marginBottom - 6, marginTop])
-	const lineEfficiency = d3
+	const y = d3.scaleLinear([0, MAX_VALUE], [height - marginBottom - 6, marginTop])
+	const line = d3
 		.line()
-		.x((d) => xScaleEfficiency(d.date))
-		.y((d) => yScaleEfficiency(d.value))
-
-	/** Scale Limit */
-	const xScaleLimit = d3.scaleUtc(
-		d3.extent(gasLimitSeries.value, (d) => d.date),
-		[marginLeft, width - marginRight],
-	)
-	const yScaleLimit = d3.scaleLinear([0, MAX_VALUE_LIMIT], [height - marginBottom - 6, marginTop])
-	const lineLimit = d3
-		.line()
-		.x((d) => xScaleLimit(d.date))
-		.y((d) => yScaleLimit(d.value))
-
-	/** Scale Used */
-	const xScaleUsed = d3.scaleUtc(
-		d3.extent(gasUsedSeries.value, (d) => d.date),
-		[marginLeft, width - marginRight],
-	)
-	const yScaleUsed = d3.scaleLinear([0, MAX_VALUE_LIMIT], [height - marginBottom - 6, marginTop])
-	const lineUsed = d3
-		.line()
-		.x((d) => xScaleUsed(d.date))
-		.y((d) => yScaleUsed(d.value))
+		.x((d) => x(d.date))
+		.y((d) => y(d.value))
 
 	/** Tooltip */
 	const bisect = d3.bisector((d) => d.date).center
 	const onPointermoved = (event) => {
 		onEnter()
 
-		const idx = bisect(data, xScaleEfficiency.invert(d3.pointer(event)[0]))
+		const idx = bisect(data, x.invert(d3.pointer(event)[0]))
 
-		tooltipXOffset.value = xScaleEfficiency(data[idx].date)
+		tooltipXOffset.value = x(data[idx].date)
 		tooltipYOffset.value = event.layerY
-		tooltipYDataOffset.value = yScaleEfficiency(data[idx].value)
-		tooltipEfficiencyText.value = data[idx].value
-		tooltipLimitText.value = gasLimitSeries.value[idx].value
-		tooltipUsedText.value = gasUsedSeries.value[idx].value
+		tooltipYDataOffset.value = y(data[idx].value)
+		tooltipGasUsed.value = data[idx].value
+		tooltipTxCount.value = data[idx].txCount
 
 		if (tooltipEl.value) {
-			if (idx > 12) {
+			if (idx > data.length / 2) {
 				tooltipDynamicXPosition.value = tooltipXOffset.value - tooltipEl.value.wrapper.getBoundingClientRect().width - 16
 			} else {
 				tooltipDynamicXPosition.value = tooltipXOffset.value + 16
 			}
 		}
 
-		badgeText.value = DateTime.fromJSDate(data[idx].date).toFormat("hh:mm a")
+		badgeText.value = DateTime.fromJSDate(data[idx].date).toFormat("LLL dd")
 
 		if (!badgeEl.value) return
-		if (idx === 0) {
+		if (idx < 1) {
 			badgeOffset.value = 0
-		} else if (idx === 23) {
+		} else if (idx > data.length - 2) {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width
 		} else {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width / 2
@@ -156,7 +138,7 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.attr("stroke-width", 2)
 		.attr("stroke-linecap", "round")
 		.attr("stroke-linejoin", "round")
-		.attr("d", lineEfficiency(data.slice(0, 23)))
+		.attr("d", line(data.slice(0, data.length - 1)))
 	svg.append("path")
 		.attr("fill", "none")
 		.attr("stroke", "var(--brand)")
@@ -164,29 +146,11 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 		.attr("stroke-linecap", "round")
 		.attr("stroke-linejoin", "round")
 		.attr("stroke-dasharray", "4")
-		.attr("d", lineEfficiency(data.slice(22, 24)))
-
-	svg.append("path")
-		.attr("fill", "none")
-		.attr("stroke", "var(--op-40)")
-		.attr("stroke-width", 2)
-		.attr("stroke-linecap", "round")
-		.attr("stroke-linejoin", "round")
-		.attr("stroke-dasharray", "4")
-		.attr("d", lineLimit(gasLimitSeries.value))
-
-	svg.append("path")
-		.attr("fill", "none")
-		.attr("stroke", "var(--op-15)")
-		.attr("stroke-width", 2)
-		.attr("stroke-linecap", "round")
-		.attr("stroke-linejoin", "round")
-		.attr("stroke-dasharray", "4")
-		.attr("d", lineUsed(gasUsedSeries.value))
+		.attr("d", line(data.slice(data.length - 2, data.length)))
 
 	svg.append("circle")
-		.attr("cx", xScaleEfficiency(data[data.length - 1].date))
-		.attr("cy", yScaleEfficiency(data[data.length - 1].value))
+		.attr("cx", x(data[data.length - 1].date))
+		.attr("cy", y(data[data.length - 1].value))
 		.attr("fill", "var(--brand)")
 		.attr("r", 3)
 
@@ -194,102 +158,53 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	chartEl.append(svg.node())
 }
 
-const getGasEfficiencySeries = async () => {
-	const gasEfficiencySeriesRawData = await fetchGasEfficiencySeries({
-		timeframe: "hour",
-		from: parseInt(DateTime.now().minus({ hours: 26 }).ts / 1_000),
-		to: parseInt(DateTime.now().ts / 1_000),
-	})
+const processGasUsageData = () => {
+	if (!props.gasHistory || props.gasHistory.length === 0) {
+		gasUsageSeries.value = []
+		return
+	}
 
-	const gasEfficiencySeriesMap = {}
-	gasEfficiencySeriesRawData.forEach((item) => {
-		gasEfficiencySeriesMap[DateTime.fromISO(item.time).toFormat("dd-HH")] = item.value
-	})
+	// Process gas usage data from analytics API (last 14 days)
+	gasUsageSeries.value = props.gasHistory
+		.slice(0, 14)
+		.map(item => ({
+			date: DateTime.fromISO(item.date).toJSDate(),
+			value: parseInt(item.totalGasUsed) || 0,
+			txCount: item.transactionCount || 0
+		}))
+		.filter(item => item.value > 0) // Filter out empty days
+}
 
-	for (let i = 0; i < 24; i++) {
-		const dt = DateTime.now()
-			.minus({ hours: 24 - i })
-			.set({ minutes: 0, seconds: 0 })
-		gasEfficiencySeries.value.push({
-			date: dt.toJSDate(),
-			value: parseFloat(gasEfficiencySeriesMap[dt.toFormat("dd-HH")]) || 0,
-		})
+const buildGasUsageCharts = () => {
+	if (props.isLoading || !gasUsageChartEl.value) return
+	
+	processGasUsageData()
+	
+	if (gasUsageSeries.value.length > 0) {
+		buildChart(
+			gasUsageChartEl.value.wrapper,
+			gasUsageSeries.value,
+			() => (showTooltip.value = true),
+			() => (showTooltip.value = false),
+		)
 	}
 }
 
-const getGasLimitSeries = async () => {
-	const gasLimitSeriesRawData = await fetchGasLimitSeries({
-		timeframe: "hour",
-		from: parseInt(DateTime.now().minus({ hours: 26 }).ts / 1_000),
-		to: parseInt(DateTime.now().ts / 1_000),
-	})
-
-	const gasLimitSeriesMap = {}
-	gasLimitSeriesRawData.forEach((item) => {
-		gasLimitSeriesMap[DateTime.fromISO(item.time).toFormat("dd-HH")] = item.value
-	})
-
-	for (let i = 0; i < 24; i++) {
-		const dt = DateTime.now()
-			.minus({ hours: 24 - i })
-			.set({ minutes: 0, seconds: 0 })
-		gasLimitSeries.value.push({
-			date: dt.toJSDate(),
-			value: parseFloat(gasLimitSeriesMap[dt.toFormat("dd-HH")]) || 0,
-		})
-	}
-}
-
-const getGasUsedSeries = async () => {
-	const gasUsedSeriesRawData = await fetchGasUsedSeries({
-		timeframe: "hour",
-		from: parseInt(DateTime.now().minus({ hours: 26 }).ts / 1_000),
-		to: parseInt(DateTime.now().ts / 1_000),
-	})
-
-	const gasUsedSeriesMap = {}
-	gasUsedSeriesRawData.forEach((item) => {
-		gasUsedSeriesMap[DateTime.fromISO(item.time).toFormat("dd-HH")] = item.value
-	})
-
-	for (let i = 0; i < 24; i++) {
-		const dt = DateTime.now()
-			.minus({ hours: 24 - i })
-			.set({ minutes: 0, seconds: 0 })
-		gasUsedSeries.value.push({
-			date: dt.toJSDate(),
-			value: parseFloat(gasUsedSeriesMap[dt.toFormat("dd-HH")]) || 0,
-		})
-	}
-}
-
-const buildGasTrackingCharts = async () => {
-	if (!gasEfficiencyChartEl.value) return
-
-	await getGasEfficiencySeries()
-	await getGasLimitSeries()
-	await getGasUsedSeries()
-	buildChart(
-		gasEfficiencyChartEl.value.wrapper,
-		gasEfficiencySeries.value,
-		() => (showTooltip.value = true),
-		() => (showTooltip.value = false),
-	)
-}
+watch(
+	() => [props.gasHistory, props.isLoading],
+	() => {
+		buildGasUsageCharts()
+	},
+	{ deep: true }
+)
 
 const debouncedRedraw = useDebounceFn((e) => {
-	buildChart(
-		gasEfficiencyChartEl.value.wrapper,
-		gasEfficiencySeries.value,
-		() => (showTooltip.value = true),
-		() => (showTooltip.value = false),
-	)
+	buildGasUsageCharts()
 }, 500)
 
 onMounted(async () => {
 	window.addEventListener("resize", debouncedRedraw)
-
-	buildGasTrackingCharts()
+	buildGasUsageCharts()
 })
 
 onBeforeUnmount(() => {
@@ -302,43 +217,47 @@ onBeforeUnmount(() => {
 		<Flex align="center" justify="between">
 			<Flex align="center" gap="6">
 				<Icon name="stars" size="13" color="primary" />
-				<Text size="13" weight="600" color="primary">Gas Efficiency </Text>
+				<Text size="13" weight="600" color="primary">Gas Usage Trends</Text>
 			</Flex>
 
 			<Flex align="center" gap="12">
 				<Flex align="center" gap="6">
 					<div style="width: 10px; height: 3px; border-radius: 50px; background: var(--brand)" />
-					<Text size="11" weight="600" color="tertiary">Efficiency</Text>
-				</Flex>
-				<Flex align="center" gap="6">
-					<div style="width: 10px; height: 3px; border-radius: 50px; background: var(--op-40)" />
-					<Text size="11" weight="600" color="tertiary">Limit</Text>
-				</Flex>
-				<Flex align="center" gap="6">
-					<div style="width: 10px; height: 3px; border-radius: 50px; background: var(--op-15)" />
-					<Text size="11" weight="600" color="tertiary">Used</Text>
+					<Text size="11" weight="600" color="tertiary">Daily Gas Used</Text>
 				</Flex>
 			</Flex>
 		</Flex>
 
-		<Flex ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">
+		<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
+			<Text size="13" weight="600" color="secondary">Loading gas usage data...</Text>
+		</Flex>
+		
+		<Flex v-else-if="!gasHistory.length" align="center" justify="center" :class="$style.no_data">
+			<Text size="13" weight="600" color="tertiary">No gas usage data available</Text>
+		</Flex>
+
+		<Flex v-else ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">
 			<Flex direction="column" justify="between" :class="[$style.axis, $style.y]">
-				<Text v-if="gasEfficiencySeries.length" size="12" weight="600" color="tertiary"> 100% </Text>
+				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary">
+					{{ abbreviate(Math.max(...gasUsageSeries.map(d => d.value))) }}
+				</Text>
 				<Skeleton v-else w="32" h="12" />
 
-				<Text v-if="gasEfficiencySeries.length" size="12" weight="600" color="tertiary"> 50% </Text>
+				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary">
+					{{ abbreviate(Math.max(...gasUsageSeries.map(d => d.value)) / 2) }}
+				</Text>
 				<Skeleton v-else w="24" h="12" />
 
-				<Text v-if="gasEfficiencySeries.length" size="12" weight="600" color="tertiary"> 0 </Text>
+				<Text v-if="gasUsageSeries.length" size="12" weight="600" color="tertiary"> 0 </Text>
 				<Skeleton v-else w="16" h="12" />
 			</Flex>
 
 			<Flex :class="[$style.axis, $style.x]">
 				<Flex align="end" justify="between" wide>
 					<Text size="12" weight="600" color="tertiary">
-						{{ DateTime.now().minus({ hours: 24 }).toFormat("dd LLL") }}
+						{{ DateTime.now().minus({ days: 13 }).toFormat("LLL dd") }}
 					</Text>
-					<Text size="12" weight="600" color="tertiary">Now</Text>
+					<Text size="12" weight="600" color="tertiary">Today</Text>
 				</Flex>
 			</Flex>
 
@@ -359,29 +278,31 @@ onBeforeUnmount(() => {
 						:class="$style.tooltip"
 					>
 						<Flex align="center" justify="between" gap="16">
-							<Text size="12" weight="600" color="secondary">Efficiency</Text>
-							<Text size="12" weight="600" color="primary"> {{ parseInt(tooltipEfficiencyText * 100) }}%</Text>
+							<Text size="12" weight="600" color="secondary">Gas Used</Text>
+							<Text size="12" weight="600" color="primary">{{ abbreviate(tooltipGasUsed) }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between" gap="16">
-							<Text size="12" weight="600" color="secondary">Usage</Text>
-							<Text size="12" weight="600" color="primary">
-								{{ abbreviate(tooltipUsedText) }} / {{ abbreviate(tooltipLimitText) }}</Text
-							>
+							<Text size="12" weight="600" color="secondary">Transactions</Text>
+							<Text size="12" weight="600" color="primary">{{ tooltipTxCount.toLocaleString() }}</Text>
 						</Flex>
 					</Flex>
 				</div>
 			</Transition>
 
-			<Flex ref="gasEfficiencyChartEl" :class="$style.chart" />
+			<Flex ref="gasUsageChartEl" :class="$style.chart" />
 		</Flex>
 	</Flex>
 </template>
 
 <style module>
+.loading,
+.no_data {
+	height: 180px;
+}
+
 .chart_wrapper {
 	position: relative;
-
 	height: 180px;
 }
 
