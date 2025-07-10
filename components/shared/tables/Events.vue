@@ -78,7 +78,6 @@ const getEvents = async () => {
 			events.value = decodedLogs.slice(startIndex, endIndex)
 		}
 	} catch (error) {
-		console.error("Error fetching events:", error)
 		events.value = []
 	}
 

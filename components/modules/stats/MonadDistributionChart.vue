@@ -52,12 +52,8 @@ const fetchData = async () => {
 		isLoading.value = true
 		error.value = null
 		
-		console.log(`Fetching data for ${props.type} from:`, apiUrl.value)
-		
 		const response = await fetch(apiUrl.value)
 		const data = await response.json()
-		
-		console.log(`Raw API response for ${props.type}:`, data)
 		
 		if (!data.success || !data.data) {
 			throw new Error('API response indicates failure')
@@ -77,7 +73,6 @@ const fetchData = async () => {
 				.slice(0, 10)
 		}
 		
-		console.log(`Processed data for ${props.type}:`, processedData)
 		chartData.value = processedData
 		
 		if (processedData.length > 0) {
@@ -86,7 +81,6 @@ const fetchData = async () => {
 		}
 		
 	} catch (err) {
-		console.error(`Error fetching ${props.type} data:`, err)
 		error.value = err
 		chartData.value = []
 	} finally {
@@ -96,8 +90,6 @@ const fetchData = async () => {
 
 const buildChart = () => {
 	if (!chartContainer.value || chartData.value.length === 0) return
-	
-	console.log(`Building chart for ${props.type} with ${chartData.value.length} items`)
 	
 	// Clear any existing chart
 	d3.select(chartContainer.value).selectAll("*").remove()
@@ -186,7 +178,6 @@ const buildChart = () => {
 
 // Fetch data when component mounts
 onMounted(() => {
-	console.log(`MonadDistributionChart mounted for type: ${props.type}`)
 	fetchData()
 })
 

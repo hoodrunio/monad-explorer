@@ -14,7 +14,7 @@ export const fetchTransactions = ({ limit = 20, offset = 0, page = 1 } = {}) => 
 			key: `transactions-${page}-${limit}-${offset}`,
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -37,7 +37,7 @@ export const fetchTxByHash = (hash, {
 			key: "transaction",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -52,7 +52,7 @@ export const fetchTxTokenTransfers = (hash, { includeMetadata = false } = {}) =>
 			key: "tx_token_transfers",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -73,7 +73,7 @@ export const fetchTxInternalTransactions = (hash, {
 			key: "tx_internal_transactions",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -85,7 +85,7 @@ export const fetchTxHasInternalTransactions = async (hash) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -118,7 +118,7 @@ export const fetchTxEvents = async ({ hash, limit, offset }) => {
 
 		return { data: [], total: 0 }
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -131,7 +131,7 @@ export const fetchTxsCount = () => {
 			key: "transactions_count",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -155,6 +155,6 @@ export const fetchTransactionsByBlock = ({
 			key: "transactions_by_block",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

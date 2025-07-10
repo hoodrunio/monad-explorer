@@ -14,7 +14,7 @@ export const fetchBlocks = ({ limit = 20, offset = 0, page = 1 } = {}) => {
 			key: `blocks-${page}-${limit}-${offset}`,
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here, e.g. return a default value or re-throw the error
 	}
 }
 
@@ -27,7 +27,7 @@ export const fetchBlockByHeight = (number) => {
 			key: "block_by_height",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -49,7 +49,7 @@ export const fetchBlockTransactions = ({
 			key: "block_transactions",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -65,7 +65,7 @@ export const fetchBlockLogs = ({ number, limit = 20, offset = 0 } = {}) => {
 			key: "block_logs",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -82,7 +82,7 @@ export const fetchBlockEvents = ({ height, limit = 20, offset = 0 } = {}) => {
 			key: "block_events",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -112,7 +112,7 @@ export const fetchAvgBlockTime = ({ from }) => {
 			key: "avg_block_time",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -127,6 +127,6 @@ export const fetchBlockBlobs = ({ height, limit }) => {
 			key: "block_blobs",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
-} 
+}

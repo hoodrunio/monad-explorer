@@ -11,7 +11,7 @@ export const fetchHealthStatus = () => {
 			server: false, // Client-side only to avoid SSR issues
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -24,7 +24,7 @@ export const fetchNetworkSummary = () => {
 			key: "network_summary",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -39,7 +39,7 @@ export const fetchNetworkMetrics = ({ timeWindow = '1h', granularity = '1m' } = 
 			key: "network_metrics",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -53,7 +53,7 @@ export const fetchConsensusEfficiency = ({ timeWindow = '1h' } = {}) => {
 			key: "consensus_efficiency",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -67,7 +67,7 @@ export const fetchGeographicDistribution = () => {
 			server: false,
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -80,7 +80,7 @@ export const fetchNetworkTopology = () => {
 			server: false,
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -93,7 +93,7 @@ export const fetchCentralizationRisks = () => {
 			server: false,
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -110,7 +110,7 @@ export const fetchRecentEvents = ({ type, limit, offset } = {}) => {
 			key: "recent_events",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -122,7 +122,7 @@ export const fetchEventTypes = () => {
 			key: "event_types",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -134,7 +134,7 @@ export const fetchEventStatistics = () => {
 			key: "event_statistics",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -153,7 +153,7 @@ export const fetchEventSearch = ({ eventType, validatorId, startTime, endTime, l
 			key: "event_search",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -168,6 +168,6 @@ export const fetchGeographicDistributionDetailed = ({ timeWindow = '24h' } = {})
 			key: "geographic_distribution_detailed",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

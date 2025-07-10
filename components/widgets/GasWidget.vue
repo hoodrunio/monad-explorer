@@ -18,15 +18,10 @@ const isLoading = ref(true)
 
 const fetchGasData = async () => {
 	try {
-		console.log('⛽ Fetching gas analytics...')
 		const data = await fetchCurrentGasAnalytics()
-		
-		console.log('📊 Gas analytics response:', data)
 		
 		if (data?.success && data?.data?.recommendations) {
 			const recommendations = data.data.recommendations
-			
-			console.log('🎯 Gas recommendations:', recommendations)
 			
 			// Convert from wei to gwei and map to expected structure
 			gasPrice.value = {
@@ -34,10 +29,7 @@ const fetchGasData = async () => {
 				median: convertFromWei(recommendations.standard, 9),
 				slow: convertFromWei(recommendations.slow, 9),
 			}
-			
-			console.log('💰 Converted gas prices:', gasPrice.value)
 		} else {
-			console.warn('⚠️ No gas data received or invalid format, using fallback data')
 			// Fallback data for testing
 			gasPrice.value = {
 				fast: 51.0,
@@ -46,7 +38,6 @@ const fetchGasData = async () => {
 			}
 		}
 	} catch (error) {
-		console.error("❌ Error fetching gas data:", error)
 		// Fallback data when API fails
 		gasPrice.value = {
 			fast: 51.0,

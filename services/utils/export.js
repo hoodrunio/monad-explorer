@@ -1,6 +1,11 @@
 /** Services */
 import amp from "@/services/amp"
 
+/**
+ * Exports data to a CSV file.
+ * @param {string} data - The CSV data.
+ * @param {string} fileName - The name of the file to be exported.
+ */
 export async function exportToCSV(data, fileName) {
 	amp.log("exportCSV", { file: fileName })
 
@@ -20,6 +25,13 @@ export async function exportToCSV(data, fileName) {
 	document.body.removeChild(link)
 }
 
+/**
+ * Exports an SVG element to a PNG image.
+ * @param {SVGElement} svgElement - The SVG element to be exported.
+ * @param {string} fileName - The name of the file to be exported.
+ * @param {number} width - The width of the exported image.
+ * @param {number} height - The height of the exported image.
+ */
 export async function exportSVGToPNG(svgElement, fileName, width = 1920, height = 1080) {
 	amp.log("exportPNG", { file: fileName })
 
@@ -32,8 +44,6 @@ export async function exportSVGToPNG(svgElement, fileName, width = 1920, height 
 					.map((rule) => rule.cssText)
 					.join("\n")
 			} catch (e) {
-				console.warn("Failed to read styles from", sheet.href, e)
-
 				return ""
 			}
 		})

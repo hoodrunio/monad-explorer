@@ -6,6 +6,5 @@ export const search = async (query) => {
 		const data = await useFetch(`${useServerURL()}/search?query=${query}`)
 		return data
 	} catch (error) {
-		console.error(error)
 	}
 }

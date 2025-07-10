@@ -11,7 +11,6 @@ export const fetchTransactionAnalytics = async ({ period = 'daily', limit = 30 }
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error("Error fetching transaction analytics:", error)
 		return null
 	}
 }
@@ -24,7 +23,6 @@ export const fetchCurrentGasAnalytics = async () => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error("Error fetching current gas analytics:", error)
 		return null
 	}
 }
@@ -39,7 +37,6 @@ export const fetchGasHistoryAnalytics = async ({ limit = 30 } = {}) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error("Error fetching gas history analytics:", error)
 		return null
 	}
 } 

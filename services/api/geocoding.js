@@ -17,7 +17,6 @@ export const loadStaticGeocodingCache = async () => {
 	try {
 		const response = await fetch('/data/geocoding-cache.json')
 		if (!response.ok) {
-			console.warn('Static geocoding cache not found, will use live geocoding')
 			staticGeocodingCache = {}
 			return staticGeocodingCache
 		}
@@ -25,12 +24,8 @@ export const loadStaticGeocodingCache = async () => {
 		const cacheData = await response.json()
 		staticGeocodingCache = cacheData.locations || {}
 		
-		console.log(`📍 Loaded static geocoding cache with ${Object.keys(staticGeocodingCache).length} locations`)
-		console.log(`🕒 Cache generated at: ${cacheData.generatedAt}`)
-		
 		return staticGeocodingCache
 	} catch (error) {
-		console.warn('Failed to load static geocoding cache:', error)
 		staticGeocodingCache = {}
 		return staticGeocodingCache
 	}
@@ -56,7 +51,6 @@ export const getLocationCoordinates = async (locationString) => {
 	}
 
 	// Fall back to live geocoding
-	console.warn(`Location "${locationString}" not found in static cache, using live geocoding`)
 	const coordinates = await geocodeLocationLive(locationString)
 	
 	// Cache the result in runtime cache
@@ -90,7 +84,6 @@ export const batchGetLocationCoordinates = async (locations) => {
 
 	// Second pass: live geocode missing locations (if any)
 	if (missingLocations.length > 0) {
-		console.warn(`${missingLocations.length} locations not found in cache, using live geocoding:`, missingLocations)
 		
 		for (const location of missingLocations) {
 			const coordinates = await geocodeLocationLive(location)
@@ -125,24 +118,20 @@ async function geocodeLocationLive(locationString) {
 		})
 
 		if (!response.ok) {
-			console.warn(`Live geocoding failed for "${locationString}": ${response.status}`)
 			return [0, 0]
 		}
 
 		const data = await response.json()
 		
 		if (!data || data.length === 0) {
-			console.warn(`No live geocoding results for "${locationString}"`)
 			return [0, 0]
 		}
 
 		const result = data[0]
 		const coordinates = [parseFloat(result.lon), parseFloat(result.lat)]
 		
-		console.log(`🌐 Live geocoded: ${locationString} -> [${coordinates[0]}, ${coordinates[1]}]`)
 		return coordinates
 	} catch (error) {
-		console.error(`Live geocoding error for "${locationString}":`, error)
 		return [0, 0]
 	}
 }
@@ -202,7 +191,6 @@ export const reverseGeocode = async (lat, lon) => {
 		})
 
 		if (!response.ok) {
-			console.warn(`Reverse geocoding failed for ${lat}, ${lon}: ${response.status}`)
 			return null
 		}
 
@@ -213,7 +201,6 @@ export const reverseGeocode = async (lat, lon) => {
 		
 		return data
 	} catch (error) {
-		console.error(`Reverse geocoding error for ${lat}, ${lon}:`, error)
 		return null
 	}
 } 

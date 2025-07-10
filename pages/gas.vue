@@ -38,15 +38,10 @@ const memoizedGasHistory = computed(() => {
 // Fetch gas data with better error handling and optimization
 const fetchGasData = async () => {
 	try {
-		console.log('⛽ Fetching gas data for gas page...')
-		
 		const [currentData, historyData] = await Promise.all([
 			fetchCurrentGasAnalytics(),
 			fetchGasHistoryAnalytics({ limit: 30 })
 		])
-		
-		console.log('📊 Current gas data:', currentData)
-		console.log('📊 Gas history data:', historyData)
 		
 		// Process current gas prices
 		if (currentData?.success && currentData?.data?.recommendations) {
@@ -83,11 +78,7 @@ const fetchGasData = async () => {
 			}
 		}
 		
-		console.log('💰 Processed gas prices:', gasPrice.value)
-		console.log('📈 Processed gas history:', gasHistory.value.length, 'entries')
-		
 	} catch (error) {
-		console.error('❌ Error fetching gas data:', error)
 		// Fallback data
 		const fallbackPrice = {
 			fast: 51.0,

@@ -6,7 +6,7 @@ export const fetchGeneralStats = async ({ name }) => {
 		const data = await $fetch(`${useServerURL()}/stats/${name}`)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -21,7 +21,7 @@ export const fetchSeries = async ({ table, period, column, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -35,7 +35,7 @@ export const fetchSeriesCumulative = async ({ name, period, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -50,7 +50,7 @@ export const fetchSummary = async ({ table, func, column, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -61,7 +61,7 @@ export const fetchTPS = async () => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -81,7 +81,7 @@ export const fetchTVS = async ({ period, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -92,7 +92,7 @@ export const fetchPrice = async () => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -105,6 +105,6 @@ export const fetchPriceSeries = async ({ from }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

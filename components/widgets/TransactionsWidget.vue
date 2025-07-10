@@ -27,31 +27,21 @@ const togglePeriod = () => {
 const fetchTransactionData = async () => {
 	try {
 		isLoading.value = true
-		console.log(`🔄 Fetching transaction analytics (${period.value})...`)
 		
 		const limit = period.value === 'daily' ? 7 : 12 // 7 days or 12 weeks
 		const data = await fetchTransactionAnalytics({ period: period.value, limit })
 		
-		console.log('📊 Transaction analytics response:', data)
-		
 		if (data?.success && data?.data?.data) {
 			// Get data in natural order (newest to oldest, left to right)
 			transactionData.value = data.data.data.slice(0, limit)
-			
-			console.log('📈 Transaction data processed:', transactionData.value)
 			
 			// Calculate min, max for chart scaling
 			const values = transactionData.value.map(item => item.transactionCount)
 			max.value = Math.max(...values)
 			min.value = Math.min(...values)
 			roundedMax.value = Math.ceil(max.value / 5) * 5
-			
-			console.log('🎯 Chart values - min:', min.value, 'max:', max.value, 'roundedMax:', roundedMax.value)
-		} else {
-			console.warn('⚠️ No transaction data received or invalid format')
 		}
 	} catch (error) {
-		console.error("❌ Error fetching transaction data:", error)
 	} finally {
 		isLoading.value = false
 	}

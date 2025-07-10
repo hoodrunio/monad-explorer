@@ -88,7 +88,6 @@ export const useGeoMapData = () => {
 				await processMapData()
 			}
 		} catch (error) {
-			console.error('Error loading geo map data:', error)
 		}
 	}
 

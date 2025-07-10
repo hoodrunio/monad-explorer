@@ -15,7 +15,7 @@ export const fetchValidatorRankings = ({ limit, sortBy, window, page } = {}) => 
 			key: "validator_rankings",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -27,7 +27,7 @@ export const fetchValidatorByID = (id) => {
 			key: "validator_by_id",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -41,7 +41,7 @@ export const fetchValidatorHistory = ({ id, hours = 24 }) => {
 			key: "validator_history",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -53,7 +53,7 @@ export const fetchValidatorInfrastructure = (id) => {
 			key: "validator_infrastructure",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -71,7 +71,7 @@ export const fetchValidators = ({ jailed = false, limit, offset, sort }) => {
 			key: "validators",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -83,7 +83,7 @@ export const fetchValidatorsCount = () => {
 			key: "validators_count",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -98,7 +98,7 @@ export const fetchValidatorBlocks = ({ id, limit, offset }) => {
 			key: "validator_blocks",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -113,7 +113,7 @@ export const fetchValidatorDelegators = ({ id, limit, offset }) => {
 			key: "validator_delegators",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -128,7 +128,7 @@ export const fetchValidatorJails = ({ id, limit, offset }) => {
 			key: "validator_jails",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -142,6 +142,6 @@ export const fetchValidatorUptime = ({ id, limit }) => {
 			key: "validator_uptime",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

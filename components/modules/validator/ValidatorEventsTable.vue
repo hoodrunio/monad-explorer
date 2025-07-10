@@ -117,7 +117,6 @@ const formatTime = (timestamp) => {
 			absolute: localDate.toFormat("LLL dd, yyyy, HH:mm:ss")
 		}
 	} catch (error) {
-		console.error('Error parsing timestamp:', timestamp, error)
 		return {
 			relative: 'Unknown',
 			absolute: 'Unknown time'
@@ -159,8 +158,6 @@ const getEvents = async () => {
 		}
 		
 	} catch (error) {
-		console.error('Error fetching validator events:', error)
-		
 		// Fallback: If comma-separated doesn't work, make sequential calls but limit results
 		try {
 			const results = []
@@ -188,7 +185,6 @@ const getEvents = async () => {
 			totalEvents.value = results.length
 			
 		} catch (fallbackError) {
-			console.error('Fallback error:', fallbackError)
 			events.value = []
 			totalEvents.value = 0
 		}

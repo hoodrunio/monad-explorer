@@ -8,7 +8,6 @@ export const fetchEpochInfo = async () => {
 		const data = await $fetch(url.href)
 		return { data: ref(data) }
 	} catch (error) {
-		console.error(error)
 		return { data: ref(null) }
 	}
 } 

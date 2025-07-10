@@ -140,7 +140,6 @@ const getValidators = async () => {
 			allValidators.value = validatorsList
 		}
 	} catch (error) {
-		console.error('Error fetching validators:', error)
 	} finally {
 		isLoading.value = false
 	}

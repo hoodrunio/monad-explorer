@@ -63,7 +63,6 @@ const init = async () => {
 
 		isInited.value = true
 	} catch (error) {
-		console.error('Failed to fetch epoch info:', error)
 	}
 }
 

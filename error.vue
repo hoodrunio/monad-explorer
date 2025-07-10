@@ -28,7 +28,6 @@ onMounted(async () => {
 		const runtimeConfig = useRuntimeConfig()
 		amp.init(runtimeConfig.public.AMP)
 	} catch (error) {
-		console.warn("Error page initialization:", error)
 	}
 })
 

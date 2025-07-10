@@ -202,7 +202,6 @@ export const convertUTCToLocal = (utcTimestamp) => {
 		
 		return utcDate
 	} catch (error) {
-		console.error('Error parsing UTC timestamp:', utcTimestamp, error)
 		return new Date()
 	}
 } 

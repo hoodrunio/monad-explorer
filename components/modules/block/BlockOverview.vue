@@ -206,7 +206,6 @@ const getTransactions = async () => {
 
 		cacheStore.current.transactions = transactions.value
 	} catch (error) {
-		console.error("Error fetching block transactions:", error)
 		transactions.value = []
 	}
 

@@ -45,7 +45,6 @@ const { data: initialData, pending: isLoading } = await useAsyncData('recent-tra
 			status: tx.status === 1 ? "success" : "failed",
 		}))
 	} catch (error) {
-		console.error("Error fetching recent transactions:", error)
 		return []
 	}
 }, {
@@ -85,7 +84,6 @@ const getTransactions = async (isInitial = false) => {
 			status: tx.status === 1 ? "success" : "failed",
 		}))
 	} catch (error) {
-		console.error("Error fetching recent transactions:", error)
 		// Don't clear existing data on refresh error
 	}
 	

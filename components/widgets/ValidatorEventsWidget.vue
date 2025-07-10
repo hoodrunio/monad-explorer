@@ -77,7 +77,6 @@ const formatTime = (timestamp) => {
 			absolute: localDate.toFormat("LLL dd, yyyy, HH:mm:ss")
 		}
 	} catch (error) {
-		console.error('Error parsing timestamp:', timestamp, error)
 		return {
 			relative: 'Unknown',
 			absolute: 'Unknown time'

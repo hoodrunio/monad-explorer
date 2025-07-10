@@ -109,13 +109,6 @@ watch(
 
 // Computed properties for validator data
 const validatorMetrics = computed(() => {
-	// Debug logging to understand data structure
-	if (process.dev) {
-		console.log('Validator data structure:', props.validator)
-		console.log('Infrastructure data structure:', props.infrastructure)
-		console.log('History data structure:', props.history)
-	}
-	
 	const metrics = props.validator.metrics || {}
 	const details = props.validator.details || {}
 	const blockProposals = details.block_proposals || {}
