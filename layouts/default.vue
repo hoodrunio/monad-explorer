@@ -58,12 +58,6 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 	-webkit-mask-image: -webkit-gradient(linear, left 0%, left bottom, from(rgba(0, 0, 0, 1)), to(rgba(0, 0, 0, 0)));
 }
 
-@media (max-width: 1300px) {
-	.sidebar {
-		display: none;
-	}
-}
-
 @media (max-width: 1100px) {
 	.content {
 		max-width: 100%;

@@ -445,6 +445,10 @@ const handleOnClose = () => {
 }
 
 @media (max-width: 1300px) {
+	.wrapper:not(.show) {
+		display: none;
+	}
+
 	.close_btn {
 		display: flex;
 	}

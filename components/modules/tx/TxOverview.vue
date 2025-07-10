@@ -47,11 +47,11 @@ const formatGasValue = (value) => {
 	return comma(value)
 }
 
-const formatMonValue = (value) => {
+const formatMonValue = (value, decimals = 18) => {
 	if (!value || value === "0") return "0"
 	// Convert wei to MON (divide by 10^18)
 	const monValue = parseInt(value) / Math.pow(10, 18)
-	return monValue.toFixed(18)
+	return monValue.toFixed(decimals)
 }
 
 const formatGwei = (value) => {
@@ -213,7 +213,7 @@ const handleViewRawTransaction = () => {
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Value</Text>
-						<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.value) }} MON</Text>
+						<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.value, 18) }} MON</Text>
 					</Flex>
 
 					<Flex v-if="tx?.gasUsed && tx?.gas" direction="column" gap="10">
@@ -256,7 +256,7 @@ const handleViewRawTransaction = () => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Transaction Fee</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatMonValue(tx.transactionFee) }} MON</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatMonValue(tx.transactionFee, 6) }} MON</Text>
 						</Flex>
 
 						<Flex v-if="tx.methodName" align="center" justify="between">
@@ -360,7 +360,7 @@ const handleViewRawTransaction = () => {
 									</Flex>
 								</Flex>
 								<Flex direction="column" gap="4" align="end">
-									<Text size="13" weight="600" color="primary">{{ formatMonValue(internal.value) }} MON</Text>
+									<Text size="13" weight="600" color="primary">{{ formatMonValue(internal.value, 18) }} MON</Text>
 									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gasUsed) }}</Text>
 								</Flex>
 							</Flex>
