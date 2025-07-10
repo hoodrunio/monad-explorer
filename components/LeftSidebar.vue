@@ -185,15 +185,17 @@ const handleOnClose = () => {
 					</Flex>
 				</NuxtLink>
 
-				<Button
-					v-if="isMobile()"
-					@click="appStore.showSidebar = !appStore.showSidebar"
-					type="secondary"
-					size="mini"
-					:class="$style.close_btn"
-				>
-					<Icon name="close" size="14" color="primary" />
-				</Button>
+				<ClientOnly>
+					<Button
+						v-if="isMobile()"
+						@click="appStore.showSidebar = !appStore.showSidebar"
+						type="secondary"
+						size="mini"
+						:class="$style.close_btn"
+					>
+						<Icon name="close" size="14" color="primary" />
+					</Button>
+				</ClientOnly>
 			</Flex>
 
 			<Flex direction="column" gap="2">
