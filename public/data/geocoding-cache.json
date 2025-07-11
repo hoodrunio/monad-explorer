@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-07-03T12:33:45.348Z",
-  "totalLocations": 76,
+  "generatedAt": "2025-07-11T22:06:32.985Z",
+  "totalLocations": 78,
   "source": "nominatim",
   "locations": {
     "Falkenstein, Germany": [
@@ -307,6 +307,14 @@
     "San José, Costa Rica": [
       -84.0795782,
       9.9325427
+    ],
+    "Cotia, Brazil": [
+      -46.918889,
+      -23.603889
+    ],
+    "Chicago, United States": [
+      -87.6244212,
+      41.8755616
     ]
   }
 }
