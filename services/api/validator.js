@@ -1,8 +1,9 @@
 /** Services */
 import { useServerURL } from "@/services/config"
+import { getValidatorInfoBySecp, mergeValidatorData } from "@/services/api/github"
 
 // New Monad-specific endpoints
-export const fetchValidatorRankings = ({ limit, sortBy, window, page } = {}) => {
+export const fetchValidatorRankings = async ({ limit, sortBy, window, page } = {}) => {
 	try {
 		const url = new URL(`${useServerURL()}/api/validators/rankings`)
 
@@ -11,23 +12,48 @@ export const fetchValidatorRankings = ({ limit, sortBy, window, page } = {}) => 
 		if (window) url.searchParams.append("window", window)
 		if (page) url.searchParams.append("page", page)
 
-		return useFetch(url.href, {
+		const result = await useFetch(url.href, {
 			key: "validator_rankings",
 		})
+
+		// Enhance with GitHub data (now served from optimized server API)
+		if (result.data.value?.data) {
+			const enhancedValidators = await Promise.all(
+				result.data.value.data.map(async (validator) => {
+					const githubData = await getValidatorInfoBySecp(validator.validator_id)
+					return mergeValidatorData(validator, githubData)
+				})
+			)
+			
+			result.data.value = {
+				...result.data.value,
+				data: enhancedValidators
+			}
+		}
+
+		return result
 	} catch (error) {
-		// Error handling can be added here
+		throw error
 	}
 }
 
-export const fetchValidatorByID = (id) => {
+export const fetchValidatorByID = async (id) => {
 	try {
 		const url = new URL(`${useServerURL()}/api/validators/${id}`)
 
-		return useFetch(encodeURI(url.href), {
+		const result = await useFetch(encodeURI(url.href), {
 			key: "validator_by_id",
 		})
+
+		// Enhance with GitHub data (now served from optimized server API)
+		if (result.data.value) {
+			const githubData = await getValidatorInfoBySecp(id)
+			result.data.value = mergeValidatorData(result.data.value, githubData)
+		}
+
+		return result
 	} catch (error) {
-		// Error handling can be added here
+		throw error
 	}
 }
 

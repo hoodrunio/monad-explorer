@@ -2,6 +2,7 @@
 /** UI */
 import Badge from "@/components/ui/Badge.vue"
 import Toggle from "@/components/ui/Toggle.vue"
+import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** Components */
 import CopyButton from "@/components/CopyButton.vue"
@@ -54,6 +55,10 @@ const activeTab = ref(preselectedTab)
 
 // QC Participation toggle state
 const showQcMetrics = ref(false)
+
+// Description expand/collapse state
+const isDescriptionExpanded = ref(false)
+const MAX_DESCRIPTION_LENGTH = 170
 
 onMounted(() => {
 	router.replace({
@@ -206,8 +211,39 @@ const getPerformanceColor = (score) => {
 }
 
 const validatorLogoUrl = computed(() => {
-	return props.validator?.keybase?.logo_url || null
+	return props.validator?.keybase?.logo_url || props.validator?.logoUrl || null
 })
+
+const validatorInfo = computed(() => {
+	const github = props.validator?.github
+	return {
+		name: props.validator?.displayName || props.validator?.infrastructure?.validator_name || shortHex(props.validator?.validator_id || ''),
+		description: github?.description || null,
+		website: github?.website || null,
+		twitter: github?.x || null,
+		hasGithubInfo: !!github
+	}
+})
+
+const displayedDescription = computed(() => {
+	const description = validatorInfo.value.description
+	if (!description) return null
+	
+	if (description.length <= MAX_DESCRIPTION_LENGTH) return description
+	
+	return isDescriptionExpanded.value 
+		? description 
+		: description.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
+})
+
+const needsDescriptionToggle = computed(() => {
+	const description = validatorInfo.value.description
+	return description && description.length > MAX_DESCRIPTION_LENGTH
+})
+
+const toggleDescription = () => {
+	isDescriptionExpanded.value = !isDescriptionExpanded.value
+}
 </script>
 
 <template>
@@ -220,11 +256,21 @@ const validatorLogoUrl = computed(() => {
 					size="medium"
 				/>
 				<Text as="h1" size="13" weight="600" color="primary">
-					{{ infrastructureDetails?.validatorName || shortHex(validator.validator_id) }}
+					{{ validatorInfo.name }}
 				</Text>
 				<Badge :color="getPerformanceColor(validatorMetrics.uptimeScore)" type="light" size="small">
 					{{ validatorStatus.name }}
 				</Badge>
+				
+				<!-- Website and Twitter icons next to name -->
+				<Flex v-if="validatorInfo.hasGithubInfo" align="center" gap="6">
+					<NuxtLink v-if="validatorInfo.website" :to="validatorInfo.website" target="_blank" :class="$style.social_link">
+						<Icon name="website" size="18" color="secondary" />
+					</NuxtLink>
+					<NuxtLink v-if="validatorInfo.twitter" :to="validatorInfo.twitter" target="_blank" :class="$style.social_link">
+						<Icon name="twitter-x" size="18" color="secondary" />
+					</NuxtLink>
+				</Flex>
 			</Flex>
 
 			<Flex align="center" gap="12">
@@ -232,6 +278,24 @@ const validatorLogoUrl = computed(() => {
 					{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) + ' uptime' : 'No block opportunities' }}
 				</Text>
 			</Flex>
+		</Flex>
+
+		<!-- Description below header -->
+		<Flex v-if="validatorInfo.description" direction="column" gap="4" :class="$style.description_section">
+			<div :class="$style.description_container">
+				<Text size="12" weight="500" color="primary" :class="$style.description_text">
+					{{ displayedDescription }}
+				</Text>
+				<button 
+					v-if="needsDescriptionToggle" 
+					@click="toggleDescription"
+					:class="$style.description_toggle"
+				>
+					<Text size="11" weight="600" color="brand">
+						{{ isDescriptionExpanded ? 'Show less' : 'Show more' }}
+					</Text>
+				</button>
+			</div>
 		</Flex>
 
 		<Flex gap="4" :class="$style.content">
@@ -272,7 +336,15 @@ const validatorLogoUrl = computed(() => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Hostname</Text>
-							<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.hostname }}</Text>
+							<Flex align="center" gap="4" :class="$style.hostname_container">
+								<Tooltip>
+									<Text size="12" weight="600" color="primary" mono :class="$style.hostname_text">{{ infrastructureDetails.hostname }}</Text>
+									<template #content>
+										{{ infrastructureDetails.hostname }}
+									</template>
+								</Tooltip>
+								<CopyButton :text="infrastructureDetails.hostname" />
+							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
@@ -293,6 +365,8 @@ const validatorLogoUrl = computed(() => {
 							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.location }}</Text>
 						</Flex>
 					</Flex>
+
+
 
 					<!-- Status -->
 					<Flex direction="column" gap="8">
@@ -551,6 +625,70 @@ const validatorLogoUrl = computed(() => {
 	transform: translateY(-10px) scale(0.95);
 }
 
+.link {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.link:hover {
+	opacity: 0.8;
+}
+
+.social_link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.social_link:hover {
+	background: var(--op-5);
+}
+
+.description_section {
+	margin-bottom: 16px;
+	padding: 12px 0;
+}
+
+.description_container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.description_text {
+	line-height: 1.5;
+	word-wrap: break-word;
+}
+
+.description_toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	align-self: flex-start;
+	transition: opacity 0.2s ease;
+}
+
+.description_toggle:hover {
+	opacity: 0.8;
+}
+
+.hostname_container {
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.hostname_text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 250px; /* Adjust as needed */
+}
+
 @media (max-width: 768px) {
 	.content {
 		flex-direction: column;
@@ -575,6 +713,16 @@ const validatorLogoUrl = computed(() => {
 	.tabs_wrapper {
 		overflow-x: auto;
 		padding-bottom: 2px;
+	}
+	
+	.header {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	
+	.description_section {
+		padding: 8px 0;
+		margin-bottom: 12px;
 	}
 }
 </style>

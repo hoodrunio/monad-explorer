@@ -11,6 +11,7 @@ import { capitilize, comma, shortHex } from "@/services/utils"
 
 /** API */
 import { fetchValidatorRankings } from "@/services/api/validator"
+import { preloadGithubValidatorData } from "@/services/api/github"
 
 const route = useRoute()
 const router = useRouter()
@@ -133,7 +134,7 @@ const getValidators = async () => {
 					totalBlockOpportunities,
 					qcParticipations: validator.details?.qc_participations || 0,
 					totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-					logoUrl: validator.keybase?.logo_url || null
+					logoUrl: validator.keybase?.logo_url || validator.logoUrl || null
 				}
 			})
 			
@@ -236,6 +237,10 @@ const sortValidators = (validators) => {
 
 // Initialize data
 await getValidators()
+
+// Preload GitHub validator data to prevent multiple API calls
+preloadGithubValidatorData().catch(error => {
+})
 
 // Update URL and refetch when parameters change (excluding search)
 watch([selectedSort, sortDirection, selectedTimeWindow], async () => {

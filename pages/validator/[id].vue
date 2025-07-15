@@ -4,6 +4,7 @@ import ValidatorOverview from "@/components/modules/validator/ValidatorOverview.
 
 /** API */
 import { fetchValidatorByID, fetchValidatorHistory, fetchValidatorInfrastructure } from "@/services/api/validator"
+import { preloadGithubValidatorData } from "@/services/api/github"
 
 /** Services */
 import { shortHex } from "@/services/utils"
@@ -25,6 +26,10 @@ const {
 	error,
 } = useAsyncData("validator", async () => {
 	try {
+		// Preload GitHub data in parallel with other API calls
+		const githubDataPromise = preloadGithubValidatorData().catch(error => {
+		})
+
 		const [
 			{ data: rawValidator },
 			{ data: rawHistory },
@@ -34,6 +39,9 @@ const {
 			fetchValidatorHistory({ id: route.params.id, hours: 168 }),
 			fetchValidatorInfrastructure(route.params.id),
 		])
+
+		// Ensure GitHub data is loaded (no need to wait as it's cached now)
+		githubDataPromise
 
 		if (!rawValidator.value) {
 			throw new Error("Validator not found")
