@@ -33,7 +33,7 @@ const getTransactionType = (tx) => {
 	return "Transfer"
 }
 
-// Use server-side data fetching for initial load
+// Use client-side non-blocking data fetching
 const { data: initialData, pending: isLoading } = await useAsyncData('recent-transactions', async () => {
 	try {
 		const { data } = await fetchTransactions({ limit: 10 })
@@ -48,10 +48,11 @@ const { data: initialData, pending: isLoading } = await useAsyncData('recent-tra
 		return []
 	}
 }, {
-	// Cache for 30 seconds on server side  
-	server: true,
+	// Client-side only, non-blocking
+	server: false,
+	lazy: true,
 	default: () => [],
-	ttl: 30000
+	ttl: 5000
 })
 
 // Set initial data
