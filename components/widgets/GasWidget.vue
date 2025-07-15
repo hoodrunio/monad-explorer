@@ -49,11 +49,23 @@ const fetchGasData = async () => {
 	}
 }
 
+let gasInterval = null
+
 onMounted(() => {
-	fetchGasData()
+	// Non-blocking initial fetch
+	nextTick(() => {
+		fetchGasData()
+	})
 	
 	// Refresh gas data every 30 seconds
-	setInterval(fetchGasData, 30000)
+	gasInterval = setInterval(fetchGasData, 30000)
+})
+
+onUnmounted(() => {
+	if (gasInterval) {
+		clearInterval(gasInterval)
+		gasInterval = null
+	}
 })
 </script>
 

@@ -47,11 +47,23 @@ const fetchTransactionData = async () => {
 	}
 }
 
+let transactionInterval = null
+
 onMounted(() => {
-	fetchTransactionData()
+	// Non-blocking initial fetch
+	nextTick(() => {
+		fetchTransactionData()
+	})
 	
 	// Refresh data every 5 minutes
-	setInterval(fetchTransactionData, 300000)
+	transactionInterval = setInterval(fetchTransactionData, 300000)
+})
+
+onUnmounted(() => {
+	if (transactionInterval) {
+		clearInterval(transactionInterval)
+		transactionInterval = null
+	}
 })
 
 const txCounter = computed(() => {
