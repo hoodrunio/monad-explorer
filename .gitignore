@@ -27,3 +27,4 @@ docs/
 !.env.example
 components/logo.json
 scripts/keybase-registration.js
+.vercel

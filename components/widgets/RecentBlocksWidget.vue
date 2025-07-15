@@ -34,7 +34,7 @@ const getGasUsagePercent = (gasUsed, gasLimit) => {
 }
 
 // Use client-side non-blocking data fetching
-const { data: initialData, pending: isLoading } = await useAsyncData('recent-blocks', async () => {
+const { data: initialData, pending: isLoading } = useAsyncData('recent-blocks', async () => {
 	try {
 		const { data } = await fetchBlocks({ limit: 10 })
 		const response = data?.value?.data
@@ -86,7 +86,7 @@ const getBlocks = async (isInitial = false) => {
 // Initial data fetch and refresh setup
 let refreshInterval = null
 
-onMounted(async () => {
+onMounted(() => {
 	// Data already loaded via useAsyncData, just start refresh interval
 	refreshInterval = setInterval(() => getBlocks(false), 5000)
 })

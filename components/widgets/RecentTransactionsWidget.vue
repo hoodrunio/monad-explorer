@@ -34,7 +34,7 @@ const getTransactionType = (tx) => {
 }
 
 // Use client-side non-blocking data fetching
-const { data: initialData, pending: isLoading } = await useAsyncData('recent-transactions', async () => {
+const { data: initialData, pending: isLoading } = useAsyncData('recent-transactions', async () => {
 	try {
 		const { data } = await fetchTransactions({ limit: 10 })
 		const response = data?.value?.data
@@ -94,7 +94,7 @@ const getTransactions = async (isInitial = false) => {
 // Initial data fetch and refresh setup
 let refreshInterval = null
 
-onMounted(async () => {
+onMounted(() => {
 	// Data already loaded via useAsyncData, just start refresh interval
 	refreshInterval = setInterval(() => getTransactions(false), 5000)
 })
