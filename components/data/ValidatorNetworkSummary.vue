@@ -40,7 +40,7 @@ const topValidators = computed(() => {
       totalBlockOpportunities,
       qcParticipations: validator.details?.qc_participations || 0,
       totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-      logoUrl: validator.keybase?.logo_url || null
+      logoUrl: validator.keybase?.logo_url || validator.logoUrl || null
     }
   })
 })

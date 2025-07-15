@@ -206,7 +206,18 @@ const getPerformanceColor = (score) => {
 }
 
 const validatorLogoUrl = computed(() => {
-	return props.validator?.keybase?.logo_url || null
+	return props.validator?.keybase?.logo_url || props.validator?.logoUrl || null
+})
+
+const validatorInfo = computed(() => {
+	const github = props.validator?.github
+	return {
+		name: props.validator?.displayName || props.validator?.infrastructure?.validator_name || shortHex(props.validator?.validator_id || ''),
+		description: github?.description || null,
+		website: github?.website || null,
+		twitter: github?.x || null,
+		hasGithubInfo: !!github
+	}
 })
 </script>
 
@@ -220,7 +231,7 @@ const validatorLogoUrl = computed(() => {
 					size="medium"
 				/>
 				<Text as="h1" size="13" weight="600" color="primary">
-					{{ infrastructureDetails?.validatorName || shortHex(validator.validator_id) }}
+					{{ validatorInfo.name }}
 				</Text>
 				<Badge :color="getPerformanceColor(validatorMetrics.uptimeScore)" type="light" size="small">
 					{{ validatorStatus.name }}
@@ -291,6 +302,30 @@ const validatorLogoUrl = computed(() => {
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Location</Text>
 							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.location }}</Text>
+						</Flex>
+					</Flex>
+
+					<!-- GitHub Validator Info -->
+					<Flex v-if="validatorInfo.hasGithubInfo" direction="column" gap="16">
+						<Text size="12" weight="600" color="secondary">Validator Information</Text>
+
+						<Flex v-if="validatorInfo.description" direction="column" gap="4">
+							<Text size="12" weight="600" color="tertiary">Description</Text>
+							<Text size="12" weight="500" color="primary">{{ validatorInfo.description }}</Text>
+						</Flex>
+
+						<Flex v-if="validatorInfo.website" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Website</Text>
+							<NuxtLink :to="validatorInfo.website" target="_blank" :class="$style.link">
+								<Text size="12" weight="600" color="brand">{{ validatorInfo.website }}</Text>
+							</NuxtLink>
+						</Flex>
+
+						<Flex v-if="validatorInfo.twitter" align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Twitter</Text>
+							<NuxtLink :to="validatorInfo.twitter" target="_blank" :class="$style.link">
+								<Text size="12" weight="600" color="brand">{{ validatorInfo.twitter }}</Text>
+							</NuxtLink>
 						</Flex>
 					</Flex>
 
@@ -549,6 +584,15 @@ const validatorLogoUrl = computed(() => {
 .fade-leave-to {
 	opacity: 0;
 	transform: translateY(-10px) scale(0.95);
+}
+
+.link {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.link:hover {
+	opacity: 0.8;
 }
 
 @media (max-width: 768px) {

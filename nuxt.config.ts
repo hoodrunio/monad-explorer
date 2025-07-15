@@ -61,6 +61,10 @@ export default defineNuxtConfig({
 	},
 
 	runtimeConfig: {
+		// Private keys (only available on server-side)
+		githubToken: process.env.GITHUB_TOKEN || '',
+
+		// Public keys (exposed to client-side)
 		public: {
 			AMP: process.env.AMP,
 			SENTRY_DSN: process.env.SENTRY_DSN,
