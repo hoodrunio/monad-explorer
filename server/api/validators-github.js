@@ -203,7 +203,7 @@ export default defineEventHandler(async (event) => {
     
     const now = Date.now()
     const cacheAge = lastFetchTime ? now - lastFetchTime : Infinity
-    const maxAge = 30 * 60 * 1000 // 30 minutes
+    const maxAge = 10 * 60 * 1000 // 30 minutes
     
     // Check if we need to refresh data
     const shouldRefresh = (

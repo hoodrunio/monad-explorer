@@ -56,6 +56,10 @@ const activeTab = ref(preselectedTab)
 // QC Participation toggle state
 const showQcMetrics = ref(false)
 
+// Description expand/collapse state
+const isDescriptionExpanded = ref(false)
+const MAX_DESCRIPTION_LENGTH = 170
+
 onMounted(() => {
 	router.replace({
 		query: {
@@ -220,6 +224,26 @@ const validatorInfo = computed(() => {
 		hasGithubInfo: !!github
 	}
 })
+
+const displayedDescription = computed(() => {
+	const description = validatorInfo.value.description
+	if (!description) return null
+	
+	if (description.length <= MAX_DESCRIPTION_LENGTH) return description
+	
+	return isDescriptionExpanded.value 
+		? description 
+		: description.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
+})
+
+const needsDescriptionToggle = computed(() => {
+	const description = validatorInfo.value.description
+	return description && description.length > MAX_DESCRIPTION_LENGTH
+})
+
+const toggleDescription = () => {
+	isDescriptionExpanded.value = !isDescriptionExpanded.value
+}
 </script>
 
 <template>
@@ -258,7 +282,20 @@ const validatorInfo = computed(() => {
 
 		<!-- Description below header -->
 		<Flex v-if="validatorInfo.description" direction="column" gap="4" :class="$style.description_section">
-			<Text size="12" weight="500" color="primary">{{ validatorInfo.description }}</Text>
+			<div :class="$style.description_container">
+				<Text size="12" weight="500" color="primary" :class="$style.description_text">
+					{{ displayedDescription }}
+				</Text>
+				<button 
+					v-if="needsDescriptionToggle" 
+					@click="toggleDescription"
+					:class="$style.description_toggle"
+				>
+					<Text size="11" weight="600" color="brand">
+						{{ isDescriptionExpanded ? 'Show less' : 'Show more' }}
+					</Text>
+				</button>
+			</div>
 		</Flex>
 
 		<Flex gap="4" :class="$style.content">
@@ -614,6 +651,30 @@ const validatorInfo = computed(() => {
 .description_section {
 	margin-bottom: 16px;
 	padding: 12px 0;
+}
+
+.description_container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.description_text {
+	line-height: 1.5;
+	word-wrap: break-word;
+}
+
+.description_toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	align-self: flex-start;
+	transition: opacity 0.2s ease;
+}
+
+.description_toggle:hover {
+	opacity: 0.8;
 }
 
 .hostname_container {
