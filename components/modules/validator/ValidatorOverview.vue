@@ -2,6 +2,7 @@
 /** UI */
 import Badge from "@/components/ui/Badge.vue"
 import Toggle from "@/components/ui/Toggle.vue"
+import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** Components */
 import CopyButton from "@/components/CopyButton.vue"
@@ -236,6 +237,16 @@ const validatorInfo = computed(() => {
 				<Badge :color="getPerformanceColor(validatorMetrics.uptimeScore)" type="light" size="small">
 					{{ validatorStatus.name }}
 				</Badge>
+				
+				<!-- Website and Twitter icons next to name -->
+				<Flex v-if="validatorInfo.hasGithubInfo" align="center" gap="6">
+					<NuxtLink v-if="validatorInfo.website" :to="validatorInfo.website" target="_blank" :class="$style.social_link">
+						<Icon name="website" size="18" color="secondary" />
+					</NuxtLink>
+					<NuxtLink v-if="validatorInfo.twitter" :to="validatorInfo.twitter" target="_blank" :class="$style.social_link">
+						<Icon name="twitter-x" size="18" color="secondary" />
+					</NuxtLink>
+				</Flex>
 			</Flex>
 
 			<Flex align="center" gap="12">
@@ -243,6 +254,11 @@ const validatorInfo = computed(() => {
 					{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) + ' uptime' : 'No block opportunities' }}
 				</Text>
 			</Flex>
+		</Flex>
+
+		<!-- Description below header -->
+		<Flex v-if="validatorInfo.description" direction="column" gap="4" :class="$style.description_section">
+			<Text size="12" weight="500" color="primary">{{ validatorInfo.description }}</Text>
 		</Flex>
 
 		<Flex gap="4" :class="$style.content">
@@ -283,7 +299,15 @@ const validatorInfo = computed(() => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Hostname</Text>
-							<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.hostname }}</Text>
+							<Flex align="center" gap="4" :class="$style.hostname_container">
+								<Tooltip>
+									<Text size="12" weight="600" color="primary" mono :class="$style.hostname_text">{{ infrastructureDetails.hostname }}</Text>
+									<template #content>
+										{{ infrastructureDetails.hostname }}
+									</template>
+								</Tooltip>
+								<CopyButton :text="infrastructureDetails.hostname" />
+							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
@@ -305,29 +329,7 @@ const validatorInfo = computed(() => {
 						</Flex>
 					</Flex>
 
-					<!-- GitHub Validator Info -->
-					<Flex v-if="validatorInfo.hasGithubInfo" direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Validator Information</Text>
 
-						<Flex v-if="validatorInfo.description" direction="column" gap="4">
-							<Text size="12" weight="600" color="tertiary">Description</Text>
-							<Text size="12" weight="500" color="primary">{{ validatorInfo.description }}</Text>
-						</Flex>
-
-						<Flex v-if="validatorInfo.website" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Website</Text>
-							<NuxtLink :to="validatorInfo.website" target="_blank" :class="$style.link">
-								<Text size="12" weight="600" color="brand">{{ validatorInfo.website }}</Text>
-							</NuxtLink>
-						</Flex>
-
-						<Flex v-if="validatorInfo.twitter" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Twitter</Text>
-							<NuxtLink :to="validatorInfo.twitter" target="_blank" :class="$style.link">
-								<Text size="12" weight="600" color="brand">{{ validatorInfo.twitter }}</Text>
-							</NuxtLink>
-						</Flex>
-					</Flex>
 
 					<!-- Status -->
 					<Flex direction="column" gap="8">
@@ -595,6 +597,37 @@ const validatorInfo = computed(() => {
 	opacity: 0.8;
 }
 
+.social_link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.social_link:hover {
+	background: var(--op-5);
+}
+
+.description_section {
+	margin-bottom: 16px;
+	padding: 12px 0;
+}
+
+.hostname_container {
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.hostname_text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 250px; /* Adjust as needed */
+}
+
 @media (max-width: 768px) {
 	.content {
 		flex-direction: column;
@@ -619,6 +652,16 @@ const validatorInfo = computed(() => {
 	.tabs_wrapper {
 		overflow-x: auto;
 		padding-bottom: 2px;
+	}
+	
+	.header {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	
+	.description_section {
+		padding: 8px 0;
+		margin-bottom: 12px;
 	}
 }
 </style>
