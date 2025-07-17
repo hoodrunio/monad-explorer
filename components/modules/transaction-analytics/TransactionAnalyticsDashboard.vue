@@ -7,7 +7,10 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 import { 
 	fetchNetworkTransactionSummary, 
 	fetchNetworkTransactionTrends,
-	fetchTransactionAnalyticsRankings
+	fetchTransactionAnalyticsRankings,
+	fetchNetworkTransactionSummaryClient,
+	fetchNetworkTransactionTrendsClient,
+	fetchTransactionAnalyticsRankingsClient
 } from "@/services/api/transaction-analytics"
 
 /** Services */
@@ -33,7 +36,8 @@ const timeWindows = ref([
 	{ value: '30d', label: '30 Days' },
 ])
 
-const loadDashboardData = async () => {
+// Initial data load using useFetch (for SSR/initial load)
+const loadInitialData = async () => {
 	try {
 		isLoading.value = true
 		error.value = null
@@ -46,7 +50,7 @@ const loadDashboardData = async () => {
 
 		networkSummary.value = summaryResult.data.value?.data
 		networkTrends.value = trendsResult.data.value?.data
-		topValidators.value = rankingsResult.data.value?.data
+		topValidators.value = rankingsResult.data.value?.data?.rankings || rankingsResult.data.value?.data
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics data'
@@ -56,13 +60,47 @@ const loadDashboardData = async () => {
 	}
 }
 
+// Update data using $fetch (for client-side updates after mount)
+const updateDashboardData = async () => {
+	try {
+		const currentWindow = timeWindow.value
+		isLoading.value = true
+		error.value = null
+
+		await nextTick()
+
+		const [summaryResult, trendsResult, rankingsResult] = await Promise.all([
+			fetchNetworkTransactionSummaryClient({ timeWindow: currentWindow }),
+			fetchNetworkTransactionTrendsClient({ timeWindow: currentWindow }),
+			fetchTransactionAnalyticsRankingsClient({ limit: 10, timeWindow: currentWindow })
+		])
+
+		if (currentWindow === timeWindow.value) {
+			networkSummary.value = summaryResult?.data
+			networkTrends.value = trendsResult?.data
+			topValidators.value = rankingsResult?.data?.rankings || rankingsResult?.data
+		}
+
+	} catch (err) {
+		if (err.name !== 'AbortError') {
+			error.value = 'Failed to load transaction analytics data'
+			console.error('Transaction analytics error:', err)
+		}
+	} finally {
+		isLoading.value = false
+	}
+}
+
 const handleTimeWindowChange = async (newWindow) => {
+	if (newWindow === timeWindow.value) return
+	
 	timeWindow.value = newWindow
-	await loadDashboardData()
+	await nextTick()
+	await updateDashboardData()
 }
 
 onMounted(() => {
-	loadDashboardData()
+	loadInitialData()
 })
 </script>
 
@@ -99,14 +137,14 @@ onMounted(() => {
 		<!-- Error State -->
 		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
 			<Text size="13" weight="600" color="red">{{ error }}</Text>
-			<Button @click="loadDashboardData" type="secondary" size="mini">
+			<Button @click="updateDashboardData" type="secondary" size="mini">
 				<Icon name="refresh" size="12" />
 				Retry
 			</Button>
 		</Flex>
 
 		<!-- Dashboard Content -->
-		<template v-else>
+		<template v-else-if="!isLoading && !error">
 			<!-- Network Overview -->
 			<Flex direction="column" gap="16">
 				<Text size="14" weight="600" color="primary">Network Transaction Overview</Text>

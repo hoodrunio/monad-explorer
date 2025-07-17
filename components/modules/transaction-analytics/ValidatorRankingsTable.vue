@@ -12,7 +12,7 @@ import { abbreviate, comma, shortHex } from "@/services/utils"
 
 const props = defineProps({
 	data: {
-		type: Array,
+		type: [Array, Object],
 		required: true,
 	},
 	showPagination: {
@@ -26,6 +26,20 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['pagination'])
+
+const validatorList = computed(() => {
+	if (Array.isArray(props.data)) {
+		return props.data
+	}
+	return props.data?.rankings || []
+})
+
+const paginationData = computed(() => {
+	if (Array.isArray(props.data)) {
+		return null
+	}
+	return props.data?.pagination || null
+})
 
 const handleValidatorClick = (validatorId) => {
 	navigateTo(`/validator/${validatorId}`)
@@ -65,7 +79,7 @@ const getBadgeType = (rank) => {
 		<!-- Rows -->
 		<Flex direction="column" gap="0">
 			<Flex
-				v-for="validator in data"
+				v-for="validator in validatorList"
 				:key="validator.validatorId"
 				@click="handleValidatorClick(validator.validatorId)"
 				align="center"
@@ -87,7 +101,7 @@ const getBadgeType = (rank) => {
 					<ValidatorLogo 
 						:identity="validator.validatorId"
 						:name="validator.validatorName"
-						size="24"
+						size="small"
 					/>
 					<Flex direction="column" gap="2">
 						<Text size="13" weight="600" color="primary">
@@ -137,15 +151,15 @@ const getBadgeType = (rank) => {
 		</Flex>
 
 		<!-- Pagination (if enabled) -->
-		<Flex v-if="showPagination && data.pagination" align="center" justify="between" :class="$style.pagination">
+		<Flex v-if="showPagination && paginationData" align="center" justify="between" :class="$style.pagination">
 			<Text size="12" color="tertiary">
-				Showing {{ data.pagination.limit }} of {{ data.pagination.totalCount }} validators
+				Showing {{ paginationData.limit }} of {{ paginationData.totalCount }} validators
 			</Text>
 			
 			<Flex align="center" gap="8">
 				<Button 
-					@click="emit('pagination', { page: data.pagination.currentPage - 1 })"
-					:disabled="!data.pagination.hasPreviousPage"
+					@click="emit('pagination', { page: paginationData.currentPage - 1 })"
+					:disabled="!paginationData.hasPreviousPage"
 					type="secondary" 
 					size="mini"
 				>
@@ -153,12 +167,12 @@ const getBadgeType = (rank) => {
 				</Button>
 				
 				<Text size="12" color="secondary">
-					Page {{ data.pagination.currentPage }} of {{ data.pagination.totalPages }}
+					Page {{ paginationData.currentPage }} of {{ paginationData.totalPages }}
 				</Text>
 				
 				<Button 
-					@click="emit('pagination', { page: data.pagination.currentPage + 1 })"
-					:disabled="!data.pagination.hasNextPage"
+					@click="emit('pagination', { page: paginationData.currentPage + 1 })"
+					:disabled="!paginationData.hasNextPage"
 					type="secondary" 
 					size="mini"
 				>
