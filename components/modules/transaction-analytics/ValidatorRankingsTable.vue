@@ -10,6 +10,9 @@ import ValidatorLogo from "@/components/ValidatorLogo.vue"
 /** Services */
 import { abbreviate, comma, shortHex } from "@/services/utils"
 
+/** Skeleton */
+import { ValidatorRankingsTableSkeleton } from "./skeletons"
+
 const props = defineProps({
 	data: {
 		type: [Array, Object],
@@ -20,6 +23,10 @@ const props = defineProps({
 		default: true,
 	},
 	compact: {
+		type: Boolean,
+		default: false,
+	},
+	loading: {
 		type: Boolean,
 		default: false,
 	},
@@ -65,7 +72,11 @@ const getBadgeType = (rank) => {
 </script>
 
 <template>
-	<Flex direction="column" gap="0" :class="$style.wrapper">
+	<!-- Loading Skeleton -->
+	<ValidatorRankingsTableSkeleton v-if="loading" :rowCount="compact ? 5 : 10" />
+	
+	<!-- Content -->
+	<Flex v-else direction="column" gap="0" :class="$style.wrapper">
 		<!-- Header -->
 		<Flex align="center" justify="between" :class="$style.header">
 			<Text size="12" weight="600" color="tertiary">Rank</Text>

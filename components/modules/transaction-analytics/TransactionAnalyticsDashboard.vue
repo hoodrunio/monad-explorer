@@ -17,6 +17,7 @@ import { abbreviate, comma, formatBytes } from "@/services/utils"
 import TransactionAnalyticsOverview from "./TransactionAnalyticsOverview.vue"
 import TransactionTrendsChart from "./TransactionTrendsChart.vue"
 import ValidatorRankingsTable from "./ValidatorRankingsTable.vue"
+import { TransactionAnalyticsOverviewSkeleton, TransactionTrendsChartSkeleton, ValidatorRankingsTableSkeleton } from "./skeletons"
 
 const isLoading = ref(true)
 const error = ref(null)
@@ -136,9 +137,32 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Loading State -->
-		<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
-			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
-		</Flex>
+		<template v-if="isLoading">
+			<!-- Network Overview Skeleton -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Transaction Overview</Text>
+				<TransactionAnalyticsOverviewSkeleton />
+			</Flex>
+
+			<!-- Transaction Trends Chart Skeleton -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>
+				<TransactionTrendsChartSkeleton />
+			</Flex>
+
+			<!-- Top Performing Validators Skeleton -->
+			<Flex direction="column" gap="16">
+				<Flex align="center" justify="between">
+					<Text size="14" weight="600" color="primary">Top Performing Validators</Text>
+					<Button link="/validators?sort=transaction_performance" type="secondary" size="mini">
+						<Icon name="validator" size="12" color="secondary" />
+						View All Rankings
+					</Button>
+				</Flex>
+				
+				<ValidatorRankingsTableSkeleton :rowCount="5" />
+			</Flex>
+		</template>
 
 		<!-- Error State -->
 		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
@@ -201,7 +225,6 @@ onMounted(() => {
 	margin-bottom: 8px;
 }
 
-.loading,
 .error {
 	padding: 40px 20px;
 	text-align: center;

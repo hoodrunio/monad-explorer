@@ -14,6 +14,7 @@ import { abbreviate, comma } from "@/services/utils"
 
 /** Components */
 import TransactionTrendsChart from "@/components/modules/transaction-analytics/TransactionTrendsChart.vue"
+import { ValidatorTransactionAnalyticsSkeleton } from "@/components/modules/transaction-analytics/skeletons"
 
 const props = defineProps({
 	validatorId: {
@@ -199,9 +200,7 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Loading State -->
-		<Flex v-if="isLoading && !validatorAnalytics" direction="column" gap="20" align="center" :class="$style.loading">
-			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
-		</Flex>
+		<ValidatorTransactionAnalyticsSkeleton v-if="isLoading && !validatorAnalytics" />
 
 		<!-- Error State -->
 		<Flex v-else-if="error && !validatorAnalytics" direction="column" gap="20" align="center" :class="$style.error">
@@ -267,7 +266,6 @@ onMounted(() => {
 	margin-bottom: 8px;
 }
 
-.loading,
 .error {
 	padding: 40px 20px;
 	text-align: center;
