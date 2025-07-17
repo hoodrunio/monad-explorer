@@ -11,6 +11,7 @@ import RecentBlocksWidget from "./RecentBlocksWidget.vue"
 import RecentTransactionsWidget from "./RecentTransactionsWidget.vue"
 import GasWidget from "./GasWidget.vue"
 import TransactionsWidget from "./TransactionsWidget.vue"
+import TpsWidget from "./TpsWidget.vue"
 
 const tablet = ref(false)
 
@@ -30,9 +31,9 @@ onBeforeMount(() => {
 			<GasWidget :class="$style.gas_widget" />
 		</div>
 
-		<!-- Section 2: Validator Stats -->
+		<!-- Section 2: Network TPS -->
 		<Flex gap="20" :class="$style.section">
-			<ValidatorStatsWidget :class="$style.stats_widget_full" />
+			<TpsWidget :class="$style.stats_widget_full" />
 		</Flex>
 
 		<!-- Section 3: Validator Analysis & Recent Data -->

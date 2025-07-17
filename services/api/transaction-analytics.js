@@ -215,4 +215,70 @@ export const fetchProviderTransactionAnalytics = async ({ timeWindow = '24h' } =
 	} catch (error) {
 		throw error
 	}
+}
+
+/**
+ * Fetch current TPS (Transactions Per Second) data
+ */
+export const fetchCurrentTps = async ({ sampleWindow = '5m' } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/transaction-analytics/tps/current`)
+		
+		if (sampleWindow) url.searchParams.append("sampleWindow", sampleWindow)
+
+		return useFetch(url.href, {
+			key: `current_tps_${sampleWindow}`,
+		})
+	} catch (error) {
+		throw error
+	}
+}
+
+/**
+ * Fetch current TPS using $fetch for client-side updates
+ */
+export const fetchCurrentTpsClient = async ({ sampleWindow = '5m' } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/transaction-analytics/tps/current`)
+		
+		if (sampleWindow) url.searchParams.append("sampleWindow", sampleWindow)
+
+		return await $fetch(url.href)
+	} catch (error) {
+		throw error
+	}
+}
+
+/**
+ * Fetch TPS time series data
+ */
+export const fetchTpsTimeSeries = async ({ timeWindow = '24h', granularity = 'hour' } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/transaction-analytics/tps`)
+		
+		if (timeWindow) url.searchParams.append("window", timeWindow)
+		if (granularity) url.searchParams.append("granularity", granularity)
+
+		return useFetch(url.href, {
+			key: `tps_time_series_${timeWindow}_${granularity}`,
+		})
+	} catch (error) {
+		throw error
+	}
+}
+
+/**
+ * Fetch TPS time series data using $fetch for client-side updates
+ */
+export const fetchTpsTimeSeriesClient = async ({ timeWindow = '24h', granularity = 'hour' } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/transaction-analytics/tps`)
+		
+		if (timeWindow) url.searchParams.append("window", timeWindow)
+		if (granularity) url.searchParams.append("granularity", granularity)
+
+		return await $fetch(url.href)
+	} catch (error) {
+		throw error
+	}
 } 
