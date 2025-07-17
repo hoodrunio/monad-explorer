@@ -35,6 +35,7 @@ const timeWindows = ref([
 	{ value: '1h', label: '1H' },
 	{ value: '24h', label: '24H' },
 	{ value: '7d', label: '7D' },
+	{ value: '30d', label: '30D' },
 ])
 
 // Initial data load using useFetch (for SSR/initial load)
@@ -44,7 +45,7 @@ const loadInitialValidatorAnalytics = async () => {
 		error.value = null
 
 		// Determine granularity based on time window
-		const granularity = timeWindow.value === '7d' ? 'day' : 'hour'
+		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
 
 		const [analyticsResult, trendsResult] = await Promise.all([
 			fetchValidatorTransactionAnalytics(props.validatorId, {timeWindow: timeWindow.value, granularity}),
@@ -72,7 +73,7 @@ const updateValidatorAnalytics = async () => {
 		await nextTick()
 
 		// Determine granularity based on time window
-		const granularity = currentWindow === '7d' ? 'day' : 'hour'
+		const granularity = (currentWindow === '7d' || currentWindow === '30d') ? 'day' : 'hour'
 
 		const [analyticsResult, trendsResult] = await Promise.all([
 			fetchValidatorTransactionAnalyticsClient(props.validatorId, {timeWindow: currentWindow, granularity}),

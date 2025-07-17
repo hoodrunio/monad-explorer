@@ -42,9 +42,12 @@ const loadInitialData = async () => {
 		isLoading.value = true
 		error.value = null
 
+		// Determine granularity based on time window
+		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
+
 		const [summaryResult, trendsResult, rankingsResult] = await Promise.all([
 			fetchNetworkTransactionSummary({ timeWindow: timeWindow.value }),
-			fetchNetworkTransactionTrends({ timeWindow: timeWindow.value }),
+			fetchNetworkTransactionTrends({ timeWindow: timeWindow.value, granularity }),
 			fetchTransactionAnalyticsRankings({ limit: 10, timeWindow: timeWindow.value })
 		])
 
@@ -69,9 +72,12 @@ const updateDashboardData = async () => {
 
 		await nextTick()
 
+		// Determine granularity based on time window
+		const granularity = (currentWindow === '7d' || currentWindow === '30d') ? 'day' : 'hour'
+
 		const [summaryResult, trendsResult, rankingsResult] = await Promise.all([
 			fetchNetworkTransactionSummaryClient({ timeWindow: currentWindow }),
-			fetchNetworkTransactionTrendsClient({ timeWindow: currentWindow }),
+			fetchNetworkTransactionTrendsClient({ timeWindow: currentWindow, granularity }),
 			fetchTransactionAnalyticsRankingsClient({ limit: 10, timeWindow: currentWindow })
 		])
 
