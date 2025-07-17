@@ -5,8 +5,6 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** API */
 import { 
-	fetchValidatorTransactionAnalytics, 
-	fetchValidatorTransactionTrends,
 	fetchValidatorTransactionAnalyticsClient,
 	fetchValidatorTransactionTrendsClient
 } from "@/services/api/transaction-analytics"
@@ -38,7 +36,7 @@ const timeWindows = ref([
 	{ value: '30d', label: '30D' },
 ])
 
-// Initial data load using useFetch (for SSR/initial load)
+// Load initial data using client-side functions only
 const loadInitialValidatorAnalytics = async () => {
 	try {
 		isLoading.value = true
@@ -48,12 +46,12 @@ const loadInitialValidatorAnalytics = async () => {
 		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
 
 		const [analyticsResult, trendsResult] = await Promise.all([
-			fetchValidatorTransactionAnalytics(props.validatorId, {timeWindow: timeWindow.value, granularity}),
-			fetchValidatorTransactionTrends(props.validatorId, { timeWindow: timeWindow.value, granularity })
+			fetchValidatorTransactionAnalyticsClient(props.validatorId, {timeWindow: timeWindow.value, granularity}),
+			fetchValidatorTransactionTrendsClient(props.validatorId, { timeWindow: timeWindow.value, granularity })
 		])
 
-		validatorAnalytics.value = analyticsResult.data.value?.data
-		validatorTrends.value = trendsResult.data.value?.data
+		validatorAnalytics.value = analyticsResult?.data
+		validatorTrends.value = trendsResult?.data
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics'
@@ -63,7 +61,7 @@ const loadInitialValidatorAnalytics = async () => {
 	}
 }
 
-// Update data using $fetch (for client-side updates after mount)
+// Update data using client-side functions
 const updateValidatorAnalytics = async () => {
 	try {
 		const currentWindow = timeWindow.value
@@ -168,7 +166,10 @@ const formatValue = (value, formatter, suffix = '') => {
 }
 
 onMounted(() => {
-	loadInitialValidatorAnalytics()
+	// Non-blocking initial fetch, similar to other widgets
+	nextTick(() => {
+		loadInitialValidatorAnalytics()
+	})
 })
 </script>
 

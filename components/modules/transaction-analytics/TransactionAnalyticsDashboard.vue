@@ -5,9 +5,6 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** API */
 import { 
-	fetchNetworkTransactionSummary, 
-	fetchNetworkTransactionTrends,
-	fetchTransactionAnalyticsRankings,
 	fetchNetworkTransactionSummaryClient,
 	fetchNetworkTransactionTrendsClient,
 	fetchTransactionAnalyticsRankingsClient
@@ -36,7 +33,7 @@ const timeWindows = ref([
 	{ value: '30d', label: '30 Days' },
 ])
 
-// Initial data load using useFetch (for SSR/initial load)
+// Load initial data using client-side functions only
 const loadInitialData = async () => {
 	try {
 		isLoading.value = true
@@ -46,14 +43,14 @@ const loadInitialData = async () => {
 		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
 
 		const [summaryResult, trendsResult, rankingsResult] = await Promise.all([
-			fetchNetworkTransactionSummary({ timeWindow: timeWindow.value }),
-			fetchNetworkTransactionTrends({ timeWindow: timeWindow.value, granularity }),
-			fetchTransactionAnalyticsRankings({ limit: 10, timeWindow: timeWindow.value })
+			fetchNetworkTransactionSummaryClient({ timeWindow: timeWindow.value }),
+			fetchNetworkTransactionTrendsClient({ timeWindow: timeWindow.value, granularity }),
+			fetchTransactionAnalyticsRankingsClient({ limit: 10, timeWindow: timeWindow.value })
 		])
 
-		networkSummary.value = summaryResult.data.value?.data
-		networkTrends.value = trendsResult.data.value?.data
-		topValidators.value = rankingsResult.data.value?.data?.rankings || rankingsResult.data.value?.data
+		networkSummary.value = summaryResult?.data
+		networkTrends.value = trendsResult?.data
+		topValidators.value = rankingsResult?.data?.rankings || rankingsResult?.data
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics data'
@@ -63,7 +60,7 @@ const loadInitialData = async () => {
 	}
 }
 
-// Update data using $fetch (for client-side updates after mount)
+// Update data using client-side functions
 const updateDashboardData = async () => {
 	try {
 		const currentWindow = timeWindow.value
@@ -106,7 +103,10 @@ const handleTimeWindowChange = async (newWindow) => {
 }
 
 onMounted(() => {
-	loadInitialData()
+	// Non-blocking initial fetch, similar to other widgets
+	nextTick(() => {
+		loadInitialData()
+	})
 })
 </script>
 
