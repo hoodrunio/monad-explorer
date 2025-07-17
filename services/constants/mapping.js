@@ -1,11 +1,19 @@
 export const MessageIconMap = {
-	grant: "stars",
 	send: "arrow-circle-right-up",
-	editvalidator: "edit",
-	payforblobs: "coins",
-	delegate: "hand",
-	undelegate: "hand-reverse",
-	beginredelegate: "hand",
-	withdrawdelegatorreward: "coins",
-	unjail: "hash",
+	multisend: "arrow-circle-right-up",
+}
+
+export const MessageColorMap = {
+	// Transfer types
+	"mon transfer": "var(--tx-mon-transfer)",
+	"transfer": "var(--tx-transfer)",
+	"send": "var(--tx-transfer)",
+	"multisend": "var(--tx-transfer)",
+	
+	// Contract types
+	"contract creation": "var(--tx-contract-creation)",
+	"contract call": "var(--tx-contract-call)",
+	
+	// Default for unknown types
+	default: "var(--tx-default)",
 }

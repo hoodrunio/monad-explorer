@@ -2,60 +2,32 @@
 /** UI */
 import Button from "@/components/ui/Button.vue"
 
-/** Stats Tabs */
-import BlocksTab from "@/components/modules/stats/tabs/BlocksTab.vue"
-import GeneralTab from "@/components/modules/stats/tabs/GeneralTab.vue"
-import EcosystemTab from "@/components/modules/stats/tabs/EcosystemTab.vue"
-import RollupsTab from "@/components/modules/stats/tabs/RollupsTab.vue"
+/** Widgets */
+import NetworkHealthWidget from "@/components/widgets/NetworkHealthWidget.vue"
+import ValidatorStatsWidget from "@/components/widgets/ValidatorStatsWidget.vue"
+import GeographicDistributionWidget from "@/components/widgets/GeographicDistributionWidget.vue"
+import CentralizationRiskWidget from "@/components/widgets/CentralizationRiskWidget.vue"
+import ValidatorEventsWidget from "@/components/widgets/ValidatorEventsWidget.vue"
+import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.vue"
+
+/** Stats Components */
+import MonadGeoMap from "@/components/modules/stats/MonadGeoMap.vue"
+import MonadDistributionChart from "@/components/modules/stats/MonadDistributionChart.vue"
+
+/** Transaction Analytics Components */
+import TransactionAnalyticsDashboard from "@/components/modules/transaction-analytics/TransactionAnalyticsDashboard.vue"
 
 /** Services */
-import { capitilize, isMainnet } from "@/services/utils"
+import { capitilize } from "@/services/utils"
 
 useHead({
-	title: "Statistics - Celestia Explorer",
-	link: [
-		{
-			rel: "canonical",
-			href: "https://celenium.io/stats",
-		},
-	],
+	title: "Analytics - Monad Explorer",
 	meta: [
 		{
 			name: "description",
-			content: "Celestia Blockchain statistics. Explore data on blocks, transactions, rollups, blobs and more.",
+			content: "Monad network analytics. Explore network health, geographic distribution, centralization risks and validator performance metrics.",
 		},
-		{
-			property: "og:title",
-			content: "Statistics - Celestia Explorer",
-		},
-		{
-			property: "og:description",
-			content: "Celestia Blockchain statistics. Explore data on blocks, transactions, rollups, blobs and more.",
-		},
-		{
-			property: "og:url",
-			content: "https://celenium.io/stats",
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/stats.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Statistics - Celestia Explorer",
-		},
-		{
-			name: "twitter:description",
-			content: "Celestia Blockchain statistics. Explore data on blocks, transactions, rollups, blobs and more.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "https://celenium.io/img/seo/stats.png",
-		},
+
 	],
 })
 
@@ -64,22 +36,27 @@ const router = useRouter()
 
 const tabs = ref([
 	{
-		name: "general",
+		name: "network",
 		visible: true,
 	},
 	{
-		name: "blocks",
+		name: "validators",
 		visible: true,
 	},
 	{
-		name: "rollups",
+		name: "transactions",
+		visible: true,
+	},
+	{
+		name: "geographic",
 		visible: true,
 	},
 	{
 		name: "ecosystem",
-		visible: isMainnet(),
+		visible: true,
 	},
 ])
+
 const activeTab = ref(
 	route.query.tab &&
 		tabs.value
@@ -94,15 +71,6 @@ const updateRouteQuery = () => {
 	router.replace({
 		query: {
 			tab: activeTab.value,
-		},
-	})
-}
-
-const handleSectionUpdate = (event) => {
-	router.replace({
-		query: {
-			tab: activeTab.value,
-			section: event,
 		},
 	})
 }
@@ -130,15 +98,15 @@ watch(
 	<Flex direction="column" gap="12" wide :class="$style.wrapper">
 		<Breadcrumbs
 			:items="[
-				{ link: '/', name: 'Explore' },
-				{ link: '/stats', name: `Statistics` },
+				{ link: '/', name: 'Dashboard' },
+				{ link: '/stats', name: `Analytics` },
 			]"
 			:class="$style.breadcrumbs"
 		/>
 
 		<Flex align="center" gap="8" :class="$style.header">
 			<Icon name="bar-chart" size="16" color="secondary" />
-			<Text size="16" weight="600" color="primary">Celestia Statistics</Text>
+			<Text size="16" weight="600" color="primary">Monad Network Analytics</Text>
 		</Flex>
 
 		<Flex align="center" justify="between" wide :class="$style.tabs_wrapper">
@@ -154,25 +122,88 @@ watch(
 				</Text>
 			</Flex>
 
-			<Flex v-if="activeTab === 'rollups'" align="start" :class="$style.actions">
-				<Button link="/rollups" type="secondary" size="mini">
-					<Icon name="rollup-leaderboard" size="12" color="secondary" />
-					Rollups Leaderboard
+			<Flex v-if="activeTab === 'validators'" align="start" :class="$style.actions">
+				<Button link="/validators" type="secondary" size="mini">
+					<Icon name="validator" size="12" color="secondary" />
+					All Validators
 				</Button>
 			</Flex>
 		</Flex>
 
-		<GeneralTab v-if="activeTab === 'general'" />
-		<BlocksTab v-if="activeTab === 'blocks'" />
-		<RollupsTab v-if="activeTab === 'rollups'" @onUpdateSection="handleSectionUpdate" />
-		<EcosystemTab v-if="activeTab === 'ecosystem'" />
+		<!-- Network Overview Tab -->
+		<Flex v-if="activeTab === 'network'" direction="column" gap="20">
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Health Overview</Text>
+				<Flex gap="16" :class="$style.grid_2">
+					<NetworkHealthWidget />
+					<ValidatorStatsWidget />
+				</Flex>
+			</Flex>
+
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Security</Text>
+				<Flex gap="16" :class="$style.grid_2">
+					<CentralizationRiskWidget />
+					<ValidatorEventsWidget />
+				</Flex>
+			</Flex>
+		</Flex>
+
+		<!-- Validators Performance Tab -->
+		<Flex v-if="activeTab === 'validators'" direction="column" gap="20">
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Validator Performance</Text>
+				<ValidatorNetworkSummary />
+			</Flex>
+
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Events</Text>
+				<ValidatorEventsWidget />
+			</Flex>
+		</Flex>
+
+		<!-- Transaction Analytics Tab -->
+		<Flex v-if="activeTab === 'transactions'" direction="column" gap="20">
+			<TransactionAnalyticsDashboard />
+		</Flex>
+
+		<!-- Geographic Distribution Tab -->
+		<Flex v-if="activeTab === 'geographic'" direction="column" gap="20">
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Geographic Distribution</Text>
+				<Flex gap="16" :class="$style.grid_2">
+					<GeographicDistributionWidget />
+					<CentralizationRiskWidget />
+				</Flex>
+			</Flex>
+
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Diversity</Text>
+				<ValidatorNetworkSummary />
+			</Flex>
+		</Flex>
+
+		<!-- Ecosystem Tab -->
+		<Flex v-if="activeTab === 'ecosystem'" direction="column" gap="20">
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Monad Network Distribution</Text>
+				<MonadGeoMap :class="$style.chart" />
+			</Flex>
+
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Infrastructure Analysis</Text>
+				<Flex gap="16" :class="$style.grid_2">
+					<MonadDistributionChart type="provider" />
+					<MonadDistributionChart type="geographic" />
+				</Flex>
+			</Flex>
+		</Flex>
 	</Flex>
 </template>
 
 <style module>
 .wrapper {
 	max-width: calc(var(--base-width) + 48px);
-
 	padding: 20px 24px 60px 24px;
 }
 
@@ -200,13 +231,11 @@ watch(
 
 .tab {
 	padding-bottom: 12px;
-
 	cursor: pointer;
 }
 
 .tab_active {
 	color: var(--txt-primary);
-
 	border-bottom: solid 3px var(--txt-primary);
 }
 
@@ -214,17 +243,31 @@ watch(
 	transform: translateY(-8px);
 }
 
-@media (max-width: 500px) {
+.grid_2 {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+
+.chart {
+	width: 100%;
+	max-width: 1000px;
+	aspect-ratio: 16 / 10;
+}
+
+@media (max-width: 768px) {
 	.wrapper {
 		padding: 32px 12px;
 	}
 
+	.grid_2 {
+		grid-template-columns: 1fr;
+	}
+
 	.header {
 		gap: 16px;
-
 		height: initial;
-
 		padding: 16px;
 	}
 }
-</style>
+</style> 

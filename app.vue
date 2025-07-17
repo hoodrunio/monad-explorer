@@ -3,7 +3,6 @@
 import * as Sentry from "@sentry/vue"
 
 /** Services */
-import Socket from "@/services/api/socket"
 import amp from "@/services/amp"
 import { watchForUpdate } from "@/services/version"
 
@@ -11,17 +10,11 @@ import { watchForUpdate } from "@/services/version"
 import ModalsManager from "@/components/modals/ModalsManager.vue"
 import CommandMenu from "@/components/cmd/CommandMenu.vue"
 
-/** API */
-import { fetchGasPrice } from "@/services/api/gas"
-import { fetchHead } from "@/services/api/main"
-import { fetchLatestBlocks } from "@/services/api/block"
-
 /** Store */
 import { useNodeStore } from "@/store/node.store"
 import { useAppStore } from "@/store/app.store"
 import { useBookmarksStore } from "@/store/bookmarks.store"
 import { useSettingsStore } from "@/store/settings.store"
-import { useEnumStore } from "@/store/enums.store"
 import { useLegalStore } from "@/store/legal.store"
 import { useNotificationsStore } from "@/store/notifications.store"
 import { useActivityStore } from "@/store/activity.store"
@@ -29,7 +22,6 @@ const nodeStore = useNodeStore()
 const appStore = useAppStore()
 const bookmarksStore = useBookmarksStore()
 const settingsStore = useSettingsStore()
-const enumStore = useEnumStore()
 const legalStore = useLegalStore()
 const notificationsStore = useNotificationsStore()
 const activityStore = useActivityStore()
@@ -43,9 +35,7 @@ settingsStore.$subscribe((mutation, state) => {
 legalStore.$subscribe((mutation, state) => {
 	localStorage.setItem("legal", JSON.stringify(state.legal))
 })
-activityStore.$subscribe((mutation, state) => {
-	localStorage.setItem("rollups_ranking", JSON.stringify(state.rollups_ranking))
-})
+// No activity state to persist for validator monitoring
 
 let watchInterval = null
 
@@ -78,7 +68,7 @@ onMounted(async () => {
 							icon: "menu",
 							callback: () => {
 								window
-									.open(`https://github.com/celenium-io/celenium-interface/releases/tag/v${newVersion}`, "_blank")
+									.open(`https://github.com/hoodrunio/monad-explorer/releases/tag/v${newVersion}`, "_blank")
 									.focus()
 							},
 						},
@@ -100,20 +90,6 @@ onMounted(async () => {
 
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
-
-	const data = await fetchLatestBlocks({ limit: 100 })
-	appStore.latestBlocks = data
-	appStore.isLatestBlocksLoaded = true
-
-	const head = await fetchHead()
-	if (head) appStore.lastHead = head
-
-	Socket.init()
-
-	const gasPrice = await fetchGasPrice()
-	appStore.gas = gasPrice
-
-	await enumStore.init()
 
 	legalStore.init()
 	if (!legalStore.isAccepted()) {
@@ -137,25 +113,26 @@ onMounted(async () => {
 		})
 	}
 
-	if (window.location.hostname !== "localhost") {
+	// Initialize Sentry with your own DSN
+	if (runtimeConfig.public.SENTRY_DSN && !import.meta.dev) {
+		const nuxtApp = useNuxtApp()
 		Sentry.init({
-			dsn: "https://2801a6c0442d2b0cd4df995e4bbe45dc@newsentry.baking-bad.org/12",
+			app: nuxtApp.vueApp,
+			dsn: runtimeConfig.public.SENTRY_DSN,
 			integrations: [
 				Sentry.replayIntegration({
 					maskAllText: false,
 					blockAllMedia: false,
 				}),
 			],
-
 			// Session Replay
-			replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-			replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+			replaysSessionSampleRate: 0.1, // 10% sampling rate in production
+			replaysOnErrorSampleRate: 1.0, // 100% when errors occur
+			environment: import.meta.dev ? "development" : "production",
 		})
 	}
 
-	window.onbeforeunload = function () {
-		Socket.close()
-	}
+
 })
 
 onBeforeUnmount(() => {

@@ -1,146 +1,132 @@
 /** Services */
-import { useServerURL } from "@/services/config"
+import { useExplorerURL } from "@/services/config"
 
-export const fetchBlocks = ({ limit, offset }) => {
+// Get latest blocks with basic data (for preview)
+export const fetchBlocks = ({ limit = 20, offset = 0, page = 1 } = {}) => {
 	try {
-		const url = new URL(`${useServerURL()}/block`)
+		const url = new URL(`${useExplorerURL()}/api/blocks`)
 
-		url.searchParams.append("stats", true)
-		url.searchParams.append("sort", "desc")
+		if (limit) url.searchParams.append("limit", limit)
+		if (offset) url.searchParams.append("offset", offset)
+		if (page) url.searchParams.append("page", page)
+
+		return useFetch(url.href, {
+			key: `blocks-${page}-${limit}-${offset}`,
+		})
+	} catch (error) {
+		// Error handling can be added here, e.g. return a default value or re-throw the error
+	}
+}
+
+// Get specific block details by number
+export const fetchBlockByHeight = (number) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/blocks/${number}`)
+
+		return useFetch(encodeURI(url.href), {
+			key: "block_by_height",
+		})
+	} catch (error) {
+		// Error handling can be added here
+	}
+}
+
+// Get all transactions in a block
+export const fetchBlockTransactions = ({ 
+	number, 
+	limit = 20, 
+	offset = 0, 
+	includeTokenTransfers = false 
+} = {}) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/blocks/${number}/transactions`)
+
+		if (limit) url.searchParams.append("limit", limit)
+		if (offset) url.searchParams.append("offset", offset)
+		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+
+		return useFetch(url.href, {
+			key: "block_transactions",
+		})
+	} catch (error) {
+		// Error handling can be added here
+	}
+}
+
+// Get all logs in a block (useful for debugging)
+export const fetchBlockLogs = ({ number, limit = 20, offset = 0 } = {}) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/blocks/${number}/logs`)
 
 		if (limit) url.searchParams.append("limit", limit)
 		if (offset) url.searchParams.append("offset", offset)
 
 		return useFetch(url.href, {
-			key: "blocks",
+			key: "block_logs",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
-export const fetchBlocksCount = () => {
+// Legacy: Get block events (maps to logs for EVM compatibility)
+export const fetchBlockEvents = ({ height, limit = 20, offset = 0 } = {}) => {
 	try {
-		const url = new URL(`${useServerURL()}/block/count`)
+		// For EVM, events are called logs
+		const url = new URL(`${useExplorerURL()}/api/blocks/${height}/logs`)
+
+		if (limit) url.searchParams.append("limit", limit)
+		if (offset) url.searchParams.append("offset", offset)
 
 		return useFetch(url.href, {
-			key: "blocks_count",
+			key: "block_events",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
-export const fetchLatestBlocks = async ({ limit }) => {
-	try {
-		const url = new URL(`${useServerURL()}/block`)
-
-		url.searchParams.append("stats", true)
-		url.searchParams.append("sort", "desc")
-		url.searchParams.append("limit", limit ? limit : 15)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
+// Legacy function for backward compatibility - maps to fetchBlockTransactions
+export const fetchTransactionsByBlock = ({ 
+	height, 
+	limit, 
+	offset, 
+	includeTokenTransfers = false 
+} = {}) => {
+	return fetchBlockTransactions({ 
+		number: height, 
+		limit, 
+		offset, 
+		includeTokenTransfers 
+	})
 }
 
-export const fetchAvgBlockTime = async ({ from }) => {
+// Average block time (keeping for compatibility)
+export const fetchAvgBlockTime = ({ from }) => {
 	try {
-		const url = new URL(`${useServerURL()}/stats/summary/block_stats/avg?column=block_time`)
+		const url = new URL(`${useExplorerURL()}/stats/avg_block_time`)
 
-		url.searchParams.append("from", from)
+		if (from) url.searchParams.append("from", from)
 
 		return useFetch(url.href, {
 			key: "avg_block_time",
 		})
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
-export const fetchBlockByHeight = async (height) => {
-	try {
-		return useFetch(`${useServerURL()}/block/${height}?stats=true`, {
-			key: "block",
-		})
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockNamespaces = async ({ height, limit, offset, sort }) => {
-	try {
-		const url = new URL(`${useServerURL()}/block/${height}/namespace`)
-
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (sort) url.searchParams.append("sort", sort)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockNamespacesCount = async (height) => {
-	try {
-		const data = await $fetch(`${useServerURL()}/block/${height}/namespace/count`)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockBlobs = async ({ height, limit, offset, sort }) => {
+// Block blobs (keeping for compatibility with Celestia-based components)
+export const fetchBlockBlobs = ({ height, limit }) => {
 	try {
 		const url = new URL(`${useServerURL()}/block/${height}/blobs`)
 
-		url.searchParams.append("sort_by", "time")
-
 		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (sort) url.searchParams.append("sort", sort)
 
-		const data = await $fetch(url.href)
-		return data
+		return useFetch(url.href, {
+			key: "block_blobs",
+		})
 	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockBlobsCount = async (height) => {
-	try {
-		const data = await $fetch(`${useServerURL()}/block/${height}/blobs/count`)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockEvents = async ({ height, limit, offset }) => {
-	try {
-		const url = new URL(`${useServerURL()}/block/${height}/events`)
-
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchBlockODS = async (height) => {
-	try {
-		const url = new URL(`${useServerURL()}/block/${height}/ods`)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

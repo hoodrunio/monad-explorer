@@ -87,6 +87,17 @@ const handleSave = () => {
 
 			break
 		}
+
+		case "Validator": {
+			const bookmarkIdx = bookmarksStore.bookmarks.validators.findIndex((b) => b.id === cacheStore.current.bookmark.id)
+			bookmarksStore.bookmarks.validators.splice(bookmarkIdx, 1)
+			bookmarksStore.bookmarks.validators.push({
+				...cacheStore.current.bookmark,
+				alias: alias.value,
+			})
+
+			break
+		}
 	}
 
 	notificationsStore.create({

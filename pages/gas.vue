@@ -1,4 +1,7 @@
 <script setup>
+/** Vendor */
+import { useDebounceFn } from "@vueuse/core"
+
 /** Modules */
 import GasPriceChart from "@/components/modules/gas/GasPriceChart.vue"
 import GasPriceHeatmap from "@/components/modules/gas/GasPriceHeatmap.vue"
@@ -9,13 +12,108 @@ import GasFeeCalculator from "@/components/modules/gas/GasFeeCalculator.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import Button from "@/components/ui/Button.vue"
 
-/** Store */
-import { useAppStore } from "@/store/app.store"
-const appStore = useAppStore()
+/** API */
+import { fetchCurrentGasAnalytics, fetchGasHistoryAnalytics } from "@/services/api/analytics"
+
+/** Services */
+import { convertFromWei } from "@/services/utils/amounts"
 
 const route = useRoute()
 
-const gasPrice = computed(() => appStore.gas)
+// Gas data state
+const gasPrice = ref({
+	fast: null,
+	median: null,
+	slow: null,
+})
+
+const gasHistory = ref([])
+const isLoading = ref(true)
+
+// Memoized gas history to prevent unnecessary child re-renders
+const memoizedGasHistory = computed(() => {
+	return gasHistory.value
+})
+
+// Fetch gas data with better error handling and optimization
+const fetchGasData = async () => {
+	try {
+		const [currentData, historyData] = await Promise.all([
+			fetchCurrentGasAnalytics(),
+			fetchGasHistoryAnalytics({ limit: 30 })
+		])
+		
+		// Process current gas prices
+		if (currentData?.success && currentData?.data?.recommendations) {
+			const recommendations = currentData.data.recommendations
+			const newGasPrice = {
+				fast: convertFromWei(recommendations.fast, 9), // gwei
+				median: convertFromWei(recommendations.standard, 9),
+				slow: convertFromWei(recommendations.slow, 9),
+			}
+			
+			// Only update if values actually changed to prevent unnecessary re-renders
+			if (JSON.stringify(gasPrice.value) !== JSON.stringify(newGasPrice)) {
+				gasPrice.value = newGasPrice
+			}
+		} else {
+			// Fallback data
+			const fallbackPrice = {
+				fast: 51.0,
+				median: 51.0,
+				slow: 51.0,
+			}
+			
+			if (JSON.stringify(gasPrice.value) !== JSON.stringify(fallbackPrice)) {
+				gasPrice.value = fallbackPrice
+			}
+		}
+		
+		// Process gas history
+		if (historyData?.success && historyData?.data?.data) {
+			// Only update if data actually changed
+			const newHistoryData = historyData.data.data
+			if (JSON.stringify(gasHistory.value) !== JSON.stringify(newHistoryData)) {
+				gasHistory.value = newHistoryData
+			}
+		}
+		
+	} catch (error) {
+		// Fallback data
+		const fallbackPrice = {
+			fast: 51.0,
+			median: 51.0,
+			slow: 51.0,
+		}
+		
+		if (JSON.stringify(gasPrice.value) !== JSON.stringify(fallbackPrice)) {
+			gasPrice.value = fallbackPrice
+		}
+	} finally {
+		isLoading.value = false
+	}
+}
+
+// Debounced fetch to prevent too frequent API calls
+const debouncedFetchGasData = useDebounceFn(fetchGasData, 1000)
+
+let fetchInterval = null
+
+onMounted(() => {
+	fetchGasData()
+	
+	// Use interval with cleanup and error handling
+	fetchInterval = setInterval(() => {
+		debouncedFetchGasData()
+	}, 30000)
+})
+
+onBeforeUnmount(() => {
+	if (fetchInterval) {
+		clearInterval(fetchInterval)
+		fetchInterval = null
+	}
+})
 
 const visualizations = ref([
 	{
@@ -45,49 +143,11 @@ const periods = ref([
 const selectedPeriod = computed(() => periods.value[selectedPeriodIdx.value])
 
 useHead({
-	title: `Celestia Gas Tracker - Celenium`,
+	title: `Monad Gas Tracker`,
 	link: [
 		{
 			rel: "canonical",
-			href: "https://celenium.io/gas",
-		},
-	],
-	meta: [
-		{
-			name: "description",
-			content: "Gas Tracker for Celestia Blockchain. Gas price, efficiency, etc.",
-		},
-		{
-			property: "og:title",
-			content: "Celestia Gas Tracker - Celenium",
-		},
-		{
-			property: "og:description",
-			content: "Gas Tracker for Celestia Blockchain. Gas price, efficiency, etc.",
-		},
-		{
-			property: "og:url",
-			content: "https://celenium.io/gas",
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/gas.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Celestia Gas Tracker - Celenium",
-		},
-		{
-			name: "twitter:description",
-			content: "Gas Tracker for Celestia Blockchain. Gas price, efficiency, etc.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "https://celenium.io/img/seo/gas.png",
+			href: "https://monad.hoodscan.io/gas",
 		},
 	],
 })
@@ -108,17 +168,33 @@ useHead({
 				<Flex align="center" gap="8">
 					<Icon name="gas" size="16" color="secondary" />
 					<Text size="13" weight="600" color="primary">Gas Tracker</Text>
+					
+					<Flex v-if="!isLoading" align="center" gap="12" :class="$style.gas_prices">
+						<Flex align="center" gap="4">
+							<Icon name="gas_fast" size="12" color="green" />
+							<Text size="11" weight="600" color="green">{{ gasPrice.fast?.toFixed(2) || '—' }} gwei</Text>
+						</Flex>
+						<Flex align="center" gap="4">
+							<Icon name="gas_median" size="12" color="yellow" />
+							<Text size="11" weight="600" color="yellow">{{ gasPrice.median?.toFixed(2) || '—' }} gwei</Text>
+						</Flex>
+						<Flex align="center" gap="4">
+							<Icon name="gas_slow" size="12" color="secondary" />
+							<Text size="11" weight="600" color="secondary">{{ gasPrice.slow?.toFixed(2) || '—' }} gwei</Text>
+						</Flex>
+					</Flex>
 				</Flex>
 			</Flex>
 
 			<Flex gap="4" :class="$style.content">
 				<Flex direction="column" justify="between" gap="20" :class="$style.left">
-					<GasFeeCalculator />
+					<GasFeeCalculator :gasPrice="gasPrice" :isLoading="isLoading" />
 
 					<Flex direction="column" gap="8" :class="$style.bottom">
 						<Text size="12" weight="600" color="tertiary" height="140">
-							Price is calculated on fee payments for the last <Text color="secondary">100</Text> blocks. Each gas price level
-							is the percentage of transactions in which gas price was set below a specified value
+							Gas prices are calculated based on recent transaction fees and network conditions. 
+							<Text color="secondary">Fast</Text>, <Text color="secondary">Standard</Text>, and <Text color="secondary">Slow</Text> 
+							represent recommended prices for different transaction speeds.
 						</Text>
 					</Flex>
 				</Flex>
@@ -128,7 +204,7 @@ useHead({
 						<Flex align="start" justify="between">
 							<Flex align="center" gap="6">
 								<Icon name="chart" size="13" color="primary" />
-								<Text size="13" weight="600" color="primary">Average Gas Price</Text>
+								<Text size="13" weight="600" color="primary">Gas Price History</Text>
 							</Flex>
 
 							<Flex align="center" gap="8">
@@ -174,12 +250,22 @@ useHead({
 							</Flex>
 						</Flex>
 
-						<GasPriceChart v-if="selectedVisualization === 'line'" :selectedPeriod="selectedPeriod" />
-						<GasPriceHeatmap v-else-if="selectedVisualization === 'heatmap'" :selectedPeriod="periods[0]" />
+						<GasPriceChart 
+							v-if="selectedVisualization === 'line'" 
+							:selectedPeriod="selectedPeriod" 
+							:gasHistory="memoizedGasHistory"
+							:isLoading="isLoading"
+						/>
+						<GasPriceHeatmap 
+							v-else-if="selectedVisualization === 'heatmap'" 
+							:selectedPeriod="periods[0]" 
+							:gasHistory="memoizedGasHistory"
+							:isLoading="isLoading"
+						/>
 					</Flex>
 
 					<div :class="$style.card">
-						<GasEfficiencyChart />
+						<GasEfficiencyChart :gasHistory="memoizedGasHistory" :isLoading="isLoading" />
 					</div>
 				</Flex>
 			</Flex>
@@ -203,6 +289,12 @@ useHead({
 	background: var(--card-background);
 
 	padding: 0 12px;
+}
+
+.gas_prices {
+	padding: 4px 8px;
+	background: var(--op-5);
+	border-radius: 6px;
 }
 
 .content {
@@ -253,5 +345,4 @@ useHead({
 	.wrapper {
 		padding: 32px 12px;
 	}
-}
-</style>
+}</style>

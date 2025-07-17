@@ -1,12 +1,12 @@
 /** Services */
-import { nodeStatsURL, quoteServiceURL, tvlServiceURL, useServerURL } from "@/services/config"
+import { quoteServiceURL, tvlServiceURL, useServerURL } from "@/services/config"
 
 export const fetchGeneralStats = async ({ name }) => {
 	try {
 		const data = await $fetch(`${useServerURL()}/stats/${name}`)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -21,7 +21,7 @@ export const fetchSeries = async ({ table, period, column, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -35,7 +35,7 @@ export const fetchSeriesCumulative = async ({ name, period, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -50,7 +50,7 @@ export const fetchSummary = async ({ table, func, column, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -61,7 +61,7 @@ export const fetchTPS = async () => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -81,7 +81,7 @@ export const fetchTVS = async ({ period, from, to }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -92,7 +92,7 @@ export const fetchPrice = async () => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }
 
@@ -105,101 +105,6 @@ export const fetchPriceSeries = async ({ from }) => {
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchAddressSeries = async ({ hash, name, timeframe, from, to }) => {
-	try {
-		const url = new URL(`${useServerURL()}/address/${hash}/stats/${name}/${timeframe}`)
-
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchNamespaceUsage = async ({ top }) => {
-	try {
-		const url = new URL(`${useServerURL()}/stats/namespace/usage`)
-
-		if (top) url.searchParams.append("top", top)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchNamespaceSeries = async ({ id, name, timeframe, from }) => {
-	try {
-		const url = new URL(`${useServerURL()}/stats/namespace/series/${id}/${name}/${timeframe}`)
-
-		if (from) url.searchParams.append("from", from)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchRollupsSeries = async ({ timeframe, from, to }) => {
-	try {
-		const url = new URL(`${useServerURL()}/rollup/stats/series/${timeframe}`)
-
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchRollupSeries = async ({ id, name, timeframe, from, to }) => {
-	try {
-		const url = new URL(`${useServerURL()}/rollup/${id}/stats/${name}/${timeframe}`)
-
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchSquareSize = async (from) => {
-	try {
-		const url = new URL(`${useServerURL()}/stats/square_size`)
-
-		if (from) url.searchParams.append("from", from)
-			
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-export const fetchNodeStats = async ({ name, from, to }) => {
-	try {
-		const url = new URL(`${nodeStatsURL}/stats/${name}`)
-
-		if (from) url.searchParams.append("from", from)
-		if (to) url.searchParams.append("to", to)
-
-		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		console.error(error)
+		// Error handling can be added here
 	}
 }

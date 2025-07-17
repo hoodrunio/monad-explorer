@@ -54,15 +54,12 @@ export const truncate = (num) => {
 	return left + (result ? `.${result}` : "")
 }
 
-export const tia = (amount, decimal = 6) => {
-	if (!amount || !parseInt(amount)) return 0
-
-	return truncateDecimalPart(parseInt(amount) / 1_000_000, decimal)
+export const mon = (amount) => {
+	return formatValue(amount, 18)
 }
 
-export const utia = (amount) => {
-	if (!amount || !parseInt(amount)) return 0
-	return parseInt(amount)
+export const formatAmount = (amount, decimals = 18) => {
+	return formatValue(amount, decimals)
 }
 
 export const truncateDecimalPart = (amount, decimal = 6) => {
@@ -134,4 +131,22 @@ export const spaces = (num) => {
 	if (!num) return 0
 	
 	return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/**
+ * Convert wei to other units (gwei, ether)
+ * @param {string|number} weiAmount - Amount in wei
+ * @param {number} decimals - Number of decimals to divide by (9 for gwei, 18 for ether)
+ * @returns {number} - Converted amount
+ */
+export const convertFromWei = (weiAmount, decimals = 18) => {
+	if (!weiAmount || weiAmount === "0") return 0
+	
+	const wei = BigInt(weiAmount.toString())
+	const divisor = BigInt(10 ** decimals)
+	
+	// Convert to floating point number
+	const result = Number(wei) / Number(divisor)
+	
+	return result
 }

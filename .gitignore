@@ -25,3 +25,11 @@ docs/
 .env
 .env.*
 !.env.example
+components/logo.json
+scripts/keybase-registration.js
+.vercel
+server/cache/*
+
+# Local env files
+.env
+.env.development*

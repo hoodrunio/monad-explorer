@@ -31,6 +31,19 @@ $grayscale: (
 	--txt-semiblack: rgba(0, 0, 0, 45%);
 	--txt-white: rgba(255, 255, 255, 95%);
 
+	/* Editor Syntax Colors */
+	--editor-string: #f1fa8c;
+	--editor-number: #bd93f9;
+	--editor-boolean: #F2994A;
+	--editor-keyword: #6BC46D;
+
+	/* Transaction Type Colors */
+	--tx-mon-transfer: #6e4470;
+	--tx-transfer: #b6aff0;      /* Purple for transfers */
+	--tx-contract-creation: #26de81; /* Green for contract creation */
+	--tx-contract-call: #3498db;     /* Blue for contract calls */
+	--tx-default: var(--txt-secondary); /* Default gray */
+
 	/* General */
 	--brand: #18d2a5;
 	--blue: #379bff;
@@ -103,6 +116,19 @@ $grayscale: (
 	--txt-black: rgba(0, 0, 0, 95%);
 	--txt-white: rgba(255, 255, 255, 95%);
 
+	/* Editor Syntax Colors */
+	--editor-string: #f1fa8c;
+	--editor-number: #bd93f9;
+	--editor-boolean: #F2994A;
+	--editor-keyword: #6BC46D;
+
+	/* Transaction Type Colors */
+	--tx-mon-transfer: #7c0082;
+	--tx-transfer: #120584;      /* Purple for transfers */
+	--tx-contract-creation: #26de81; /* Green for contract creation */
+	--tx-contract-call: #3498db;     /* Blue for contract calls */
+	--tx-default: var(--txt-secondary); /* Default gray */
+
 	/* General */
 	--brand: #33a853;
 	--blue: #0b84fe;
@@ -166,6 +192,19 @@ $grayscale: (
 	--txt-support: rgba(0, 0, 0, 20%);
 	--txt-black: rgba(0, 0, 0, 95%);
 	--txt-white: rgba(255, 255, 255, 95%);
+
+	/* Editor Syntax Colors - Light mode optimized */
+	--editor-string: #b5651d;
+	--editor-number: #6f42c1;
+	--editor-boolean: #d97706;
+	--editor-keyword: #22863a;
+
+	/* Transaction Type Colors - Light mode optimized */
+	--tx-mon-transfer: #7c0082;
+	--tx-transfer: #120584;      /* Purple for transfers */
+	--tx-contract-creation: #22863a; /* Green for contract creation */
+	--tx-contract-call: #0366d6;     /* Blue for contract calls */
+	--tx-default: var(--txt-secondary); /* Default gray */
 
 	/* General */
 	--brand: #0ade71;

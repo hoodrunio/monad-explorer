@@ -11,7 +11,7 @@ import Popover from "@/components/ui/Popover.vue"
 import Toggle from "@/components/ui/Toggle.vue"
 
 /** Services */
-import { abbreviate, tia } from "@/services/utils"
+import { abbreviate, mon } from "@/services/utils"
 
 /** API */
 import { fetchAddressSeries } from "@/services/api/stats"
@@ -768,11 +768,11 @@ onBeforeUnmount(() => {
 								:style="{ opacity: Math.max(...feeSeries.map((d) => d.value)) ? 1 : 0 }"
 							>
 								{{
-									tia(Math.max(...feeSeries.map((d) => d.value)), 0) > 1
-										? tia(Math.max(...feeSeries.map((d) => d.value)), 0)
-										: tia(Math.max(...feeSeries.map((d) => d.value)), 2)
+									mon(Math.max(...feeSeries.map((d) => d.value)), 0) > 1
+										? mon(Math.max(...feeSeries.map((d) => d.value)), 0)
+										: mon(Math.max(...feeSeries.map((d) => d.value)), 2)
 								}}
-								TIA
+								MON
 							</Text>
 							<Skeleton v-else-if="!feeSeries.length" w="32" h="12" />
 
@@ -790,11 +790,11 @@ onBeforeUnmount(() => {
 								}"
 							>
 								{{
-									tia(Math.round(Math.max(...feeSeries.map((d) => d.value)) / 2), 0) > 1
-										? tia(Math.round(Math.max(...feeSeries.map((d) => d.value)) / 2), 0)
-										: tia(Math.round(Math.max(...feeSeries.map((d) => d.value)) / 2), 2)
+									mon(Math.round(Math.max(...feeSeries.map((d) => d.value)) / 2), 0) > 1
+										? mon(Math.round(Math.max(...feeSeries.map(...value)) / 2), 0)
+										: mon(Math.round(Math.max(...feeSeries.map((d) => d.value)) / 2), 2)
 								}}
-								TIA
+								MON
 							</Text>
 							<Skeleton v-else-if="!feeSeries.length" w="24" h="12" />
 
@@ -851,7 +851,7 @@ onBeforeUnmount(() => {
 								>
 									<Flex align="center" gap="16">
 										<Text size="12" weight="600" color="secondary">Spent</Text>
-										<Text size="12" weight="600" color="primary"> {{ tia(tooltipText) }} TIA</Text>
+										<Text size="12" weight="600" color="primary"> {{ mon(tooltipText) }} MON</Text>
 									</Flex>
 								</Flex>
 							</div>

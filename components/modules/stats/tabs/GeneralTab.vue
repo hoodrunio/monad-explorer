@@ -44,8 +44,9 @@ const highlights = computed(() => {
 		},
 		{
 			name: "fee",
-			title: "Total Fees",
-			units: "utia",
+			title: "Fee",
+			units: "gwei",
+			aggregate: "sum",
 			value: lastHead.value.total_fee,
 			diff: diffs24h.value.fee_24h * 100,
 		},

@@ -1,25 +1,22 @@
 <script setup>
 /** UI */
-import Button from "@/components/ui/Button.vue"
+import Badge from "@/components/ui/Badge.vue"
+import Toggle from "@/components/ui/Toggle.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
 
-/** Tables */
-import BlocksTable from "./tables/BlocksTable.vue"
-import DelegatorsTable from "./tables/DelegatorsTable.vue"
-import JailsTable from "./tables/JailsTable.vue"
+/** Components */
+import CopyButton from "@/components/CopyButton.vue"
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Services */
-import { comma, numToPercent, shortHex, splitAddress } from "@/services/utils"
+import { shortHex, comma } from "@/services/utils"
+import { convertUTCToLocal } from "@/services/utils/validator"
 
-/** API */
-import { fetchValidatorBlocks, fetchValidatorDelegators, fetchValidatorJails, fetchValidatorUptime } from "@/services/api/validator"
-
-/** Store */
-import { useCacheStore } from "@/store/cache.store"
-import { useModalsStore } from "@/store/modals.store"
-const cacheStore = useCacheStore()
-const modalsStore = useModalsStore()
+/** Components */
+import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
+import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed.vue"
+import ValidatorEventsTable from "./ValidatorEventsTable.vue"
+import ValidatorTransactionAnalytics from "./ValidatorTransactionAnalytics.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -29,106 +26,40 @@ const props = defineProps({
 		type: Object,
 		required: true,
 	},
+	history: {
+		type: Object,
+		default: null,
+	},
+	infrastructure: {
+		type: Object,
+		default: null,
+	},
 })
 
 const tabs = ref([
 	{
-		name: "Delegators",
-		icon: "address",
+		name: "Performance",
+		icon: "bar-chart",
 	},
 	{
-		name: "Proposed Blocks",
-		icon: "block",
+		name: "History",
+		icon: "time",
 	},
 	{
-		name: "Jails",
-		icon: "grid",
+		name: "Events",
+		icon: "message",
 	},
 ])
+
 const preselectedTab = route.query.tab && tabs.value.map((tab) => tab.name).includes(route.query.tab) ? route.query.tab : tabs.value[0].name
 const activeTab = ref(preselectedTab)
 
-const isRefetching = ref(false)
-const delegators = ref([])
-const blocks = ref([])
-const jails = ref([])
-const uptime = ref([])
+// QC Participation toggle state
+const showQcMetrics = ref(false)
 
-const page = ref(1)
-const handleNextCondition = ref(true)
-
-const handleNext = () => {
-	page.value += 1
-}
-const handlePrev = () => {
-	page.value -= 1
-}
-
-const getBlocks = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorBlocks({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		blocks.value = data.value
-		cacheStore.current.blocks = blocks.value
-		handleNextCondition.value = blocks.value.length < 10
-	}
-
-	isRefetching.value = false
-}
-
-const getDelegators = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorDelegators({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	delegators.value = data.value
-	handleNextCondition.value = delegators.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getJails = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchValidatorJails({
-		id: props.validator.id,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	jails.value = data.value
-	handleNextCondition.value = jails.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getUptime = async () => {
-	const { data } = await fetchValidatorUptime({
-		id: props.validator.id,
-		limit: 100,
-	})
-
-	if (data.value?.blocks?.length) {
-		uptime.value = data.value.blocks.sort((a, b) => a.height - b.height)
-	}
-}
-
-/** Initital fetch for delegators and uptime */
-if (activeTab.value === "Delegators") await getDelegators()
-if (activeTab.value === "Proposed Blocks") await getBlocks()
-if (activeTab.value === "Jails") await getJails()
-
-await getUptime()
+// Description expand/collapse state
+const isDescriptionExpanded = ref(false)
+const MAX_DESCRIPTION_LENGTH = 170
 
 onMounted(() => {
 	router.replace({
@@ -139,77 +70,37 @@ onMounted(() => {
 })
 
 const validatorStatus = computed(() => {
-	let res = {
-		name: "",
-		color: "",
-		description: "",
-	}
-
-	if (!props.validator.jailed) {
-		if (uptime.value?.slice(-1)[0].signed) {
-			res.name = "Active"
-			res.color = "var(--validator-active)"
-			res.description = "This validator is in the active set and can|propose or sign blocks and receive rewards".split("|")
-		} else {
-			res.name = "Inactive"
-			res.color = "var(--validator-inactive)"
-			res.description = "This validator is not in the active set and cannot|propose or sign blocks and earn rewards".split("|")
+	const uptime = validatorMetrics.value.uptimeScore
+	
+	// Handle case where uptime score is null (no block opportunities)
+	if (uptime === null) {
+		return {
+			name: "No Block Opportunities",
+			color: "var(--txt-tertiary)",
+			description: ["No block proposals yet"]
 		}
-	} else {
-		res.name = "Jailed"
-		res.color = "var(--validator-jailed)"
-		res.description = "This validator is jailed|and cannot propose or sign blocks".split("|")
 	}
-
-	return res
-})
-
-const parsedContacts = computed(() => {
-	let res = []
-	const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
-	const emails = props.validator.contacts.match(emailRegex)
-
-	if (emails) {
-		emails.forEach((email) => {
-			res.push({
-				type: "email",
-				value: "mailto:" + email,
-			})
-		})
-	}
-
-	const telegramRegex = /https?:\/\/t\.me\/([A-Za-z0-9_]+)/g
-	const telegrams = props.validator.contacts.match(telegramRegex)
-
-	if (telegrams) {
-		telegrams.forEach((telegram) => {
-			res.push({
-				type: "telegram",
-				value: telegram,
-			})
-		})
-	}
-
-	return res
-})
-
-/** Refetch Blobs/Messages on new page */
-watch(
-	() => page.value,
-	() => {
-		switch (activeTab.value) {
-			case "Delegators":
-				getDelegators()
-				break
-			case "Proposed Blocks":
-				getBlocks()
-				break
-			case "Jails":
-				getJails()
-				break
+	
+	if (uptime >= 99) {
+		return {
+			name: "Excellent",
+			color: "var(--green)",
+			description: ["Performing well"]
 		}
-	},
-)
+	} else if (uptime >= 95) {
+		return {
+			name: "Good",
+			color: "var(--brand)",
+			description: ["Performing good"]
+		}
+	} else if (uptime <= 90) {
+		return {
+			name: "Warning",
+			color: "var(--yellow)",
+			description: ["Needs attention"]
+		}
+	}
+})
 
 watch(
 	() => activeTab.value,
@@ -219,25 +110,140 @@ watch(
 				tab: activeTab.value,
 			},
 		})
-
-		page.value = 1
-
-		switch (activeTab.value) {
-			case "Delegators":
-				getDelegators()
-				break
-			case "Proposed Blocks":
-				getBlocks()
-				break
-			case "Jails":
-				getJails()
-				break
-		}
 	},
 )
 
-const handleDelegate = () => {
-	modalsStore.open("staking")
+// Computed properties for validator data
+const validatorMetrics = computed(() => {
+	const metrics = props.validator.metrics || {}
+	const details = props.validator.details || {}
+	const blockProposals = details.block_proposals || {}
+	const totalBlockOpportunities = blockProposals.total_opportunities || 0
+	
+	// If validator had no block opportunities, don't show 0% as it's misleading
+	const blockProposalRatio = totalBlockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
+	
+	// NEW: Use block proposal ratio as the primary uptime score (instead of combined uptime_score)
+	// QC participation is now a separate metric
+	const uptimeScore = blockProposalRatio
+	
+	return {
+		uptimeScore,
+		qcParticipationRate: metrics.qc_participation_rate || 0,
+		blockProposalRatio,
+	}
+})
+
+const validatorDetails = computed(() => {
+	const details = props.validator.details || {}
+	const blockProposals = details.block_proposals || {}
+	const qcParticipations = details.qc_participation || {}
+	
+	return {
+		totalBlockOpportunities: blockProposals.total_opportunities || 0,
+		blocksProposed: blockProposals.successful_proposals || 0,
+		blocksSkipped: blockProposals.skipped_proposals || 0,
+		totalQcOpportunities: qcParticipations.total_opportunities || 0,
+		qcParticipations: qcParticipations.participations || 0,
+	}
+})
+
+const infrastructureDetails = computed(() => {
+	// Handle multiple possible data structures
+	const infraData = props.infrastructure?.data || props.infrastructure || {}
+	const location = infraData.location || infraData || {}
+	
+	if (!location || Object.keys(location).length === 0) return null
+	
+	return {
+		validatorName: location.validatorName || location.validator_name || 'Unknown',
+		provider: location.isp || location.provider || 'Unknown',
+		location: `${location.city || 'Unknown'}, ${location.country || 'Unknown'}`,
+		ip: location.ip || 'Unknown',
+		hostname: location.hostname || 'Unknown',
+		port: location.port || 'Unknown',
+		timezone: location.timezone || 'Unknown',
+		latitude: location.latitude || 0,
+		longitude: location.longitude || 0,
+		lastUpdated: location.lastUpdated || location.last_updated || null,
+	}
+})
+
+const performanceHistory = computed(() => {
+	const historyData = props.history?.history || props.history?.data || []
+	if (!Array.isArray(historyData)) return []
+	
+	return historyData.map(entry => {
+		const metrics = entry.metrics || {}
+		const activity = entry.activity || {}
+		const blockOpportunities = activity.block_opportunities || 0
+		
+		// If validator had no block opportunities, don't show 0% as it's misleading
+		const blockProposalRatio = blockOpportunities === 0 ? null : (metrics.block_proposal_ratio || 0)
+		
+		// Convert UTC timestamp to local time
+		const originalHour = entry.hour || entry.timestamp || 'Unknown'
+		const localHour = originalHour !== 'Unknown' ? convertUTCToLocal(originalHour).toISOString() : originalHour
+		
+		return {
+			hour: localHour,
+			uptimeScore: metrics.uptime_score || 0,
+			qcParticipationRate: metrics.qc_participation_rate || 0,
+			blockProposalRatio,
+			blockOpportunities,
+			blocksProposed: activity.blocks_proposed || 0,
+			qcOpportunities: activity.qc_opportunities || 0,
+			qcParticipations: activity.qc_participations || 0,
+		}
+	})
+})
+
+const formatPercentage = (value) => {
+	if (value === null || value === undefined) return 'N/A'
+	return `${value.toFixed(1)}%`
+}
+
+const getPerformanceColor = (score) => {
+	if (score === null || score === undefined) return 'tertiary'
+	if (score >= 99) return 'green'
+	if (score >= 95) return 'brand'
+	if (score >= 90) return 'yellow'
+	return 'red'
+}
+
+const validatorLogoUrl = computed(() => {
+	return props.validator?.keybase?.logo_url || props.validator?.logoUrl || null
+})
+
+const validatorInfo = computed(() => {
+	const github = props.validator?.github
+	return {
+		name: props.validator?.displayName || props.validator?.infrastructure?.validator_name || shortHex(props.validator?.validator_id || ''),
+		description: github?.description || null,
+		website: github?.website || null,
+		twitter: github?.x || null,
+		hasGithubInfo: !!github
+	}
+})
+
+const displayedDescription = computed(() => {
+	const description = validatorInfo.value.description
+	if (!description) return null
+	
+	if (description.length <= MAX_DESCRIPTION_LENGTH) return description
+	
+	return isDescriptionExpanded.value 
+		? description 
+		: description.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
+})
+
+const needsDescriptionToggle = computed(() => {
+	const description = validatorInfo.value.description
+	return description && description.length > MAX_DESCRIPTION_LENGTH
+})
+
+const toggleDescription = () => {
+	isDescriptionExpanded.value = !isDescriptionExpanded.value
 }
 </script>
 
@@ -245,18 +251,52 @@ const handleDelegate = () => {
 	<Flex direction="column" gap="4">
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="8">
-				<Icon name="validator" size="14" color="primary" />
+				<ValidatorLogo 
+					:logo-url="validatorLogoUrl" 
+					:validator-name="infrastructureDetails?.validatorName || shortHex(validator.validator_id)"
+					size="medium"
+				/>
 				<Text as="h1" size="13" weight="600" color="primary">
-					Validator <Text color="secondary">{{ validator.moniker }}</Text>
+					{{ validatorInfo.name }}
 				</Text>
+				<Badge :color="getPerformanceColor(validatorMetrics.uptimeScore)" type="light" size="small">
+					{{ validatorStatus.name }}
+				</Badge>
+				
+				<!-- Website and Twitter icons next to name -->
+				<Flex v-if="validatorInfo.hasGithubInfo" align="center" gap="6">
+					<NuxtLink v-if="validatorInfo.website" :to="validatorInfo.website" target="_blank" :class="$style.social_link">
+						<Icon name="website" size="18" color="secondary" />
+					</NuxtLink>
+					<NuxtLink v-if="validatorInfo.twitter" :to="validatorInfo.twitter" target="_blank" :class="$style.social_link">
+						<Icon name="twitter-x" size="18" color="secondary" />
+					</NuxtLink>
+				</Flex>
 			</Flex>
 
 			<Flex align="center" gap="12">
-				<Button @click="handleDelegate" type="secondary" size="mini">
-					<Icon name="coins_up" size="12" color="primary" />
-					Delegate
-				</Button>
+				<Text size="12" weight="600" color="secondary">
+					{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) + ' uptime' : 'No block opportunities' }}
+				</Text>
 			</Flex>
+		</Flex>
+
+		<!-- Description below header -->
+		<Flex v-if="validatorInfo.description" direction="column" gap="4" :class="$style.description_section">
+			<div :class="$style.description_container">
+				<Text size="12" weight="500" color="primary" :class="$style.description_text">
+					{{ displayedDescription }}
+				</Text>
+				<button 
+					v-if="needsDescriptionToggle" 
+					@click="toggleDescription"
+					:class="$style.description_toggle"
+				>
+					<Text size="11" weight="600" color="brand">
+						{{ isDescriptionExpanded ? 'Show less' : 'Show more' }}
+					</Text>
+				</button>
+			</div>
 		</Flex>
 
 		<Flex gap="4" :class="$style.content">
@@ -264,404 +304,449 @@ const handleDelegate = () => {
 				<Flex direction="column" gap="24" :class="$style.main">
 					<Flex direction="column" gap="8" :class="$style.key_value">
 						<Flex align="center" justify="between">
-							<Text v-if="validator.moniker" size="13" weight="600" color="primary">{{ validator.moniker }} </Text>
-							<Text v-else size="13" weight="600" color="primary">Validator</Text>
-
-							<Tooltip position="start" textAlign="left" delay="200">
-								<Text size="13" weight="600" :style="{ color: validatorStatus.color }"> {{ validatorStatus.name }} </Text>
-
-								<template #content>
-									<Flex direction="column" gap="4">
-										<Text v-for="s in validatorStatus.description" color="secondary">{{ s }}</Text>
-									</Flex>
-								</template>
-							</Tooltip>
+							<Text size="13" weight="600" color="primary">Validator ID</Text>
 						</Flex>
 						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="tertiary"> {{ splitAddress(validator.address.hash) }} </Text>
-
-							<CopyButton :text="validator.address.hash" />
+							<Text size="12" weight="600" color="tertiary" mono selectable> 
+								{{ shortHex(validator.validator_id) }} 
+							</Text>
+							<CopyButton :text="validator.validator_id" />
 						</Flex>
 					</Flex>
-
-					<Flex v-if="validator.details" direction="column" gap="6">
-						<Text size="12" weight="600" color="secondary">Description</Text>
-
+					
+					<!-- Stake Information -->
+					<Flex v-if="validator.stake" direction="column" gap="8" :class="$style.key_value">
+						<Flex align="center" justify="between">
+							<Text size="13" weight="600" color="primary">Voting Power</Text>
+						</Flex>
 						<Flex align="center" gap="6">
-							<Text size="12" height="140" weight="600" color="tertiary" mono selectable :class="$style.memo">
-								{{ validator.details }}
+							<Text size="12" weight="600" color="secondary"> 
+								{{ comma(validator.stake) }} 
 							</Text>
 						</Flex>
 					</Flex>
-					<Flex v-if="validator.website || parsedContacts.length" align="center" justify="start" gap="12">
-						<Tooltip v-if="validator.website" position="start" delay="500">
-							<a :href="validator.website" target="_blank">
-								<Icon name="globe" size="14" color="secondary" :class="$style.btn" />
-							</a>
-
-							<template #content>
-								{{ validator.website }}
-							</template>
-						</Tooltip>
-
-						<template v-for="c in parsedContacts">
-							<Tooltip v-if="c.type !== 'unknown'" position="start" delay="500">
-								<a :href="c.value" target="_blank">
-									<Icon :name="c.type" size="14" color="secondary" :class="$style.btn" />
-								</a>
-
-								<template #content>
-									{{ c.value }}
-								</template>
-							</Tooltip>
-						</template>
-					</Flex>
-
-					<!-- Staking -->
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Staking</Text>
+					
+					<!-- Infrastructure Details -->
+					<Flex v-if="infrastructureDetails" direction="column" gap="16">
+						<Text size="12" weight="600" color="secondary">Infrastructure Details</Text>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Voting Power</Text>
-							<AmountInCurrency
-								:amount="{ value: validator.voting_power, unit: 'TIA' }"
-								:styles="{ amount: { color: 'tertiary' } }"
-							/>
+							<Text size="12" weight="600" color="tertiary">Validator Name</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.validatorName }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Outgoing Rewards</Text>
-							<AmountInCurrency :amount="{ value: validator.rewards }" :styles="{ amount: { color: 'tertiary' } }" />
+							<Text size="12" weight="600" color="tertiary">Hostname</Text>
+							<Flex align="center" gap="4" :class="$style.hostname_container">
+								<Tooltip>
+									<Text size="12" weight="600" color="primary" mono :class="$style.hostname_text">{{ infrastructureDetails.hostname }}</Text>
+									<template #content>
+										{{ infrastructureDetails.hostname }}
+									</template>
+								</Tooltip>
+								<CopyButton :text="infrastructureDetails.hostname" />
+							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Commissions</Text>
-							<AmountInCurrency :amount="{ value: validator.commissions }" :styles="{ amount: { color: 'tertiary' } }" />
+							<Text size="12" weight="600" color="tertiary">IP Address</Text>
+							<Flex align="center" gap="4">
+								<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.ip }}</Text>
+								<CopyButton :text="infrastructureDetails.ip" />
+							</Flex>
+						</Flex>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Provider</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.provider }}</Text>
+						</Flex>
+
+						<Flex align="center" justify="between">
+							<Text size="12" weight="600" color="tertiary">Location</Text>
+							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.location }}</Text>
 						</Flex>
 					</Flex>
 
-					<!-- Details -->
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Details</Text>
 
-						<Flex v-if="!parsedContacts.length && validator.contacts" align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Contact</Text>
-							<Text size="12" weight="600" color="tertiary" selectable> {{ validator.contacts }} </Text>
+
+					<!-- Status -->
+					<Flex direction="column" gap="8">
+						<Text size="12" weight="600" color="secondary">Status</Text>
+						<Flex direction="column" gap="4">
+							<Text size="11" weight="500" :color="validatorStatus.color">
+								{{ validatorStatus.description[0] }}
+							</Text>
+							<Text size="11" weight="500" :color="validatorStatus.color">
+								{{ validatorStatus.description[1] }}
+							</Text>
 						</Flex>
+					</Flex>
 
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Delegator Address</Text>
-							<Flex gap="6">
-								<AddressBadge :account="validator.delegator" color="tertiary" />
-								<CopyButton :text="validator.delegator.hash" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Consensus Address</Text>
-							<Flex gap="6">
-								<Text size="12" weight="600" color="tertiary"> {{ shortHex(validator.cons_address) }} </Text>
-								<CopyButton :text="validator.cons_address" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Identity</Text>
-							<Flex gap="6">
-								<Text size="12" weight="600" color="tertiary"> {{ validator.identity }} </Text>
-								<CopyButton :text="validator.identity" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Max Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.max_rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Max Change Rate</Text>
-							<Text size="12" weight="600" color="secondary"> {{ numToPercent(validator.max_change_rate) }} </Text>
-						</Flex>
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Min Self Delegation</Text>
-							<Text size="12" weight="600" color="secondary"> {{ comma(validator.min_self_delegation) }} </Text>
-						</Flex>
-
-						<div :class="$style.horizontal_divider" />
-
-						<!-- Validator Uptime -->
-						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="secondary">Validator Uptime</Text>
-							<Text size="12" weight="600" color="tertiary">(last 100 blocks)</Text>
-						</Flex>
-
-						<Flex :class="$style.uptime_wrapper">
-							<Tooltip v-for="t in uptime">
-								<Flex
-									:class="$style.uptime"
-									:style="{
-										background: t.signed ? 'rgb(10, 219, 111)' : 'red',
-									}"
-								/>
-
-								<template #content>
-									<Flex direction="column" gap="4">
-										<Text color="primary">{{ t.height }}</Text>
-										<Text color="secondary">{{ t.signed ? "Signed" : "Missed" }}</Text>
-									</Flex>
-								</template>
-							</Tooltip>
-						</Flex>
+					<!-- Validator Uptime Grid -->
+					<Flex direction="column" gap="8">
+						<Text size="12" weight="600" color="secondary">Validator Uptime (last 100 hours)</Text>
+						<ValidatorPerformanceGrid :performance-history="performanceHistory" />
 					</Flex>
 				</Flex>
 			</Flex>
 
-			<Flex direction="column" gap="4" wide :class="$style.txs_wrapper">
+			<Flex direction="column" gap="4" wide :class="$style.tabs_section">
 				<Flex align="center" justify="between" :class="$style.tabs_wrapper">
-					<Flex gap="4" :class="$style.tabs">
-						<Flex
-							@click="activeTab = tab.name"
+					<Flex align="center" gap="4">
+						<button
 							v-for="tab in tabs"
-							align="center"
-							gap="6"
-							:class="[$style.tab, activeTab === tab.name && $style.active]"
+							@click="activeTab = tab.name"
+							:class="[$style.tab, activeTab === tab.name && $style.tab_active]"
 						>
-							<Icon :name="tab.icon" size="12" color="secondary" />
-							<Text size="13" weight="600">{{ tab.name }}</Text>
-						</Flex>
+							<Icon :name="tab.icon" size="12" :color="activeTab === tab.name ? 'primary' : 'tertiary'" />
+							{{ tab.name }}
+						</button>
 					</Flex>
 				</Flex>
 
-				<Flex direction="column" justify="center" gap="8" :class="[$style.table, isRefetching && $style.disabled]">
-					<template v-if="activeTab === 'Delegators'">
-						<DelegatorsTable v-if="delegators.length" :delegators="delegators" :validator="validator" />
+				<Flex direction="column" gap="16" :class="$style.tab_content">
+					<!-- Performance Tab -->
+					<template v-if="activeTab === 'Performance'">
+						<Flex direction="column" gap="12">
+							<Flex align="center" justify="between">
+								<Flex direction="column" gap="4">
+									<Text size="13" weight="600" color="primary">Performance Metrics</Text>
+									<Text size="11" weight="500" color="tertiary">Primary uptime score based on block proposal performance.</Text>
+								</Flex>
+								
+								<Flex align="center" gap="8" :class="$style.qc_toggle_wrapper">
+									<Text size="11" weight="500" color="secondary">Show QC Metrics</Text>
+									<Toggle v-model="showQcMetrics" />
+								</Flex>
+							</Flex>
+							
+							<Flex direction="column" gap="8" :class="[showQcMetrics ? $style.metrics_grid_expanded : $style.metrics_grid]">
+								<Flex direction="column" gap="4" :class="$style.metric_card">
+									<Text size="11" weight="500" color="tertiary">Uptime Score (Block Proposals)</Text>
+									<Text size="16" weight="600" :color="validatorMetrics.uptimeScore !== null ? getPerformanceColor(validatorMetrics.uptimeScore) : 'tertiary'">
+										{{ validatorMetrics.uptimeScore !== null ? formatPercentage(validatorMetrics.uptimeScore) : 'N/A' }}
+									</Text>
+								</Flex>
+								
+								<Flex direction="column" gap="4" :class="$style.metric_card">
+									<Text size="11" weight="500" color="tertiary">Block Proposal Ratio</Text>
+									<Text size="16" weight="600" :color="validatorMetrics.blockProposalRatio !== null ? getPerformanceColor(validatorMetrics.blockProposalRatio) : 'tertiary'">
+										{{ validatorMetrics.blockProposalRatio !== null ? formatPercentage(validatorMetrics.blockProposalRatio) : 'N/A' }}
+									</Text>
+								</Flex>
+								
+								<Transition name="fade">
+									<Flex v-if="showQcMetrics" direction="column" gap="4" :class="[$style.metric_card, $style.qc_metric_card]">
+										<Text size="11" weight="500" color="primary">QC Participation Rate</Text>
+										<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
+											{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
+										</Text>
+										<Text size="10" weight="500" color="brand">Additional metric</Text>
+									</Flex>
+								</Transition>
+							</Flex>
 
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No delegators </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator does not have any {{ page === 1 ? "" : "more" }} delegators
-							</Text>
+							<Flex direction="column" gap="8">
+								<Text size="12" weight="600" color="secondary">Activity Details</Text>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Total Block Opportunities</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalBlockOpportunities }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Blocks Proposed</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.blocksProposed }}</Text>
+								</Flex>
+								
+								<Flex align="center" justify="between">
+									<Text size="11" weight="500" color="tertiary">Blocks Skipped</Text>
+									<Text size="11" weight="600" color="secondary">{{ validatorDetails.blocksSkipped }}</Text>
+								</Flex>
+								
+								<Transition name="fade">
+									<div v-if="showQcMetrics" :class="$style.qc_activity_wrapper">
+										<Flex align="center" justify="between">
+											<Text size="11" weight="500" color="primary">QC Opportunities</Text>
+											<Text size="11" weight="600" color="secondary">{{ validatorDetails.totalQcOpportunities }}</Text>
+										</Flex>
+										
+										<Flex align="center" justify="between">
+											<Text size="11" weight="500" color="primary">QC Participations</Text>
+											<Text size="11" weight="600" color="secondary">{{ validatorDetails.qcParticipations }}</Text>
+										</Flex>
+									</div>
+								</Transition>
+							</Flex>
 						</Flex>
 					</template>
 
-					<template v-if="activeTab === 'Proposed Blocks'">
-						<BlocksTable v-if="blocks.length" :blocks="blocks" />
 
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No blocks </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator did not propose any {{ page === 1 ? "" : "more" }} blocks
-							</Text>
-						</Flex>
+
+					<!-- History Tab -->
+					<template v-if="activeTab === 'History'">
+						<ValidatorPerformanceGridDetailed :performance-history="performanceHistory" />
 					</template>
 
-					<template v-if="activeTab === 'Jails'">
-						<JailsTable v-if="jails.length" :jails="jails" />
-
-						<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-							<Text size="13" weight="600" color="secondary" align="center"> No penalties </Text>
-							<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-								This validator doesn't have any {{ page === 1 ? "" : "more" }} penalties
-							</Text>
-						</Flex>
+					<!-- Events Tab -->
+					<template v-if="activeTab === 'Events'">
+						<ValidatorEventsTable :validator-id="validator.validator_id" />
 					</template>
-
-					<!-- Pagination -->
-					<Flex align="center" gap="6" :class="$style.pagination">
-						<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left-stop" size="12" color="primary" />
-						</Button>
-						<Button @click="handlePrev" type="secondary" size="mini" :disabled="page === 1">
-							<Icon name="arrow-left" size="12" color="primary" />
-						</Button>
-
-						<Button type="secondary" size="mini" disabled>
-							<Text size="12" weight="600" color="primary">Page {{ page }}</Text>
-						</Button>
-
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="handleNextCondition">
-							<Icon name="arrow-right" size="12" color="primary" />
-						</Button>
-					</Flex>
 				</Flex>
 			</Flex>
+		</Flex>
+
+		<!-- Transaction Analytics Section -->
+		<Flex direction="column" gap="4" :class="$style.analytics_section">
+			<Flex align="center" gap="8" :class="$style.analytics_header">
+				<Icon name="trending-up" size="16" color="primary" />
+				<Text size="14" weight="600" color="primary">Transaction Analytics</Text>
+			</Flex>
+			<ValidatorTransactionAnalytics 
+				:validatorId="props.validator.validator_id"
+			/>
 		</Flex>
 	</Flex>
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .header {
-	height: 40px;
+	margin-bottom: 16px;
+}
 
-	border-radius: 8px 8px 4px 4px;
-	background: var(--card-background);
-
-	padding: 0 12px;
+.content {
+	align-items: flex-start;
 }
 
 .data {
-	min-width: 384px;
-
-	border-radius: 4px 4px 4px 8px;
-	background: var(--card-background);
-
-	.main {
-		padding: 16px;
-
-		& .key_value {
-			max-width: 100%;
-		}
-	}
-
-	.memo {
-		max-width: 352px;
-		text-overflow: ellipsis;
-		overflow: hidden;
-	}
-
-	.uptime_wrapper {
-		max-width: 384px;
-		flex-wrap: wrap;
-	}
-
-	.uptime {
-		/* width: 10px;
-		height: 10px; */
-		width: 0.6rem;
-		height: 0.6rem;
-
-		border-radius: 2px;
-		cursor: pointer;
-
-		margin-right: 0.35rem;
-		margin-bottom: 0.35rem;
-	}
-
-	.horizontal_divider {
-		width: 100%;
-		height: 2px;
-		background: var(--op-5);
-
-		margin-top: 4px;
-		margin-bottom: 4px;
-	}
+	min-width: 400px;
+	max-width: 400px;
 }
 
-.txs_wrapper {
-	min-width: 0;
+.main {
+	border: 1px solid var(--op-8);
+	border-radius: 8px;
+	padding: 16px;
+	background: var(--op-3);
+}
+
+.key_value {
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--op-8);
+}
+
+.tabs_section {
+	min-height: 400px;
 }
 
 .tabs_wrapper {
-	min-height: 44px;
-	overflow-x: auto;
-
-	border-radius: 4px;
-	background: var(--card-background);
-
-	padding: 0 8px;
-}
-
-.tabs_wrapper::-webkit-scrollbar {
-	display: none;
+	border-bottom: 1px solid var(--op-8);
+	padding-bottom: 8px;
 }
 
 .tab {
-	height: 28px;
-
-	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
 	border-radius: 6px;
-
-	padding: 0 8px;
-
+	background: transparent;
+	border: none;
+	color: var(--txt-tertiary);
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
 	transition: all 0.1s ease;
-
-	& span {
-		color: var(--txt-tertiary);
-
-		transition: all 0.1s ease;
-	}
-
-	&:hover {
-		& span {
-			color: var(--txt-secondary);
-		}
-	}
 }
 
-.tab.active {
+.tab:hover {
+	background: var(--op-5);
+	color: var(--txt-secondary);
+}
+
+.tab_active {
 	background: var(--op-8);
-
-	& span {
-		color: var(--txt-primary);
-	}
+	color: var(--txt-primary);
 }
 
-.table {
-	height: 100%;
-
-	border-radius: 4px 4px 8px 4px;
-	background: var(--card-background);
+.tab_content {
+	padding: 16px 0;
 }
 
-.table.disabled {
-	opacity: 0.5;
-	pointer-events: none;
+.metrics_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 12px;
 }
 
-.empty {
-	flex: 1;
-
-	padding-top: 16px;
-	padding-bottom: 16px;
+.metrics_grid_expanded {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 12px;
 }
 
-.pagination {
-	padding: 0 16px 16px 16px;
+.metric_card {
+	padding: 12px;
+	border: 1px solid var(--op-8);
+	border-radius: 6px;
+	background: var(--op-3);
+	transition: all 0.3s ease;
 }
 
-@media (max-width: 800px) {
+.qc_metric_card {
+	border: 1px solid var(--brand);
+	background: linear-gradient(135deg, var(--op-3) 0%, rgba(var(--brand-rgb), 0.05) 100%);
+	box-shadow: 0 2px 8px rgba(var(--brand-rgb), 0.1);
+}
+
+.qc_toggle_wrapper {
+	border: 1px solid var(--op-8);
+	border-radius: 6px;
+	padding: 8px 12px;
+	background: var(--op-3);
+	transition: all 0.2s ease;
+}
+
+.qc_toggle_wrapper:hover {
+	background: var(--op-5);
+}
+
+.qc_activity_wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+/* Fade transition for QC metrics */
+.fade-enter-active,
+.fade-leave-active {
+	transition: all 0.3s ease;
+}
+
+.fade-enter-from {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.95);
+}
+
+.fade-leave-to {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.95);
+}
+
+.link {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.link:hover {
+	opacity: 0.8;
+}
+
+.social_link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border-radius: 4px;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.social_link:hover {
+	background: var(--op-5);
+}
+
+.description_section {
+	margin-bottom: 16px;
+	padding: 12px 0;
+}
+
+.description_container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.description_text {
+	line-height: 1.5;
+	word-wrap: break-word;
+}
+
+.description_toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	align-self: flex-start;
+	transition: opacity 0.2s ease;
+}
+
+.description_toggle:hover {
+	opacity: 0.8;
+}
+
+.hostname_container {
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.hostname_text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 250px; /* Adjust as needed */
+}
+
+.analytics_section {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid var(--op-8);
+}
+
+.analytics_header {
+	margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
 	.content {
 		flex-direction: column;
 	}
-
+	
 	.data {
-		min-width: initial;
-
-		border-radius: 4px;
+		min-width: 100%;
+		max-width: 100%;
 	}
-
-	.table {
-		border-radius: 4px 4px 8px 8px;
+	
+	.metrics_grid,
+	.metrics_grid_expanded {
+		grid-template-columns: 1fr;
 	}
-}
-
-@media (max-width: 550px) {
-	.header {
-		height: initial;
+	
+	.qc_toggle_wrapper {
 		flex-direction: column;
-		gap: 12px;
-
-		padding: 12px 0;
+		gap: 4px;
+		text-align: center;
 	}
-}
-
-@media (max-width: 400px) {
+	
 	.tabs_wrapper {
 		overflow-x: auto;
-
-		&::-webkit-scrollbar {
-			display: none;
-		}
+		padding-bottom: 2px;
 	}
-
-	.hint {
-		display: none;
+	
+	.header {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	
+	.description_section {
+		padding: 8px 0;
+		margin-bottom: 12px;
 	}
 }
 </style>
+
+

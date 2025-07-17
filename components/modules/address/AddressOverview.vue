@@ -11,31 +11,14 @@ import Toggle from "@/components/ui/Toggle.vue"
 /** Components */
 import AmountInCurrency from "@/components/AmountInCurrency.vue"
 import TransactionsTable from "./tables/TransactionsTable.vue"
-import MessagesTable from "@/components/modules/namespace/tables/MessagesTable.vue"
-import BlobsTable from "@/components/modules/namespace/tables/BlobsTable.vue"
-import DelegationsTable from "./tables/DelegationsTable.vue"
-import RedelegationsTable from "./tables/RedelegationsTable.vue"
-import UndelegationsTable from "./tables/UndelegationsTable.vue"
-import GrantsTable from "./tables/GrantsTable.vue"
-import GrantersTable from "./tables/GrantersTable.vue"
-import VestingsTable from "./tables/VestingsTable.vue"
 
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
 
 /** API */
 import {
-	fetchAddressDelegations,
-	fetchAddressGranters,
-	fetchAddressGrants,
-	fetchAddressRedelegations,
-	fetchAddressUndelegations,
-	fetchAddressVestings,
-	fetchBlobsByAddressHash,
-	fetchCelestials,
-	fetchMessagesByAddressHash,
 	fetchTxsByAddressHash,
-} from "@/services/api/address"
+} from "@/services/api/main"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -57,64 +40,13 @@ const props = defineProps({
 
 const isRefetching = ref(false)
 const transactions = ref([])
-const messages = ref([])
-const blobs = ref([])
-const celestials = ref([])
 
 /** Tabs */
 const tabs = ref([
 	{
 		alias: "transactions",
-		displayName: "Signed Transactions",
+		displayName: "Transactions",
 		icon: "tx",
-		show: true,
-	},
-	{
-		alias: "messages",
-		displayName: "Messages",
-		icon: "message",
-		show: true,
-	},
-	{
-		alias: "blobs",
-		displayName: "Blobs",
-		icon: "blob",
-		show: true,
-	},
-	{
-		alias: "vestings",
-		displayName: "Vestings",
-		icon: "vesting",
-		show: true,
-	},
-	{
-		alias: "delegations",
-		displayName: "Delegations",
-		icon: "coins_up",
-		show: true,
-	},
-	{
-		alias: "redelegations",
-		displayName: "Redelegations",
-		icon: "redelegate",
-		show: true,
-	},
-	{
-		alias: "undelegations",
-		displayName: "Undelegations",
-		icon: "unlock",
-		show: props.address.balance.unbonding > 0,
-	},
-	{
-		alias: "grants",
-		displayName: "Grants",
-		icon: "stars",
-		show: true,
-	},
-	{
-		alias: "granters",
-		displayName: "Granters",
-		icon: "granters",
 		show: true,
 	},
 ])
@@ -355,310 +287,33 @@ const getTransactions = async () => {
 	isRefetching.value = false
 }
 
-const getMessages = async () => {
-	isRefetching.value = true
+const collapseBalances = ref(false)
 
-	const { data } = await fetchMessagesByAddressHash({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-		sort: "desc",
-	})
-
-	messages.value = data.value
-	cacheStore.current.messages = messages.value
-	handleNextCondition.value = messages.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getBlobs = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchBlobsByAddressHash({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-		sort: "desc",
-	})
-
-	if (data.value?.length) {
-		blobs.value = data.value.map((b) => ({ ...b, signer: props.address }))
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getCelestials = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchCelestials({
-		hash: props.address.hash,
-	})
-
-	if (data.value?.length) {
-		celestials.value = data.value
-	}
-
-	isRefetching.value = false
-}
-await getCelestials()
-
-/** Delegation */
-const isActiveDelegator = props.address.balance.delegated > 0 || props.address.balance.unbonding > 0
-const collapseBalances = ref(!isActiveDelegator)
-const collapseCelestials = ref(false)
-const totalBalance =
-	parseInt(props.address.balance.spendable) + parseInt(props.address.balance.delegated) + parseInt(props.address.balance.unbonding)
-const delegations = ref([])
-const redelegations = ref([])
-const undelegations = ref([])
-
-const getDelegations = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressDelegations({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		delegations.value = data.value
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getRedelegations = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressRedelegations({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		redelegations.value = data.value
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getUndelegations = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressUndelegations({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		undelegations.value = data.value
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-/** Grants and Granters */
-const grants = ref([])
-const granters = ref([])
-
-const getGrants = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressGrants({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		grants.value = data.value
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-const getGranters = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressGranters({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	if (data.value?.length) {
-		granters.value = data.value
-	}
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-/** Vesting */
-const vestings = ref([])
-const showEnded = ref(false)
-const getVestings = async () => {
-	isRefetching.value = true
-
-	const { data } = await fetchAddressVestings({
-		hash: props.address.hash,
-		showEnded: showEnded.value,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-	})
-
-	vestings.value = data.value
-
-	handleNextCondition.value = data.value.length < 10
-
-	isRefetching.value = false
-}
-
-if (activeTab.value === "transactions") await getTransactions()
-if (activeTab.value === "messages") await getMessages()
-if (activeTab.value === "blobs") await getBlobs()
-if (activeTab.value === "delegations") await getDelegations()
-if (activeTab.value === "redelegations") await getRedelegations()
-if (activeTab.value === "grants") await getGrants()
-if (activeTab.value === "granters") await getGranters()
-if (activeTab.value === "vestings") await getVestings()
-
-/** Refetch transactions */
+/** Watchers */
 watch(
-	() => activeTab.value,
-	() => {
+	activeTab,
+	async () => {
+		page.value = 1
+		handleNextCondition.value = true
+
 		router.replace({
 			query: {
 				tab: activeTab.value,
 			},
 		})
 
-		page.value = 1
-
-		switch (activeTab.value) {
-			case "transactions":
-				getTransactions()
-				break
-
-			case "messages":
-				getMessages()
-				break
-
-			case "blobs":
-				getBlobs()
-				break
-
-			case "delegations":
-				getDelegations()
-				break
-
-			case "redelegations":
-				getRedelegations()
-				break
-
-			case "undelegations":
-				getUndelegations()
-				break
-
-			case "grants":
-				getGrants()
-				break
-
-			case "granters":
-				getGranters()
-				break
-
-			case "vestings":
-				getVestings()
-				break
+		if (activeTab.value === "transactions") {
+			await getTransactions()
 		}
 	},
-)
-watch(
-	() => page.value,
-	() => {
-		switch (activeTab.value) {
-			case "transactions":
-				getTransactions()
-				break
-
-			case "blobs":
-				getBlobs()
-				break
-
-			case "messages":
-				getMessages()
-				break
-
-			case "delegations":
-				getDelegations()
-				break
-
-			case "redelegations":
-				getRedelegations()
-				break
-
-			case "undelegations":
-				getUndelegations()
-				break
-
-			case "grants":
-				getGrants()
-				break
-
-			case "granters":
-				getGranters()
-				break
-
-			case "vestings":
-				getVestings()
-				break
-		}
-	},
-)
-watch(
-	() => msgTypes.value,
-	() => {
-		filters.message_type = msgTypes.value?.reduce((a, b) => ({ ...a, [b]: false }), {})
-	},
-)
-watch(
-	() => showEnded.value,
-	() => {
-		if (page.value === 1) {
-			getVestings()
-		} else {
-			page.value = 1
-		}
-	},
+	{ immediate: true },
 )
 
-const handleSend = () => {
-	modalsStore.open("send")
-}
-
-const handleViewRawAddress = () => {
-	cacheStore.current._target = "address"
-	modalsStore.open("rawData")
-}
-
-const handleOpenQRModal = () => {
-	cacheStore.qr.data = props.address.hash
-	cacheStore.qr.description = "Scan QR code to get this address"
-	cacheStore.qr.icon = "address"
-
-	modalsStore.open("qr")
-}
+watch(page, () => {
+	if (activeTab.value === "transactions") {
+		getTransactions()
+	}
+})
 </script>
 
 <template>
@@ -726,21 +381,13 @@ const handleOpenQRModal = () => {
 						</Flex>
 					</Flex>
 					<Flex v-else direction="column" gap="8" :class="$style.key_value">
-						<Text size="12" weight="600" color="secondary">Address</Text>
-
-						<Text size="13" weight="600" color="primary"> {{ address.hash }} </Text>
+						<Text size="12" weight="600" color="tertiary"> Address </Text>
+						<Text size="12" weight="600" color="secondary"> {{ splitAddress(address.hash) }} </Text>
 					</Flex>
 
-					<Flex direction="column" gap="16" :class="$style.key_value">
+					<Flex direction="column" gap="16">
 						<Flex @click="collapseBalances = !collapseBalances" align="center" justify="between" style="cursor: pointer">
-							<Flex direction="column" gap="8">
-								<Text size="12" weight="600" color="secondary">Total Balance</Text>
-								<AmountInCurrency
-									:amount="{ value: totalBalance }"
-									:styles="{ amount: { size: '13' }, currency: { size: '13', color: 'primary' } }"
-								/>
-							</Flex>
-
+							<Text size="12" weight="600" color="secondary">Balance</Text>
 							<Icon
 								name="chevron"
 								size="14"
@@ -760,54 +407,6 @@ const handleOpenQRModal = () => {
 									:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
 								/>
 							</Flex>
-
-							<Flex align="center" justify="between">
-								<Text size="12" weight="600" color="tertiary"> Delegated</Text>
-								<AmountInCurrency
-									:amount="{ value: address.balance.delegated }"
-									:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
-								/>
-							</Flex>
-
-							<Flex align="center" justify="between">
-								<Text size="12" weight="600" color="tertiary"> Unbonding</Text>
-								<AmountInCurrency
-									:amount="{ value: address.balance.unbonding }"
-									:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
-								/>
-							</Flex>
-						</Flex>
-					</Flex>
-
-					<Flex v-if="celestials.length" direction="column" gap="16">
-						<Flex @click="collapseCelestials = !collapseCelestials" align="center" justify="between" style="cursor: pointer">
-							<Text size="12" weight="600" color="secondary">Celestials</Text>
-							<Icon
-								name="chevron"
-								size="14"
-								color="secondary"
-								:style="{
-									transform: `rotate(${collapseCelestials ? '0' : '180'}deg)`,
-									transition: 'all 400ms ease',
-								}"
-							/>
-						</Flex>
-
-						<Flex v-if="!collapseCelestials" direction="column" gap="12" :class="$style.key_value">
-							<NuxtLink
-								v-for="c in celestials"
-								:to="`https://celestials.id/id/${c.name}?utm_source=celenium_address_page`"
-								target="_blank"
-								:class="$style.link"
-							>
-								<Flex align="center" gap="8">
-									<Flex v-if="c.image_url" align="center" justify="center" :class="$style.cel_image_container">
-										<img :src="c.image_url" :class="$style.cel_image" />
-									</Flex>
-
-									<Text size="12" weight="600" color="tertiary"> {{ c.name }} </Text>
-								</Flex>
-							</NuxtLink>
 						</Flex>
 					</Flex>
 
@@ -994,102 +593,6 @@ const handleOpenQRModal = () => {
 								</Text>
 							</Flex>
 						</template>
-
-						<!-- Messages Table -->
-						<template v-if="activeTab === 'messages'">
-							<MessagesTable v-if="messages.length" :messages="messages" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Messages </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									No {{ page === 1 ? "activity" : "more messages" }} with this address
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Blobs Table -->
-						<template v-if="activeTab === 'blobs'">
-							<BlobsTable v-if="blobs.length" :blobs="blobs" source="account" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Blobs </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address did not push any {{ page === 1 ? "" : "more" }} blobs
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Delegations Table -->
-						<template v-if="activeTab === 'delegations'">
-							<DelegationsTable v-if="delegations.length" :delegations="delegations" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Delegations </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} delegations
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Redelegations Table -->
-						<template v-if="activeTab === 'redelegations'">
-							<RedelegationsTable v-if="redelegations.length" :redelegations="redelegations" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Redelegations </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} redelegations
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Undelegations Table -->
-						<template v-if="activeTab === 'undelegations'">
-							<UndelegationsTable v-if="undelegations.length" :undelegations="undelegations" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Undelegations </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} undelegations
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Grants Table -->
-						<template v-if="activeTab === 'grants'">
-							<GrantsTable v-if="grants.length" :grants="grants" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Grants </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} grants
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Granters Table -->
-						<template v-if="activeTab === 'granters'">
-							<GrantersTable v-if="granters.length" :granters="granters" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Granters </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} granters
-								</Text>
-							</Flex>
-						</template>
-
-						<!-- Vestings Table -->
-						<template v-if="activeTab === 'vestings'">
-							<VestingsTable v-if="vestings.length" :vestings="vestings" />
-
-							<Flex v-else align="center" justify="center" direction="column" gap="8" wide :class="$style.empty">
-								<Text size="13" weight="600" color="secondary" align="center"> No Vestings </Text>
-								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address doesn't have any {{ page === 1 ? "" : "more" }} {{ !showEnded ? "active" : "" }} vestings
-								</Text>
-							</Flex>
-						</template>
 					</Flex>
 
 					<!-- Pagination -->
@@ -1109,12 +612,6 @@ const handleOpenQRModal = () => {
 							<Button @click="handleNext" type="secondary" size="mini" :disabled="handleNextCondition">
 								<Icon name="arrow-right" size="12" color="primary" />
 							</Button>
-						</Flex>
-
-						<Flex v-if="activeTab === 'vestings'" align="center">
-							<Text size="12" color="secondary"> {{ showEnded ? "Hide completed" : "Show completed" }} </Text>
-
-							<Toggle v-model="showEnded" :class="$style.toggle" />
 						</Flex>
 					</Flex>
 				</Flex>

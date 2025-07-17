@@ -5,10 +5,10 @@ import topLevelAwait from "vite-plugin-top-level-await"
 import path from "path"
 
 export default defineNuxtConfig({
-	modules: ["nuxt-site-config", "@pinia/nuxt", "nuxt-og-image", "@nuxtjs/sitemap"],
+	modules: ["nuxt-site-config", "@pinia/nuxt", "@nuxtjs/sitemap"],
 
 	site: {
-		url: "https://celenium.io",
+		url: "https://monad.hoodscan.io",
 	},
 
 	sitemap: {
@@ -61,8 +61,13 @@ export default defineNuxtConfig({
 	},
 
 	runtimeConfig: {
+		// Private keys (only available on server-side)
+		githubToken: process.env.GITHUB_TOKEN || '',
+
+		// Public keys (exposed to client-side)
 		public: {
 			AMP: process.env.AMP,
+			SENTRY_DSN: process.env.SENTRY_DSN,
 			version: "1.16.0",
 		},
 	},
@@ -118,17 +123,15 @@ export default defineNuxtConfig({
 
 	css: ["@/assets/styles/base.scss", "@/assets/styles/flex.scss", "@/assets/styles/text.scss"],
 
-	pinia: {
-		autoImports: ["defineStore"],
-	},
+	// Pinia configuration - using defaults
 
-	ogImage: {
-		fonts: ["Inter:400", "Inter:600", "IBM+Plex+Mono:400"],
-	},
+
 
 	devtools: {
 		enabled: true,
 	},
+
+	//debug: true,
 
 	vite: {
 		define: {

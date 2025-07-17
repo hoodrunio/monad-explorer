@@ -77,6 +77,7 @@ const debouncedSearch = useDebounceFn(async () => {
 
 	isSearching.value = false
 }, 250)
+
 const handleInput = () => {
 	results.value = []
 
@@ -90,14 +91,27 @@ const getResultMetadata = (target) => {
 		case "tx":
 		case "transaction":
 			metadata.type = "tx"
-			metadata.title = target.result.alias || target.result.hash
+			// For EVM transactions, display shortened hash
+			if (target.result.alias) {
+				metadata.title = target.result.alias
+				metadata.subtitle = shortHex(target.result.hash)
+			} else {
+				metadata.title = shortHex(target.result.hash)
+			}
 			metadata.routerLink = `/tx/${target.bookmark ? target.result.id : target.result.hash}`
 			break
 
 		case "block":
 			metadata.type = target.type
-			metadata.title = target.result.alias || target.result.hash
-			metadata.routerLink = `/block/${target.bookmark ? target.result.id : target.result.height}`
+			// For EVM blocks, use number instead of height
+			const blockId = target.result.number || target.result.height
+			if (target.result.alias) {
+				metadata.title = target.result.alias
+				metadata.subtitle = `Block ${blockId}`
+			} else {
+				metadata.title = `Block ${blockId}`
+			}
+			metadata.routerLink = `/block/${target.bookmark ? target.result.id : blockId}`
 			break
 
 		case "namespace":
@@ -108,7 +122,13 @@ const getResultMetadata = (target) => {
 
 		case "address":
 			metadata.type = target.type
-			metadata.title = target.result.celestials?.name || target.result.alias || target.result.hash
+			// For EVM addresses, display shortened address
+			if (target.result.alias) {
+				metadata.title = target.result.alias
+				metadata.subtitle = shortHex(target.result.hash)
+			} else {
+				metadata.title = shortHex(target.result.hash)
+			}
 			metadata.routerLink = `/address/${target.bookmark ? target.result.id : target.result.hash}`
 			break
 
@@ -120,8 +140,8 @@ const getResultMetadata = (target) => {
 
 		case "validator":
 			metadata.type = target.type
-			metadata.title = target.result.alias || target.result.moniker ? target.result.moniker : target.result.address
-			metadata.routerLink = `/validator/${target.result.id}`
+			metadata.title = target.result.infrastructure?.validator_name || target.result.validator_id
+			metadata.routerLink = `/validator/${target.result.validator_id}`
 			break
 
 		default:
@@ -152,8 +172,15 @@ const handleSelect = () => {
 				<Icon v-if="!isSearching" name="search" size="14" color="secondary" />
 				<Spinner v-else size="14" />
 
-				<input ref="inputRef" v-model="searchTerm" @input="handleInput" placeholder="Search" spellcheck="false" autocomplete="off"
-				:class="$style.input_bar"
+				<input 
+					ref="inputRef" 
+					v-model="searchTerm" 
+					@input="handleInput" 
+					placeholder="Search blocks, transactions, addresses..." 
+					spellcheck="false" 
+					autocomplete="off"
+					:class="$style.input_bar"
+				/>
 			</Flex>
 
 			<Flex align="center" gap="4">
@@ -172,7 +199,12 @@ const handleSelect = () => {
 							<Flex align="center" justify="between" gap="4" :class="$style.item">
 								<Flex align="center" gap="8" :class="$style.title_wrapper">
 									<Icon :name="result.type" size="12" color="tertiary" />
-									<Text size="13" weight="600" color="primary" :class="$style.title">{{ result.title }}</Text>
+									<Flex direction="column" gap="2">
+										<Text size="13" weight="600" color="primary" :class="$style.title">{{ result.title }}</Text>
+										<Text v-if="result.subtitle" size="11" weight="500" color="tertiary" :class="$style.subtitle">
+											{{ result.subtitle }}
+										</Text>
+									</Flex>
 								</Flex>
 
 								<Text size="13" weight="500" color="tertiary" style="text-transform: capitalize">{{ result.type }}</Text>
@@ -218,7 +250,6 @@ const handleSelect = () => {
 .popup {
 	position: absolute;
 	max-width: 600px;
-	/* top: 40px; */
 	top: calc(100% + 10px);
 	left: 0;
 	right: 0;
@@ -243,12 +274,12 @@ const handleSelect = () => {
 }
 
 .item {
-	height: 28px;
+	min-height: 36px;
 
 	border-radius: 6px;
 	cursor: pointer;
 
-	padding: 0 6px;
+	padding: 6px;
 	margin-left: -6px;
 
 	transition: all 0.2s ease;
@@ -259,12 +290,21 @@ const handleSelect = () => {
 
 	.title_wrapper {
 		width: 90%;
+		min-width: 0;
 
 		.title {
 			max-width: 100%;
 			text-overflow: ellipsis;
 			overflow: hidden;
 			white-space: nowrap;
+		}
+
+		.subtitle {
+			max-width: 100%;
+			text-overflow: ellipsis;
+			overflow: hidden;
+			white-space: nowrap;
+			font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
 		}
 	}
 }
@@ -277,7 +317,6 @@ const handleSelect = () => {
 	.popup {
 		max-width: initial;
 
-		/* top: 160px; */
 		left: 12px;
 		right: 12px;
 	}

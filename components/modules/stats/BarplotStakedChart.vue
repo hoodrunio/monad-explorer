@@ -4,7 +4,7 @@ import * as d3 from "d3"
 import { DateTime } from "luxon"
 
 /** Services */
-import { abbreviate, comma, formatBytes, isMobile, sortArrayOfObjects, tia, truncateDecimalPart } from "@/services/utils"
+import { abbreviate, comma, formatBytes, isMobile, sortArrayOfObjects, mon, truncateDecimalPart } from "@/services/utils"
 
 const props = defineProps({
 	series: {
@@ -85,8 +85,8 @@ const buildChart = (chart, data) => {
 		switch (props.series.units) {
 			case "bytes":
 				return formatBytes(value, decimals)
-			case "utia":
-				return `${tia(value, 2)} TIA`
+					case "gwei":
+			return `${mon(value, 2)} MON`
 			case "seconds":
 				return `${truncateDecimalPart(value / 1_000, 3)}s`
 			case "usd":

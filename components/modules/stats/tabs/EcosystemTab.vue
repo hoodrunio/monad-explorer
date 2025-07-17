@@ -32,7 +32,7 @@ const prepareData = async () => {
 		let otherEntry = null
 		if (s.name === "nodetype") {
 			s.data = data.reduce((acc, d) => {
-				let name = d.name === "celestia-celestia" ? "Celestia" : capitilize(d.name)
+				let name = d.name === "monad-monad" ? "Monad" : capitilize(d.name)
 
 				if (name === "Unknown" || name === "Other") {
 					if (!otherEntry) {
@@ -69,9 +69,9 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Flex align="center" direction="column" gap="16" wide :class="$style.wrapper">
-        <Flex align="start" direction="column" gap="32" wide :class="$style.section">
-			<Text size="16" weight="600" color="primary" justify="start">Celestia Node Distribution</Text>
+	<Flex direction="column" gap="24">
+		<Flex direction="column" gap="16">
+			<Text size="16" weight="600" color="primary" justify="start">Monad Node Distribution</Text>
 
 			<GeoMap :class="$style.chart" />
 

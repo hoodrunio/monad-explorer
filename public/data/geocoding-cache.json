@@ -1,0 +1,320 @@
+{
+  "version": "1.0",
+  "generatedAt": "2025-07-11T22:06:32.985Z",
+  "totalLocations": 78,
+  "source": "nominatim",
+  "locations": {
+    "Falkenstein, Germany": [
+      12.3691588,
+      50.4773298
+    ],
+    "Helsinki, Finland": [
+      24.9427473,
+      60.1674881
+    ],
+    "Stockholm, Sweden": [
+      18.0710935,
+      59.3251172
+    ],
+    "Buenos Aires, Argentina": [
+      -58.4440583,
+      -34.6083696
+    ],
+    "Warsaw, Poland": [
+      21.0067249,
+      52.2319581
+    ],
+    "North Sydney, Australia": [
+      151.2083011,
+      -33.8354519
+    ],
+    "Singapore, Singapore": [
+      103.8519072,
+      1.2899175
+    ],
+    "Montreal, Canada": [
+      -73.5698065,
+      45.5031824
+    ],
+    "Vilnius, Lithuania": [
+      25.2829111,
+      54.6870458
+    ],
+    "Tokyo, Japan": [
+      139.7638947,
+      35.6768601
+    ],
+    "Melbourne, Australia": [
+      144.9631732,
+      -37.8142454
+    ],
+    "Vienna, Austria": [
+      16.3725042,
+      48.2083537
+    ],
+    "Mumbai, India": [
+      72.8692035,
+      19.054999
+    ],
+    "Draper, United States": [
+      -111.8627989,
+      40.5247777
+    ],
+    "Wattrelos, France": [
+      3.2153907,
+      50.7016015
+    ],
+    "Strasbourg, France": [
+      7.7507127,
+      48.584614
+    ],
+    "Frankfurt am Main, Germany": [
+      8.6820917,
+      50.1106444
+    ],
+    "Hong Kong, Hong Kong": [
+      114.1628131,
+      22.2793278
+    ],
+    "Gravelines, France": [
+      2.1273118,
+      50.9870697
+    ],
+    "Bluffdale, United States": [
+      -111.939284,
+      40.4898176
+    ],
+    "New York, United States": [
+      -74.0060152,
+      40.7127281
+    ],
+    "Moscow, Russia": [
+      37.6063916,
+      55.625578
+    ],
+    "Madrid, Spain": [
+      -3.7035825,
+      40.4167047
+    ],
+    "Amsterdam, The Netherlands": [
+      4.8924534,
+      52.3730796
+    ],
+    "Amsterdam, Netherlands": [
+      4.8924534,
+      52.3730796
+    ],
+    "London, United Kingdom": [
+      -0.1277653,
+      51.5074456
+    ],
+    "Oslo, Norway": [
+      10.7389701,
+      59.9133301
+    ],
+    "Waldbrunn, Germany": [
+      9.80361,
+      49.7586
+    ],
+    "Roubaix, France": [
+      3.1741734,
+      50.6915893
+    ],
+    "Pittsburgh, United States": [
+      -79.9900861,
+      40.4416941
+    ],
+    "Frankfurt, Germany": [
+      8.6820917,
+      50.1106444
+    ],
+    "Paris, France": [
+      2.3483915,
+      48.8534951
+    ],
+    "Bucharest, Romania": [
+      26.0863631,
+      44.4378654
+    ],
+    "São Paulo, Brazil": [
+      -46.6333824,
+      -23.5506507
+    ],
+    "Dublin, Ireland": [
+      -6.2605593,
+      53.3493795
+    ],
+    "Haarlem, The Netherlands": [
+      4.6388048,
+      52.3885317
+    ],
+    "Bangkok, Thailand": [
+      100.4935089,
+      13.7524938
+    ],
+    "Dallas, United States": [
+      -96.7968559,
+      32.7762719
+    ],
+    "Seoul, South Korea": [
+      126.9782914,
+      37.5666791
+    ],
+    "Scottsdale, United States": [
+      -111.926018,
+      33.4942189
+    ],
+    "Metairie, United States": [
+      -90.1767012,
+      30.0018546
+    ],
+    "Bratislava, Slovakia": [
+      17.1093063,
+      48.1516988
+    ],
+    "Santiago, Chile": [
+      -70.6504502,
+      -33.4377756
+    ],
+    "St Louis, United States": [
+      -90.1910154,
+      38.6280278
+    ],
+    "Munich, Germany": [
+      11.5753822,
+      48.1371079
+    ],
+    "Limburg an der Lahn, Germany": [
+      8.075668,
+      50.406558
+    ],
+    "Nuremberg, Germany": [
+      11.077298,
+      49.453872
+    ],
+    "Tsuen Wan, Hong Kong": [
+      114.1134699,
+      22.3716605
+    ],
+    "St Petersburg, Russia": [
+      30.316229,
+      59.938732
+    ],
+    "Cape Town, South Africa": [
+      18.4172197,
+      -33.9288301
+    ],
+    "Lille, France": [
+      3.0635282,
+      50.6365654
+    ],
+    "Mitake, Japan": [
+      137.1295844,
+      35.4316129
+    ],
+    "Valletta, Malta": [
+      14.5136607,
+      35.8989979
+    ],
+    "Klosterneuburg, Austria": [
+      16.323756,
+      48.30499
+    ],
+    "Auckland, New Zealand": [
+      174.7631803,
+      -36.852095
+    ],
+    "Jaipur, India": [
+      75.8189817,
+      26.9154576
+    ],
+    "Portland, United States": [
+      -122.674194,
+      45.5202471
+    ],
+    "Welling, United Kingdom": [
+      0.1122877,
+      51.4622188
+    ],
+    "Boston, United States": [
+      -71.060511,
+      42.3554334
+    ],
+    "Isando, South Africa": [
+      28.2218742,
+      -26.1353958
+    ],
+    "Barueri, Brazil": [
+      -46.8764612,
+      -23.5112184
+    ],
+    "Manassas, United States": [
+      -77.4752667,
+      38.7509488
+    ],
+    "Prague, Czechia": [
+      14.4212535,
+      50.0874654
+    ],
+    "Lagos, Nigeria": [
+      3.3941795,
+      6.4550575
+    ],
+    "Secaucus, United States": [
+      -74.0566735,
+      40.7899291
+    ],
+    "Warrenton, United States": [
+      -77.795367,
+      38.7135498
+    ],
+    "Baton Rouge, United States": [
+      -91.1869659,
+      30.4494155
+    ],
+    "Salt Lake City, United States": [
+      -111.886797,
+      40.7596198
+    ],
+    "Fechenheim, Germany": [
+      8.7693856,
+      50.123015
+    ],
+    "Piscataway, United States": [
+      -74.4660408,
+      40.5462553
+    ],
+    "Hillsboro, United States": [
+      -122.989827,
+      45.5228939
+    ],
+    "Duivendrecht, The Netherlands": [
+      4.9365267,
+      52.3235787
+    ],
+    "Lausanne, Switzerland": [
+      6.6327025,
+      46.5218269
+    ],
+    "Omaha, United States": [
+      -95.9383758,
+      41.2587459
+    ],
+    "Frankfurt (Oder), Germany": [
+      14.549452,
+      52.3412273
+    ],
+    "San José, Costa Rica": [
+      -84.0795782,
+      9.9325427
+    ],
+    "Cotia, Brazil": [
+      -46.918889,
+      -23.603889
+    ],
+    "Chicago, United States": [
+      -87.6244212,
+      41.8755616
+    ]
+  }
+}

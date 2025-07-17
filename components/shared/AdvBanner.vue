@@ -23,6 +23,8 @@ const adv = ref({})
 const isDisplayed = ref(true)
 
 const handleClick = () => {
+	if (!adv.value) return
+	
 	if (adv.value.internalLink) {
 		router.push(adv.value.internalLink)
 	} else if (adv.value.link) {
@@ -38,12 +40,17 @@ onMounted(() => {
 	} else {
 		adv.value = getRandomAdv()
 	}
+	
+	// If no advertisement is found, set to null to prevent template errors
+	if (!adv.value) {
+		adv.value = null
+	}
 })
 </script>
 
 <template>
 	<Flex
-		v-if="adv.name"
+		v-if="adv && adv.name"
 		@click="handleClick()"
 		:class="[$style.wrapper, orientation === 'horizontal' && $style.wrapper_horizontal, !isDisplayed && $style.not_display]"
 	>

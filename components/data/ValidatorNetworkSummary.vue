@@ -1,223 +1,212 @@
 <script setup>
-import { ref, computed } from 'vue'
-
 /** API */
-// This would fetch from the /validators/summary endpoint
-const networkSummary = ref({
-  totalValidators: 150,
-  activeValidators: 142,
-  inactiveValidators: 8,
-  totalStaked: 125000000,
-  averageStaked: 833333,
-  networkUptimePercentage: 99.2,
-  currentEpoch: 1247,
-  consensusRoundsCompleted: 45230,
-  slashingEvents: 3,
-  averageBlockTime: 1.2
+import { fetchValidatorRankings } from "@/services/api/validator"
+
+/** Services */
+import { comma, shortHex } from "@/services/utils"
+
+/** Components */
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
+
+const { data: validatorsData, pending: isLoading, error } = await fetchValidatorRankings({ 
+  limit: 10, 
+  sortBy: 'uptime_score',
+  window: '7d'
 })
 
-const activityPercentage = computed(() => {
-  return (networkSummary.value.activeValidators / networkSummary.value.totalValidators) * 100
+const topValidators = computed(() => {
+  if (!validatorsData.value?.data || !Array.isArray(validatorsData.value.data)) {
+    return []
+  }
+  
+  return validatorsData.value.data.map(validator => {
+    const totalBlockOpportunities = validator.details?.total_block_opportunities || 0
+    const blockProposalRatio = validator.metrics?.block_proposal_ratio || 0
+    
+    // NEW: Use block proposal ratio as uptime score (instead of combined uptime_score)
+    // If no block opportunities, uptime score is null
+    const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
+    
+    return {
+      rank: validator.rank || 0,
+      validatorId: validator.validator_id || '',
+      name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+      uptimeScore,
+      qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+      blockProposalRatio,
+      provider: validator.infrastructure?.provider || 'Unknown',
+      location: validator.infrastructure?.location || 'Unknown',
+      blocksProposed: validator.details?.blocks_proposed || 0,
+      totalBlockOpportunities,
+      qcParticipations: validator.details?.qc_participations || 0,
+      totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+      logoUrl: validator.keybase?.logo_url || validator.logoUrl || null
+    }
+  })
 })
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
+const formatPercentage = (value) => {
+  if (value === null || value === undefined) return 'N/A'
+  return `${value.toFixed(1)}%`
 }
 
-const formatLargeNumber = (num) => {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`
-  } else if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`
-  }
-  return num.toString()
+const getPerformanceColor = (score) => {
+  if (score === null || score === undefined) return 'tertiary'
+  if (score >= 99) return 'green'
+  if (score >= 95) return 'yellow'
+  return 'red'
 }
 </script>
 
 <template>
-  <div :class="$style.wrapper">
-    <Flex direction="column" gap="20">
-      <Text size="18" weight="700" color="primary">Network Summary</Text>
+  <Flex direction="column" gap="20" :class="$style.wrapper">
+    <Flex align="center" justify="between">
+      <Flex align="center" gap="8">
+        <Icon name="validator" size="16" color="secondary" />
+        <Text size="14" weight="600" color="primary">Top Validators (7d)</Text>
+      </Flex>
       
-      <!-- Top metrics grid -->
-      <div :class="$style.metrics_grid">
-        <div :class="$style.metric_card">
-          <Flex direction="column" gap="8">
-            <Text size="12" color="tertiary">Total Validators</Text>
-            <Text size="24" weight="700" color="primary">
-              {{ networkSummary.totalValidators }}
-            </Text>
-            <Flex align="center" gap="4">
-              <div :class="[$style.status_dot, $style.active]"></div>
-              <Text size="11" color="green">
-                {{ networkSummary.activeValidators }} Active
-              </Text>
-            </Flex>
-          </Flex>
-        </div>
-        
-        <div :class="$style.metric_card">
-          <Flex direction="column" gap="8">
-            <Text size="12" color="tertiary">Total Staked</Text>
-            <Text size="24" weight="700" color="primary">
-              {{ formatLargeNumber(networkSummary.totalStaked) }}
-            </Text>
-            <Text size="11" color="secondary">
-              Avg: {{ formatLargeNumber(networkSummary.averageStaked) }}
-            </Text>
-          </Flex>
-        </div>
-        
-        <div :class="$style.metric_card">
-          <Flex direction="column" gap="8">
-            <Text size="12" color="tertiary">Network Uptime</Text>
-            <Text size="24" weight="700" color="green">
-              {{ networkSummary.networkUptimePercentage }}%
-            </Text>
-            <Text size="11" color="secondary">
-              Last 30 days
-            </Text>
-          </Flex>
-        </div>
-        
-        <div :class="$style.metric_card">
-          <Flex direction="column" gap="8">
-            <Text size="12" color="tertiary">Current Epoch</Text>
-            <Text size="24" weight="700" color="primary">
-              {{ networkSummary.currentEpoch }}
-            </Text>
-            <Text size="11" color="secondary">
-              {{ networkSummary.consensusRoundsCompleted.toLocaleString() }} rounds
-            </Text>
-          </Flex>
-        </div>
-      </div>
-      
-      <!-- Activity bar -->
-      <div :class="$style.activity_section">
-        <Flex align="center" justify="between" style="margin-bottom: 8px;">
-          <Text size="14" weight="600" color="primary">Validator Activity</Text>
-          <Text size="14" weight="600" color="primary">
-            {{ activityPercentage.toFixed(1) }}%
-          </Text>
-        </Flex>
-        
-        <div :class="$style.activity_bar">
-          <div 
-            :class="$style.activity_progress" 
-            :style="{ width: `${activityPercentage}%` }"
-          ></div>
-        </div>
-        
-        <Flex align="center" justify="between" style="margin-top: 8px;">
-          <Text size="11" color="secondary">
-            {{ networkSummary.inactiveValidators }} Inactive
-          </Text>
-          <Text size="11" color="secondary">
-            {{ networkSummary.slashingEvents }} Slashing Events
-          </Text>
-        </Flex>
-      </div>
-      
-      <!-- Performance metrics -->
-      <div :class="$style.performance_section">
-        <Text size="14" weight="600" color="primary" style="margin-bottom: 12px;">
-          Performance Metrics
-        </Text>
-        
-        <Flex direction="column" gap="8">
-          <Flex align="center" justify="between">
-            <Text size="12" color="tertiary">Average Block Time</Text>
-            <Text size="12" weight="600" color="primary">
-              {{ networkSummary.averageBlockTime }}s
-            </Text>
-          </Flex>
-          
-          <Flex align="center" justify="between">
-            <Text size="12" color="tertiary">Consensus Efficiency</Text>
-            <Text size="12" weight="600" color="green">
-              99.7%
-            </Text>
-          </Flex>
-        </Flex>
-      </div>
+      <NuxtLink to="/validators" :class="$style.view_all_link">
+        <Text size="12" color="secondary">View All</Text>
+      </NuxtLink>
     </Flex>
-  </div>
+
+    <Flex v-if="isLoading" direction="column" gap="12" :class="$style.loading">
+      <Text size="12" color="tertiary">Loading validator rankings...</Text>
+    </Flex>
+
+    <Flex v-else-if="error" direction="column" gap="12" :class="$style.error">
+      <Text size="12" color="red">Error loading validator data</Text>
+    </Flex>
+
+    <Flex v-else-if="topValidators.length === 0" direction="column" gap="12" :class="$style.empty">
+      <Text size="12" color="tertiary">No validator data available</Text>
+    </Flex>
+
+    <div v-else :class="$style.table_scroller">
+      <table :class="$style.table">
+        <thead>
+          <tr>
+            <th><Text size="12" weight="600" color="tertiary">Rank</Text></th>
+            <th><Text size="12" weight="600" color="tertiary">Validator</Text></th>
+            <th><Text size="12" weight="600" color="tertiary">Uptime Score</Text></th>
+            <th><Text size="12" weight="600" color="tertiary">Location</Text></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="validator in topValidators" :key="validator.validatorId">
+            <td>
+              <Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
+            </td>
+            
+            <td>
+              <NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.validator_link">
+                <Flex align="center" gap="6">
+                  <ValidatorLogo 
+                    :logo-url="validator.logoUrl" 
+                    :validator-name="validator.name"
+                    size="small"
+                  />
+                  <Flex direction="column" gap="2">
+                    <Text size="13" weight="600" color="primary">{{ validator.name }}</Text>
+                    <Text size="11" color="tertiary">{{ validator.provider }}</Text>
+                  </Flex>
+                </Flex>
+              </NuxtLink>
+            </td>
+            
+            <td>
+              <Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
+                {{ formatPercentage(validator.uptimeScore) }}
+              </Text>
+            </td>
+            
+            <td>
+              <Text size="12" color="tertiary">{{ validator.location }}</Text>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </Flex>
 </template>
 
 <style module>
 .wrapper {
-  padding: 24px;
   background: var(--card-background);
   border-radius: 12px;
-}
-
-.metrics_grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.metric_card {
   padding: 16px;
-  border: 1px solid var(--op-8);
-  border-radius: 8px;
-  background: var(--op-3);
+  min-height: 200px;
 }
 
-.status_dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.view_all_link {
+  text-decoration: none;
+  transition: opacity 0.2s ease;
 
-  &.active {
-    background: var(--green);
+  &:hover {
+    opacity: 0.8;
   }
 }
 
-.activity_section {
-  padding: 16px;
-  border: 1px solid var(--op-8);
-  border-radius: 8px;
-  background: var(--op-3);
+.loading,
+.error,
+.empty {
+  padding: 20px;
+  text-align: center;
 }
 
-.activity_bar {
+.table_scroller {
+  overflow-x: auto;
+}
+
+.table {
   width: 100%;
-  height: 6px;
-  background: var(--op-10);
-  border-radius: 3px;
-  overflow: hidden;
+  border-spacing: 0;
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--op-10);
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--op-5);
+
+    &:first-child {
+      padding-left: 0;
+    }
+
+    &:last-child {
+      padding-right: 0;
+    }
+  }
+
+  tbody tr {
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: var(--op-5);
+    }
+  }
 }
 
-.activity_progress {
-  height: 100%;
-  background: linear-gradient(to right, var(--green), var(--brand));
-  transition: width 0.3s ease;
-  border-radius: 3px;
-}
-
-.performance_section {
-  padding: 16px;
-  border: 1px solid var(--op-8);
-  border-radius: 8px;
-  background: var(--op-3);
+.validator_link {
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
-  .metrics_grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .metrics_grid {
-    grid-template-columns: 1fr;
+  .table_scroller {
+    overflow-x: scroll;
   }
 }
 </style> 

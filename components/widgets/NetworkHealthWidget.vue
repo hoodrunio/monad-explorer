@@ -5,23 +5,52 @@ import { computed, ref } from 'vue'
 import Badge from "@/components/ui/Badge.vue"
 
 /** API */
-// This would fetch from the new API structure
-const networkHealth = ref({
-  totalValidators: 150,
-  activeValidators: 142,
-  consensusRounds: 1247,
-  averageUptimeScore: 95.7,
-  networkStatus: 'healthy'
+import { fetchNetworkSummary } from "@/services/api/main"
+
+const { data: networkData, pending: isLoading, error } = await fetchNetworkSummary()
+
+const networkHealth = computed(() => {
+  if (!networkData.value?.summary) {
+    // Fallback data while loading
+    return {
+      uniqueValidators: 0,
+      totalEvents: 0,
+      overallSuccessRate: 0,
+      blockSuccessRate: 0,
+      qcSuccessRate: 0,
+      activeDays: 0
+    }
+  }
+  
+  const summary = networkData.value.summary
+  return {
+    uniqueValidators: summary.unique_validators || 0,
+    totalEvents: summary.total_events || 0,
+    overallSuccessRate: summary.overall_success_rate || 0,
+    blockSuccessRate: summary.block_proposal_metrics?.success_rate || 0,
+    qcSuccessRate: summary.qc_participation_metrics?.success_rate || 0,
+    activeDays: summary.active_days || 0
+  }
 })
 
 const healthPercentage = computed(() => {
-  return (networkHealth.value.activeValidators / networkHealth.value.totalValidators) * 100
+  return networkHealth.value.overallSuccessRate || 0
 })
 
 const statusColor = computed(() => {
-  if (healthPercentage.value >= 95) return 'green'
-  if (healthPercentage.value >= 90) return 'yellow'
+  if (isLoading.value) return 'tertiary'
+  if (error.value) return 'red'
+  if (healthPercentage.value >= 75) return 'green'
+  if (healthPercentage.value <= 70) return 'yellow'
   return 'red'
+})
+
+const displayStatus = computed(() => {
+  if (isLoading.value) return 'Loading...'
+  if (error.value) return 'Error'
+  if (healthPercentage.value >= 75) return 'Healthy'
+  if (healthPercentage.value <= 70) return 'Warning'
+  return 'Critical'
 })
 </script>
 
@@ -31,7 +60,7 @@ const statusColor = computed(() => {
       <Flex align="center" justify="between">
         <Text size="14" weight="600" color="primary">Network Health</Text>
         <Badge :class="[$style.status_badge, $style[statusColor]]">
-          <Text size="12" weight="600" color="primary">{{ networkHealth.networkStatus }}</Text>
+          <Text size="12" weight="600" color="primary">{{ displayStatus }}</Text>
         </Badge>
       </Flex>
       
@@ -39,21 +68,21 @@ const statusColor = computed(() => {
         <Flex align="center" justify="between">
           <Text size="12" color="tertiary">Active Validators</Text>
           <Text size="14" weight="600" color="primary">
-            {{ networkHealth.activeValidators }}/{{ networkHealth.totalValidators }}
+            {{ networkHealth.uniqueValidators }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Consensus Rounds</Text>
+          <Text size="12" color="tertiary">Total Events</Text>
           <Text size="14" weight="600" color="primary">
-            {{ networkHealth.consensusRounds.toLocaleString() }}
+            {{ networkHealth.totalEvents.toLocaleString("en-US") }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Avg Uptime Score</Text>
+          <Text size="12" color="tertiary">Overall Success Rate</Text>
           <Text size="14" weight="600" color="primary">
-            {{ networkHealth.averageUptimeScore }}%
+            {{ networkHealth.overallSuccessRate.toFixed(1) }}%
           </Text>
         </Flex>
         
@@ -89,6 +118,11 @@ const statusColor = computed(() => {
   &.red {
     background: linear-gradient(var(--red-op-10), var(--red-op-5));
     box-shadow: inset 0 0 0 1px var(--red);
+  }
+  
+  &.tertiary {
+    background: linear-gradient(var(--op-10), var(--op-5));
+    box-shadow: inset 0 0 0 1px var(--op-20);
   }
 }
 

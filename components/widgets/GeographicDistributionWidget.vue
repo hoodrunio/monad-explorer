@@ -1,15 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 /** API */
-// This would fetch from the /validators/geographic endpoint
-const geographicData = ref([
-  { region: 'North America', count: 45, percentage: 30 },
-  { region: 'Europe', count: 38, percentage: 25.3 },
-  { region: 'Asia Pacific', count: 42, percentage: 28 },
-  { region: 'South America', count: 15, percentage: 10 },
-  { region: 'Africa/Middle East', count: 10, percentage: 6.7 }
-])
+import { fetchGeographicDistribution } from "@/services/api/main"
+
+const { data: geoData, pending: isLoading, error } = await fetchGeographicDistribution()
+
+const geographicData = computed(() => {
+  if (!geoData.value?.data?.distribution || !Array.isArray(geoData.value.data.distribution)) {
+    return []
+  }
+  
+  return geoData.value.data.distribution.map(region => ({
+    location: region.location || 'Unknown',
+    validatorCount: region.validatorCount || region.validator_count || 0,
+    percentage: region.percentage || 0
+  }))
+})
+
+const totalValidators = computed(() => {
+  return geoData.value?.data?.totalValidators || 0
+})
 
 const getRegionColor = (index) => {
   const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
@@ -27,10 +38,22 @@ const getRegionColor = (index) => {
         </NuxtLink>
       </Flex>
       
-      <Flex direction="column" gap="10">
+      <Flex v-if="isLoading" direction="column" gap="10">
+        <Text size="12" color="tertiary">Loading geographic data...</Text>
+      </Flex>
+      
+      <Flex v-else-if="error" direction="column" gap="10">
+        <Text size="12" color="red">Error loading geographic data</Text>
+      </Flex>
+      
+      <Flex v-else-if="geographicData.length === 0" direction="column" gap="10">
+        <Text size="12" color="tertiary">No geographic data available</Text>
+      </Flex>
+      
+      <Flex v-else direction="column" gap="10">
         <div 
-          v-for="(region, index) in geographicData" 
-          :key="region.region"
+          v-for="(region, index) in geographicData.slice(0, 5)" 
+          :key="region.location"
           :class="$style.region_item"
         >
           <Flex align="center" justify="between" style="margin-bottom: 6px;">
@@ -39,13 +62,13 @@ const getRegionColor = (index) => {
                 :class="$style.region_indicator"
                 :style="{ backgroundColor: getRegionColor(index) }"
               ></div>
-              <Text size="12" color="primary">{{ region.region }}</Text>
+              <Text size="12" color="primary">{{ region.location }}</Text>
             </Flex>
             
             <Flex align="center" gap="8">
-              <Text size="12" color="tertiary">{{ region.count }}</Text>
+              <Text size="12" color="tertiary">{{ region.validatorCount }}</Text>
               <Text size="11" weight="600" color="secondary">
-                {{ region.percentage }}%
+                {{ region.percentage.toFixed(1) }}%
               </Text>
             </Flex>
           </Flex>
@@ -60,6 +83,13 @@ const getRegionColor = (index) => {
               }"
             ></div>
           </div>
+        </div>
+        
+        <!-- Total validators info -->
+        <div v-if="totalValidators > 0" :class="$style.total_info">
+          <Text size="11" color="tertiary">
+            Total: {{ totalValidators }} validators
+          </Text>
         </div>
       </Flex>
     </Flex>
@@ -97,6 +127,14 @@ const getRegionColor = (index) => {
   height: 100%;
   transition: width 0.3s ease;
   border-radius: 2px;
+}
+
+.total_info {
+  padding: 8px;
+  background: var(--op-5);
+  border-radius: 4px;
+  margin-top: 4px;
+  text-align: center;
 }
 
 .view_map_link {

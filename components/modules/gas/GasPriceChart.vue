@@ -6,12 +6,18 @@ import { useDebounceFn } from "@vueuse/core"
 
 /** Services */
 import { truncate } from "@/services/utils"
-
-/** API */
-import { fetchGasPriceSeries } from "@/services/api/gas"
+import { convertFromWei } from "@/services/utils/amounts"
 
 const props = defineProps({
 	selectedPeriod: Object,
+	gasHistory: {
+		type: Array,
+		default: () => []
+	},
+	isLoading: {
+		type: Boolean,
+		default: false
+	}
 })
 
 /** Chart El */
@@ -35,6 +41,8 @@ const badgeText = ref("")
 const badgeOffset = ref(0)
 
 const buildChart = (chartEl, data, onEnter, onLeave) => {
+	if (!data || data.length === 0) return
+	
 	const width = chartWrapperEl.value.wrapper.getBoundingClientRect().width
 	const height = 180
 	const marginTop = 0
@@ -46,7 +54,7 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 
 	/** Scale */
 	const x = d3.scaleUtc(
-		d3.extent(data, (d) => d.date),
+		d3.extent(data, (d) => d.date), // Extent: oldest (left) to newest (right)
 		[marginLeft, width - marginRight],
 	)
 	const y = d3.scaleLinear([0, MAX_VALUE], [height - marginBottom - 6, marginTop])
@@ -60,30 +68,32 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	const onPointermoved = (event) => {
 		onEnter()
 
-		const idx = bisect(data, x.invert(d3.pointer(event)[0]))
+		// Now that scale is correctly set up, use bisector normally
+		const mouseX = d3.pointer(event)[0]
+		const invertedDate = x.invert(mouseX)
+		const idx = bisect(data, invertedDate)
+		const validIdx = Math.max(0, Math.min(idx, data.length - 1))
+		const point = data[validIdx]
 
-		tooltipXOffset.value = x(data[idx].date)
-		tooltipYDataOffset.value = y(data[idx].value)
+		tooltipXOffset.value = x(point.date)
+		tooltipYDataOffset.value = y(point.value)
 		tooltipYOffset.value = event.layerY
-		tooltipText.value = data[idx].value
+		tooltipText.value = point.value
 
 		if (tooltipEl.value) {
-			if (idx > 12) {
+			if (validIdx > 12) {
 				tooltipDynamicXPosition.value = tooltipXOffset.value - tooltipEl.value.wrapper.getBoundingClientRect().width - 16
 			} else {
 				tooltipDynamicXPosition.value = tooltipXOffset.value + 16
 			}
 		}
 
-		badgeText.value =
-			props.selectedPeriod.timeframe === "day"
-				? DateTime.fromJSDate(data[idx].date).toFormat("LLL dd")
-				: DateTime.fromJSDate(data[idx].date).set({ minutes: 0 }).toFormat("hh:mm a")
+		badgeText.value = DateTime.fromJSDate(point.date).toFormat("LLL dd")
 
 		if (!badgeEl.value) return
-		if (idx < 1) {
+		if (validIdx < 1) {
 			badgeOffset.value = 0
-		} else if (idx > props.selectedPeriod.value - 2) {
+		} else if (validIdx > data.length - 2) {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width
 		} else {
 			badgeOffset.value = badgeEl.value.getBoundingClientRect().width / 2
@@ -153,57 +163,44 @@ const buildChart = (chartEl, data, onEnter, onLeave) => {
 	chartEl.append(svg.node())
 }
 
-const getGasPriceSeries = async () => {
-	gasPriceSeries.value = []
+const processGasHistoryData = () => {
+	if (!props.gasHistory || props.gasHistory.length === 0) {
+		gasPriceSeries.value = []
+		return
+	}
 
-	const sizeSeriesRawData = await fetchGasPriceSeries({
-		timeframe: props.selectedPeriod.timeframe,
-		to: parseInt(DateTime.now().plus({ minutes: 1 }).ts / 1_000),
-		from: parseInt(
-			DateTime.now()
-				.set({ minutes: 0, seconds: 0 })
-				.minus({
-					days: props.selectedPeriod.timeframe === "day" ? props.selectedPeriod.value : 0,
-					hours: props.selectedPeriod.timeframe === "hour" ? props.selectedPeriod.value - 1 : 0,
-				}).ts / 1_000,
-		),
-	})
+	// Process gas history data from analytics API
+	gasPriceSeries.value = props.gasHistory
+		.slice(0, props.selectedPeriod.value)
+		.map(item => ({
+			date: DateTime.fromISO(item.date).toJSDate(),
+			value: convertFromWei(item.averageGasPrice, 9) // Convert to gwei
+		}))
+		.filter(item => item.value > 0) // Filter out empty days
+		.reverse() // Reverse to show oldest to newest (left to right)
+}
 
-	const gasPriceSeriesMap = {}
-	sizeSeriesRawData.forEach((item) => {
-		gasPriceSeriesMap[DateTime.fromISO(item.time).toFormat(props.selectedPeriod.timeframe === "day" ? "y-LL-dd" : "y-LL-dd-HH")] =
-			item.value
-	})
-
-	for (let i = 1; i < props.selectedPeriod.value + 1; i++) {
-		const dt = DateTime.now()
-			.set({ minutes: 0, seconds: 0 })
-			.minus({
-				days: props.selectedPeriod.timeframe === "day" ? props.selectedPeriod.value - i : 0,
-				hours: props.selectedPeriod.timeframe === "hour" ? props.selectedPeriod.value - i : 0,
-			})
-		gasPriceSeries.value.push({
-			date: dt.toJSDate(),
-			value: parseFloat(gasPriceSeriesMap[dt.toFormat(props.selectedPeriod.timeframe === "day" ? "y-LL-dd" : "y-LL-dd-HH")]) || 0,
-		})
+const buildGasTrackingCharts = () => {
+	if (props.isLoading) return
+	
+	processGasHistoryData()
+	
+	if (gasPriceSeries.value.length > 0) {
+		buildChart(
+			gasPriceChartEl.value.wrapper,
+			gasPriceSeries.value,
+			() => (showTooltip.value = true),
+			() => (showTooltip.value = false),
+		)
 	}
 }
 
-const buildGasTrackingCharts = async () => {
-	await getGasPriceSeries()
-	buildChart(
-		gasPriceChartEl.value.wrapper,
-		gasPriceSeries.value,
-		() => (showTooltip.value = true),
-		() => (showTooltip.value = false),
-	)
-}
-
 watch(
-	() => props.selectedPeriod,
+	() => [props.selectedPeriod, props.gasHistory, props.isLoading],
 	() => {
 		buildGasTrackingCharts()
 	},
+	{ deep: true }
 )
 
 const debouncedRedraw = useDebounceFn((e) => {
@@ -212,7 +209,6 @@ const debouncedRedraw = useDebounceFn((e) => {
 
 onMounted(async () => {
 	window.addEventListener("resize", debouncedRedraw)
-
 	buildGasTrackingCharts()
 })
 
@@ -223,7 +219,15 @@ onBeforeUnmount(() => {
 
 <template>
 	<Flex direction="column" gap="24" wide>
-		<Flex ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">
+		<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
+			<Text size="13" weight="600" color="secondary">Loading gas price history...</Text>
+		</Flex>
+		
+		<Flex v-else-if="!gasHistory.length" align="center" justify="center" :class="$style.no_data">
+			<Text size="13" weight="600" color="tertiary">No gas price data available</Text>
+		</Flex>
+		
+		<Flex v-else ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">
 			<Flex direction="column" justify="between" :class="[$style.axis, $style.y]">
 				<Text v-if="gasPriceSeries.length" size="12" weight="600" color="tertiary">
 					{{ truncate(Math.max(...gasPriceSeries.map((d) => d.value))) }}
@@ -241,23 +245,15 @@ onBeforeUnmount(() => {
 
 			<Flex :class="[$style.axis, $style.x]">
 				<Flex align="end" justify="between" wide>
-					<Text v-if="props.selectedPeriod.timeframe === 'day'" size="12" weight="600" color="tertiary">
+					<Text size="12" weight="600" color="tertiary">
 						{{
 							DateTime.now()
 								.minus({ days: props.selectedPeriod.value - 1 })
 								.toFormat("LLL dd")
 						}}
 					</Text>
-					<Text v-else size="12" weight="600" color="tertiary">
-						{{
-							DateTime.now()
-								.minus({ hours: props.selectedPeriod.value - 1 })
-								.set({ minutes: 0 })
-								.toFormat("hh:mm a")
-						}}
-					</Text>
 
-					<Text size="12" weight="600" color="tertiary">{{ props.selectedPeriod.timeframe === "day" ? "Today" : "Now" }}</Text>
+					<Text size="12" weight="600" color="tertiary">Today</Text>
 				</Flex>
 			</Flex>
 
@@ -279,7 +275,7 @@ onBeforeUnmount(() => {
 					>
 						<Flex align="center" gap="16">
 							<Text size="12" weight="600" color="secondary">Price</Text>
-							<Text size="12" weight="600" color="primary"> {{ tooltipText.toFixed(6) }} UTIA</Text>
+							<Text size="12" weight="600" color="primary"> {{ tooltipText.toFixed(6) }} gwei</Text>
 						</Flex>
 					</Flex>
 				</div>
@@ -291,9 +287,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style module>
+.loading,
+.no_data {
+	height: 180px;
+}
+
 .chart_wrapper {
 	position: relative;
-
 	height: 180px;
 }
 

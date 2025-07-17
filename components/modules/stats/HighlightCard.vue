@@ -1,6 +1,6 @@
 <script setup>
 /** Services */
-import { abbreviate, comma, formatBytes, tia } from "@/services/utils"
+import { abbreviate, comma, formatBytes, tia, mon } from "@/services/utils"
 
 /** Stats Components */
 import DiffChip from "@/components/modules/stats/DiffChip.vue"
@@ -20,6 +20,8 @@ const value = computed(() => {
 			return formatBytes(props.highlight.value)
 		case 'utia':
 			return `${abbreviate(tia(props.highlight.value))} TIA`
+		case 'gwei':
+			return `${abbreviate(mon(props.highlight.value))} MON`
 		default:
 			return abbreviate(props.highlight.value)
 	}

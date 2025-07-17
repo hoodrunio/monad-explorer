@@ -2,330 +2,336 @@
 /** Vendor */
 import { DateTime } from "luxon"
 
-/** UI */
-import Button from "@/components/ui/Button.vue"
-import Tooltip from "@/components/ui/Tooltip.vue"
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
-
 /** Services */
-import { comma, space, formatBytes } from "@/services/utils"
+import { comma, formatBytes } from "@/services/utils"
 
 /** API */
-import { fetchBlocks, fetchBlocksCount } from "@/services/api/block"
+import { fetchBlocks } from "@/services/api/block"
+
+/** Components */
+import Tooltip from "@/components/ui/Tooltip.vue"
+import Button from "@/components/ui/Button.vue"
+
+const route = useRoute()
+const router = useRouter()
+
+const blocks = ref([])
+const currentPage = ref(parseInt(route.query.page) || 1)
+const pageSize = ref(20)
+const totalBlocks = ref(0)
+const isLoading = ref(false)
+
+// EVM block helper functions
+const formatGasValue = (value) => {
+	if (!value) return "0"
+	return comma(value)
+}
+
+const getGasUsagePercent = (gasUsed, gasLimit) => {
+	if (!gasLimit || gasLimit === "0") return 0
+	return Math.min((parseInt(gasUsed) / parseInt(gasLimit)) * 100, 100)
+}
+
+const loadBlocks = async (page = 1) => {
+	isLoading.value = true
+	
+	try {
+		const { data, error } = await fetchBlocks({
+			limit: pageSize.value,
+			page: page,
+			offset: (page - 1) * pageSize.value
+		})
+		
+		if (error.value) {
+			blocks.value = []
+			totalBlocks.value = 0
+		} else if (data.value && data.value.data) {
+			blocks.value = data.value.data.blocks || []
+			totalBlocks.value = data.value.data.pagination?.total || blocks.value.length
+			currentPage.value = page
+		} else {
+			blocks.value = []
+			totalBlocks.value = 0
+		}
+	} catch (error) {
+		blocks.value = []
+		totalBlocks.value = 0
+	} finally {
+		isLoading.value = false
+	}
+}
+
+const handlePageChange = (page) => {
+	currentPage.value = page
+	router.push({ query: { page } })
+	loadBlocks(page)
+}
+
+const handleNext = () => {
+	if (currentPage.value * pageSize.value < totalBlocks.value) {
+		handlePageChange(currentPage.value + 1)
+	}
+}
+
+const handlePrev = () => {
+	if (currentPage.value > 1) {
+		handlePageChange(currentPage.value - 1)
+	}
+}
+
+const handleFirst = () => {
+	if (currentPage.value > 1) {
+		handlePageChange(1)
+	}
+}
+
+const totalPages = computed(() => {
+	return Math.ceil(totalBlocks.value / pageSize.value)
+})
+
+// Load blocks on mount
+onMounted(async () => {
+	await nextTick()
+	loadBlocks(currentPage.value)
+})
+
+// Watch for route changes
+watch(() => route.query.page, (newPage) => {
+	const page = parseInt(newPage) || 1
+	if (page !== currentPage.value) {
+		loadBlocks(page)
+	}
+}, { immediate: true })
+
+// Additional handler for page refresh
+onActivated(() => {
+	loadBlocks(currentPage.value)
+})
 
 useHead({
-	title: "Blocks - Celestia Explorer",
+	title: "Blocks - Monad Explorer",
 	link: [
 		{
 			rel: "canonical",
-			href: "https://celenium.io/blocks",
+			href: `${useRequestURL().origin}${useRequestURL().pathname}`,
 		},
 	],
 	meta: [
 		{
 			name: "description",
-			content:
-				"View all blocks in the Celestia Blockchain. Hash, proposer, transactions count, events, blobs size and fee are shown.",
+			content: "Browse all blocks on the Monad network. View block details, transactions, gas usage, and timestamps.",
 		},
-		{
-			property: "og:title",
-			content: "Blocks - Celestia Explorer",
-		},
-		{
-			property: "og:description",
-			content:
-				"View all blocks in the Celestia Blockchain. Hash, proposer, transactions count, events, blobs size and fee are shown.",
-		},
-		{
-			property: "og:url",
-			content: `https://celenium.io/blocks`,
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/blocks.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Blocks - Celestia Explorer",
-		},
-		{
-			name: "twitter:description",
-			content:
-				"View all blocks in the Celestia Blockchain. Hash, proposer, transactions count, events, blobs size and fee are shown.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "https://celenium.io/img/seo/blocks.png",
-		},
+
 	],
 })
-
-const route = useRoute()
-const router = useRouter()
-
-const isRefetching = ref(false)
-const blocks = ref([])
-const count = ref(0)
-
-const hintedBlock = ref(route.query.block)
-
-const getBlocksCount = async () => {
-	const { data: blocksCount } = await fetchBlocksCount()
-	count.value = blocksCount.value
-}
-
-await getBlocksCount()
-
-const page = ref(route.query.page ? parseInt(route.query.page) : 1)
-const pages = computed(() => Math.ceil(count.value / 20))
-
-const { data } = await fetchBlocks({ limit: 20, offset: (page.value - 1) * 20 })
-blocks.value = data.value
-
-/** Refetch blocks */
-watch(
-	() => page.value,
-	async () => {
-		isRefetching.value = true
-
-		const { data } = await fetchBlocks({ limit: 20, offset: (page.value - 1) * 20 })
-		blocks.value = data.value
-
-		isRefetching.value = false
-
-		router.replace({ query: { page: page.value } })
-	},
-)
-
-const handlePrev = () => {
-	if (page.value === 1) return
-
-	page.value -= 1
-}
-
-const handleNext = () => {
-	if (page.value === pages.value) return
-
-	page.value += 1
-}
-
-const handleLast = async () => {
-	await getBlocksCount()
-
-	page.value = pages.value
-}
 </script>
 
 <template>
-	<Flex direction="column" wide :class="$style.wrapper">
-		<Breadcrumbs
-			:items="[
-				{ link: '/', name: 'Explore' },
-				{ link: '/blocks', name: `Blocks` },
-			]"
-			:class="$style.breadcrumbs"
-		/>
-
-		<Flex wide direction="column" gap="4">
-			<Flex justify="between" :class="$style.header">
-				<Flex align="center" gap="8">
-					<Icon name="block" size="16" color="secondary" />
-					<Text as="h1" size="14" weight="600" color="primary">Blocks</Text>
-				</Flex>
-
-				<Flex align="center" gap="6">
-					<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
-						<Icon name="arrow-left-stop" size="12" color="primary" />
-					</Button>
-					<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
-						<Icon name="arrow-left" size="12" color="primary" />
-					</Button>
-
-					<Button type="secondary" size="mini" disabled>
-						<Text size="12" weight="600" color="primary"> {{ comma(page) }} of {{ comma(pages) }} </Text>
-					</Button>
-
-					<Button @click="handleNext" type="secondary" size="mini" :disabled="page === pages">
-						<Icon name="arrow-right" size="12" color="primary" />
-					</Button>
-					<Button @click="handleLast" type="secondary" size="mini" :disabled="page === pages">
-						<Icon name="arrow-right-stop" size="12" color="primary" />
-					</Button>
-				</Flex>
+	<Flex direction="column" gap="20" wide :class="$style.wrapper">
+		<Flex direction="column" gap="12">
+			<Flex align="end" justify="between" :class="$style.header">
+				<Breadcrumbs
+					:items="[
+						{ link: '/', name: 'Dashboard' },
+						{ link: '/blocks', name: 'Blocks' },
+					]"
+				/>
 			</Flex>
 
-			<Flex direction="column" wide :class="[$style.table, isRefetching && $style.disabled]">
-				<div :class="$style.table_scroller">
-					<table>
-						<thead>
-							<tr>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Height</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Time</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Proposer</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Hash</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Txs</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Events</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Blobs</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Blobs Size</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Total Fees</Text></th>
-							</tr>
-						</thead>
+			<Flex direction="column" gap="16">
+				<Flex align="center" justify="between">
+					<Flex align="center" gap="8">
+						<Icon name="block" size="16" color="primary" />
+						<Text size="16" weight="600" color="primary">Blocks</Text>
+					</Flex>
+					
+					<Flex align="center" gap="8">
+						<Text size="13" weight="600" color="secondary">
+							{{ totalBlocks.toLocaleString() }} total blocks
+						</Text>
+					</Flex>
+				</Flex>
 
-						<tbody>
-							<tr v-for="block in blocks">
-								<td style="width: 1px">
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Outline>
-												<Flex align="center" gap="6">
-													<Icon
-														name="block"
-														size="14"
-														:color="hintedBlock == block.height ? 'blue' : 'tertiary'"
-													/>
+				<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
+					<Text size="13" weight="600" color="secondary">Loading blocks...</Text>
+				</Flex>
 
-													<Text size="13" weight="600" color="primary" tabular>{{ comma(block.height) }}</Text>
-												</Flex>
-											</Outline>
+				<Flex v-else direction="column" gap="8" :class="$style.content">
+					<!-- Desktop Table View -->
+					<div :class="$style.desktop_table">
+						<table :class="$style.table">
+							<thead>
+								<tr>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Block Number</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Transactions</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas Used</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas Limit</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Size</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Base Fee</Text></th>
+								</tr>
+							</thead>
+
+							<tbody>
+								<tr v-for="block in blocks" :key="block.number">
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center">
+												<Outline>
+													<Flex align="center" gap="4">
+														<Icon name="block" size="12" color="primary" />
+														<Text size="12" weight="600" color="primary" tabular>
+															{{ comma(block.number) }}
+														</Text>
+													</Flex>
+												</Outline>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex direction="column" gap="4">
+												<Tooltip position="start" delay="500">
+													<Text size="11" weight="600" color="primary">
+														{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+													</Text>
+
+													<template #content>
+														{{ DateTime.fromISO(block.timestamp).setLocale("en").toFormat("LLL d, t") }}
+													</template>
+												</Tooltip>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ comma(block.transactionCount || 0) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center" gap="2">
+												<Text size="12" weight="600" color="primary">
+													{{ formatGasValue(block.gasUsed) }}
+												</Text>
+												<Text size="11" weight="600" color="tertiary">
+													({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ formatGasValue(block.gasLimit) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ formatBytes(block.size, 0) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${block.number}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ formatGasValue(block.baseFeePerGas) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<!-- Mobile Card View -->
+					<div :class="$style.mobile_cards">
+						<div v-for="block in blocks" :key="block.number" :class="$style.card">
+							<NuxtLink :to="`/block/${block.number}`" :class="$style.card_link">
+								<Flex direction="column" gap="16">
+									<!-- Header with block number and timestamp -->
+									<Flex align="center" justify="between">
+										<Flex align="center" gap="8">
+											<Icon name="block" size="14" color="primary" />
+											<Text size="13" weight="600" color="primary">
+												Block {{ comma(block.number) }}
+											</Text>
 										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex justify="center" direction="column" gap="6">
+										<Text size="12" weight="600" color="tertiary">
+											{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+										</Text>
+									</Flex>
+
+									<!-- Block details -->
+									<Flex direction="column" gap="12">
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Transactions</Text>
 											<Text size="12" weight="600" color="primary">
-												{{ DateTime.fromISO(block.time).toRelative({ locale: "en", style: "short" }) }}
-											</Text>
-											<Text size="12" weight="500" color="tertiary">
-												{{ DateTime.fromISO(block.time).setLocale("en").toFormat("LLL d, t") }}
+												{{ comma(block.transactionCount || 0) }}
 											</Text>
 										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Tooltip v-if="block.hash" delay="500">
-												<template #default>
-													<Flex direction="column" gap="4">
-														<Text
-															size="12"
-															height="120"
-															weight="600"
-															color="primary"
-															:class="$style.proposer_moniker"
-														>
-															{{ block.proposer.moniker }}
-														</Text>
-
-														<Flex align="center" gap="6">
-															<Text size="12" weight="600" color="tertiary" mono>
-																{{ block.proposer.cons_address.slice(0, 4) }}
-															</Text>
-															<Flex align="center" gap="3">
-																<div v-for="dot in 3" class="dot" />
-															</Flex>
-															<Text size="12" weight="600" color="tertiary" mono>
-																{{
-																	block.proposer.cons_address.slice(
-																		block.proposer.cons_address.length - 4,
-																		block.proposer.cons_address.length,
-																	)
-																}}
-															</Text>
-															<CopyButton :text="block.proposer.cons_address" size="10" />
-														</Flex>
-													</Flex>
-												</template>
-
-												<template #content> {{ space(block.proposer.cons_address) }} </template>
-											</Tooltip>
-											<Text v-else size="13" weight="600" color="secondary">Genesis</Text>
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Gas Used</Text>
+											<Flex align="center" gap="4">
+												<Text size="12" weight="600" color="primary">
+													{{ formatGasValue(block.gasUsed) }}
+												</Text>
+												<Text size="11" weight="600" color="tertiary">
+													({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+												</Text>
+											</Flex>
 										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Tooltip v-if="block.hash" delay="500">
-												<template #default>
-													<Flex align="center" gap="8">
-														<Text size="13" weight="600" color="primary" mono>{{
-															block.hash.slice(0, 4)
-														}}</Text>
-
-														<Flex align="center" gap="3">
-															<div v-for="dot in 3" class="dot" />
-														</Flex>
-
-														<Text size="13" weight="600" color="primary" mono>
-															{{ block.hash.slice(block.hash.length - 4, block.hash.length) }}
-														</Text>
-
-														<CopyButton :text="block.hash" />
-													</Flex>
-												</template>
-
-												<template #content> {{ space(block.hash) }} </template>
-											</Tooltip>
-											<Text v-else size="13" weight="600" color="secondary">Genesis</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">
-												{{ block.stats.tx_count }}
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Size</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ formatBytes(block.size, 0) }}
 											</Text>
 										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">
-												{{ block.stats.events_count }}
+										<Flex align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Base Fee</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ formatGasValue(block.baseFeePerGas) }}
 											</Text>
 										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">
-												{{ block.stats.blobs_count }}
-											</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">
-												{{ formatBytes(block.stats.blobs_size) }}
-											</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/block/${block.height}`">
-										<Flex align="center" gap="4">
-											<AmountInCurrency
-												:amount="{ value: block.stats.fee, decimal: 6 }"
-												:styles="{ amount: { size: '13' } }"
-											/>
-										</Flex>
-									</NuxtLink>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+									</Flex>
+								</Flex>
+							</NuxtLink>
+						</div>
+					</div>
+
+					<!-- Pagination -->
+					<Flex v-if="totalPages > 1" align="center" justify="center" gap="8" :class="$style.pagination">
+						<Button @click="handleFirst" type="secondary" size="mini" :disabled="currentPage === 1">
+							<Icon name="arrow-left-stop" size="12" color="primary" />
+						</Button>
+						
+						<Button @click="handlePrev" type="secondary" size="mini" :disabled="currentPage === 1">
+							<Icon name="arrow-left" size="12" color="primary" />
+						</Button>
+
+						<Flex align="center" gap="4">
+							<Text size="12" weight="600" color="secondary">
+								Page {{ currentPage }} of {{ totalPages }}
+							</Text>
+						</Flex>
+
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="currentPage >= totalPages">
+							<Icon name="arrow-right" size="12" color="primary" />
+						</Button>
+					</Flex>
+				</Flex>
 			</Flex>
 		</Flex>
 	</Flex>
@@ -336,112 +342,180 @@ const handleLast = async () => {
 	padding: 20px 24px 60px 24px;
 }
 
-.breadcrumbs {
+.header {
 	margin-bottom: 16px;
 }
 
-.header {
-	height: 46px;
-
-	border-radius: 8px 8px 4px 4px;
+.content {
+	border-radius: 8px;
 	background: var(--card-background);
-
-	padding: 0 16px;
+	overflow: hidden;
 }
 
-.table_scroller {
+/* Desktop Table View */
+.desktop_table {
+	display: block;
 	overflow-x: auto;
 }
 
 .table {
-	border-radius: 4px 4px 8px 8px;
-	background: var(--card-background);
-
-	padding-bottom: 12px;
-
-	transition: all 0.2s ease;
-
-	& table {
-		width: 100%;
-		height: fit-content;
-
-		border-spacing: 0px;
-
-		& tbody {
-			& tr {
-				cursor: pointer;
-
-				transition: all 0.05s ease;
-
-				&:hover {
-					background: var(--op-5);
+	width: 100%;
+	min-width: 1000px; /* Ensure all columns are visible */
+	border-spacing: 0;
+	
+	& thead {
+		& tr {
+			& th {
+				text-align: left;
+				padding: 12px 8px 6px 8px;
+				border-bottom: 1px solid var(--op-5);
+				
+				&:first-child {
+					padding-left: 16px;
 				}
-
-				&:active {
-					background: var(--op-8);
+				
+				&:last-child {
+					padding-right: 16px;
+				}
+				
+				& span {
+					display: flex;
 				}
 			}
 		}
-
-		& tr th {
-			text-align: left;
-			padding: 0;
-			padding-right: 16px;
-			padding-top: 16px;
-			padding-bottom: 8px;
-
-			& span {
-				display: flex;
+	}
+	
+	& tbody {
+		& tr {
+			cursor: pointer;
+			transition: all 0.05s ease;
+			
+			&:hover {
+				background: var(--op-5);
 			}
-
-			&:first-child {
-				padding-left: 16px;
+			
+			&:active {
+				background: var(--op-8);
 			}
 		}
-
-		& tr td {
-			padding: 0;
-
+		
+		& td {
+			padding: 6px 8px 6px 8px;
 			white-space: nowrap;
-
+			border-bottom: 1px solid var(--op-3);
+			
 			&:first-child {
 				padding-left: 16px;
 			}
-
+			
+			&:last-child {
+				padding-right: 16px;
+			}
+			
 			& > a {
 				display: flex;
-
-				min-height: 44px;
-
-				padding-right: 24px;
+				align-items: center;
+				min-height: 24px;
 			}
 		}
 	}
 }
 
-.proposer_moniker {
-	max-width: 160px;
-
-	text-overflow: ellipsis;
-	overflow: hidden;
+/* Mobile Card View */
+.mobile_cards {
+	display: none;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
 }
 
-.table.disabled {
-	opacity: 0.5;
-	pointer-events: none;
+.card {
+	border: 1px solid var(--op-5);
+	border-radius: 8px;
+	background: var(--card-background);
+	transition: all 0.2s ease;
+	
+	&:hover {
+		border-color: var(--op-10);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+}
+
+.card_link {
+	display: block;
+	padding: 16px;
+	text-decoration: none;
+	color: inherit;
+}
+
+.loading {
+	padding: 60px 20px;
+	text-align: center;
+}
+
+.pagination {
+	padding: 12px;
+	border-top: 1px solid var(--op-5);
+}
+
+/* Responsive Breakpoints - Progressive column hiding */
+@media (max-width: 1200px) {
+	.table {
+		min-width: 850px;
+		& thead th:nth-child(6),
+		& tbody td:nth-child(6) {
+			display: none; /* Hide Size column */
+		}
+	}
+}
+
+@media (max-width: 1000px) {
+	.table {
+		min-width: 750px;
+		& thead th:nth-child(7),
+		& tbody td:nth-child(7) {
+			display: none; /* Hide Base Fee column */
+		}
+	}
+}
+
+@media (max-width: 900px) {
+	.table {
+		min-width: 650px;
+		& thead th:nth-child(5),
+		& tbody td:nth-child(5) {
+			display: none; /* Hide Gas Limit column */
+		}
+	}
+}
+
+@media (max-width: 800px) {
+	.table {
+		min-width: 550px;
+		& thead th:nth-child(4),
+		& tbody td:nth-child(4) {
+			display: none; /* Hide Gas Used column */
+		}
+	}
+}
+
+@media (max-width: 768px) {
+	.desktop_table {
+		display: none;
+	}
+	
+	.mobile_cards {
+		display: flex;
+	}
+	
+	.wrapper {
+		padding: 20px 16px 60px 16px;
+	}
 }
 
 @media (max-width: 500px) {
 	.wrapper {
 		padding: 32px 12px;
 	}
-
-	.header {
-		gap: 16px;
-
-		height: initial;
-
-		padding: 16px;
-	}
 }
-</style>
+</style> 

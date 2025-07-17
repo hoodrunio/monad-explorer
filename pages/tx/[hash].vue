@@ -1,10 +1,12 @@
 <script setup>
 /** Components: Modules */
 import TxOverview from "@/components/modules/tx/TxOverview.vue"
-import BlobsTable from "@/components/modules/block/BlobsTable.vue"
 
 /** API */
 import { fetchTxByHash } from "@/services/api/tx"
+
+/** Services */
+import { shortHex } from "@/services/utils"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -13,23 +15,62 @@ const cacheStore = useCacheStore()
 const route = useRoute()
 const router = useRouter()
 
-const tx = ref()
-const { data: rawTx } = await fetchTxByHash(route.params.hash)
-if (!rawTx.value) {
-	router.push("/")
-} else {
-	tx.value = rawTx.value
-	cacheStore.current.transaction = tx.value
-}
+const transaction = ref()
 
-defineOgImageComponent("TxImage", {
-	title: "Tx",
-	tx: tx.value,
-	cacheKey: `${tx.value?.hash}`,
+const {
+	data,
+	status: isLoading,
+	error,
+} = useAsyncData("transaction", async () => {
+	try {
+		const txHash = route.params.hash
+
+		// Validate transaction hash format (0x + 64 hex characters)
+		if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+			throw new Error("Invalid transaction hash format")
+		}
+
+		const { data: rawTransaction } = await fetchTxByHash(txHash)
+
+		// API response structure: { success: true, data: { ...transaction }, meta: {...} }
+		if (!rawTransaction.value?.data) {
+			throw new Error("Transaction not found")
+		}
+
+		return {
+			transaction: rawTransaction.value.data,
+		}
+	} catch (err) {
+		if (err.message === "Transaction not found" || err.message === "Invalid transaction hash format") {
+			await router.push("/")
+		}
+		throw err
+	}
 })
 
+watch(
+	data,
+	(newData) => {
+		if (newData) {
+			transaction.value = newData.transaction
+			cacheStore.current.transaction = newData.transaction
+		}
+	},
+	{ immediate: true },
+)
+
+const txHash = computed(() => {
+	return transaction.value?.hash || route.params.hash
+})
+
+const shortTxHash = computed(() => {
+	return shortHex(txHash.value)
+})
+
+
+
 useHead({
-	title: `Transaction ${tx.value?.hash.toUpperCase()} - Celenium`,
+	title: `Transaction ${shortTxHash.value} - Monad Explorer`,
 	link: [
 		{
 			rel: "canonical",
@@ -39,66 +80,42 @@ useHead({
 	meta: [
 		{
 			name: "description",
-			content: `Celestia Transaction ${tx.value?.hash.toUpperCase().slice(0, 4)} ••• ${tx.value?.hash
-				.toUpperCase()
-				.slice(-4)}. The timestamp, hash, events, messages, metadata, gas used.`,
+			content: `Explore transaction ${shortTxHash.value} on Monad network. View token transfers, internal transactions, gas usage, and other details.`,
 		},
-		{
-			property: "og:title",
-			content: `Transaction ${tx.value?.hash.toUpperCase().slice(0, 4)} ••• ${tx.value?.hash.toUpperCase().slice(-4)} - Celenium`,
-		},
-		{
-			property: "og:description",
-			content: `Celestia Transaction ${tx.value?.hash.toUpperCase().slice(0, 4)} ••• ${tx.value?.hash
-				.toUpperCase()
-				.slice(-4)}. The timestamp, hash, events, messages, metadata, gas used.`,
-		},
-		{
-			property: "og:url",
-			content: `${useRequestURL().origin}${useRequestURL().pathname}`,
-		},
-		{
-			name: "twitter:title",
-			content: `Transaction ${tx.value?.hash.toUpperCase().slice(0, 4)} ••• ${tx.value?.hash.toUpperCase().slice(-4)} - Celenium`,
-		},
-		{
-			name: "twitter:description",
-			content: `Celestia Transaction ${tx.value?.hash.toUpperCase().slice(0, 4)} ••• ${tx.value?.hash
-				.toUpperCase()
-				.slice(-4)}. The timestamp, hash, events, messages, metadata, gas used.`,
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-	],
-})
 
-const displayName = computed(() => {
-	const { $getDisplayName } = useNuxtApp()
-	return $getDisplayName("tx", tx.value?.hash)
+	],
 })
 </script>
 
 <template>
-	<Flex direction="column" wide :class="$style.wrapper">
-		<Breadcrumbs
-			v-if="tx"
-			:items="[
-				{ link: '/', name: 'Explore' },
-				{ link: '/txs', name: 'Transactions' },
-				{
-					link: route.fullPath,
-					name: `${displayName}`,
-				},
-			]"
-			:class="$style.breadcrumbs"
-		/>
+	<Flex direction="column" gap="32" wide :class="$style.wrapper">
+		<Flex direction="column" gap="16">
+			<Flex align="end" justify="between" :class="$style.breadcrumbs">
+				<Breadcrumbs
+					v-if="transaction"
+					:items="[
+						{ link: '/', name: 'Dashboard' },
+						{ link: '/transactions', name: 'Transactions' },
+						{ link: route.fullPath, name: `Transaction ${shortTxHash}` },
+					]"
+				/>
+			</Flex>
 
-		<Flex v-if="tx" direction="column" gap="40">
-			<TxOverview :tx="tx" />
+			<Flex v-if="isLoading === 'pending'" direction="column" gap="20" align="center" :class="$style.loading">
+				<Text size="13" weight="600" color="secondary">Loading transaction data...</Text>
+			</Flex>
 
-			<BlobsTable :hash="tx.hash" description="This transaction does not contain any blobs" />
+			<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
+				<Text size="13" weight="600" color="red">{{ error }}</Text>
+				<NuxtLink to="/">
+					<Text size="12" color="secondary">← Back to dashboard</Text>
+				</NuxtLink>
+			</Flex>
+
+			<TxOverview 
+				v-else-if="transaction" 
+				:tx="transaction"
+			/>
 		</Flex>
 	</Flex>
 </template>
@@ -112,9 +129,15 @@ const displayName = computed(() => {
 	margin-bottom: 16px;
 }
 
+.loading,
+.error {
+	padding: 40px 20px;
+	text-align: center;
+}
+
 @media (max-width: 500px) {
 	.wrapper {
 		padding: 32px 12px;
 	}
 }
-</style>
+</style> 

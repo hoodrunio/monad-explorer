@@ -5,8 +5,8 @@ import { DateTime } from "luxon"
 import { roundTo } from "@/services/utils"
 
 export const rankCoefficients = {
-	day_blobs_count: 0.2,
-	avg_pfb_size: 0.3,
+	day_txs_count: 0.3,
+	avg_tx_size: 0.2,
 	last_message_time: 0.3,
 	commits_weekly: 0.1,
 	last_pushed_at: 0.1,
@@ -44,4 +44,12 @@ export const getLastActivityCategory = (date) => {
 	const diff = roundTo(DateTime.now().diff(date, "hours").hours, 0, "floor")
 
 	return lastActivityCategories.find(({ min, max }) => diff >= min && diff <= max).color
+}
+
+export const rollupsStatuses = ["active", "inactive"]
+
+export const topRollupsMetricsByName = {
+	size: 1,
+	fee: 0.5,
+	txs: 0.3,
 }

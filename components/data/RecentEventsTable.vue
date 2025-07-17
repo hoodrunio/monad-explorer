@@ -68,10 +68,6 @@ const getEventColor = (type) => {
   }
 }
 
-const formatTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString()
-}
-
 const truncateValidator = (validator) => {
   return `${validator.slice(0, 8)}...${validator.slice(-6)}`
 }
@@ -129,15 +125,23 @@ const truncateValidator = (validator) => {
               
               <td :class="$style.block_cell">
                 <NuxtLink to="/blocks" :class="$style.block_link">
-                  <Text size="12" color="secondary">
-                    #{{ event.blockHeight.toLocaleString() }}
+                  <Text size="12" color="tertiary" :class="$style.block_height">
+                    #{{ event.blockHeight.toLocaleString("en-US") }}
                   </Text>
                 </NuxtLink>
               </td>
               
               <td :class="$style.time_cell">
                 <Text size="11" color="tertiary">
-                  {{ formatTimestamp(event.timestamp) }}
+                  {{
+                    new Date(event.timestamp).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  }}
                 </Text>
               </td>
             </tr>
@@ -220,5 +224,9 @@ const truncateValidator = (validator) => {
 
 .time_cell {
   min-width: 140px;
+}
+
+.block_height {
+  font-weight: 600;
 }
 </style> 

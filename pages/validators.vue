@@ -1,198 +1,297 @@
 <script setup>
 /** UI */
 import Button from "@/components/ui/Button.vue"
-import Tooltip from "@/components/ui/Tooltip.vue"
+import Input from "@/components/ui/Input.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
+import BookmarkButton from "@/components/BookmarkButton.vue"
+import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Services */
-import { capitilize, comma, numToPercent, shareOfTotalString, splitAddress } from "@/services/utils"
+import { capitilize, comma, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchValidators, fetchValidatorsCount } from "@/services/api/validator"
+import { fetchValidatorRankings } from "@/services/api/validator"
+import { preloadGithubValidatorData } from "@/services/api/github"
 
-/** Store */
-import { useAppStore } from "@/store/app.store"
-const appStore = useAppStore()
+const route = useRoute()
+const router = useRouter()
 
 useHead({
-	title: "Validators - Celestia Explorer",
+	title: "Validators - Monad Explorer",
 	link: [
 		{
 			rel: "canonical",
-			href: "https://celenium.io/validators",
+			href: "/validators",
 		},
 	],
 	meta: [
 		{
 			name: "description",
 			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
+				"View all validators in the Monad network. Monitor validator performance, uptime scores, QC participation rates, and infrastructure details.",
 		},
-		{
-			property: "og:title",
-			content: "Validators - Celestia Explorer",
-		},
-		{
-			property: "og:description",
-			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
-		},
-		{
-			property: "og:url",
-			content: `https://celenium.io/validators`,
-		},
-		{
-			property: "og:image",
-			content: "/img/seo/validators.png",
-		},
-		{
-			name: "twitter:title",
-			content: "Validators - Celestia Explorer",
-		},
-		{
-			name: "twitter:description",
-			content:
-				"View all validators in the Celestia Blockchain. Validators name, description, rates, blocks, uptime, social links, contacts are shown.",
-		},
-		{
-			name: "twitter:card",
-			content: "summary_large_image",
-		},
-		{
-			name: "twitter:image",
-			content: "https://celenium.io/img/seo/validators.png",
-		},
+
 	],
 })
 
-const route = useRoute()
-const router = useRouter()
-
 const isLoading = ref(false)
 const validators = ref([])
-const validatorsStats = ref({})
-const totalVotingPower = computed(() => appStore.lastHead?.total_voting_power)
+const allValidators = ref([]) // Store all validators for filtering
+const searchTerm = ref(route.query.search || "")
 
-const getValidatorsStats = async () => {
-	isLoading.value = true
+// Time window options
+const timeWindows = ref([
+	{ label: "7 Days", value: "7d" },
+	{ label: "30 Days", value: "30d" },
+])
+const selectedTimeWindow = ref(route.query.window || "7d")
 
-	const { data } = await fetchValidatorsCount()
-	validatorsStats.value = data.value
+// Sort options 
+const sortOptions = ref([
+	{ label: "Uptime Score", value: "block_proposal_ratio" },
+	{ label: "Stake", value: "stake" },
+	{ label: "QC Participation", value: "qc_participation_rate" },
+	{ label: "Block Proposals", value: "block_proposal_ratio" },
+])
+const selectedSort = ref(route.query.sortBy || "block_proposal_ratio")
+const sortDirection = ref(route.query.sortDir || "desc") // "asc" or "desc"
 
-	isLoading.value = false
-}
+// Pagination
+const page = ref(route.query.page ? parseInt(route.query.page) : 1)
+const limit = ref(50)
+const totalValidators = ref(0)
+const totalPages = ref(1)
+const hasNextPage = ref(false)
+const hasPrevPage = ref(false)
+const pages = computed(() => totalPages.value || 1)
 
-const getActiveValidators = async () => {
-	isLoading.value = true
+// Filtered validators based on search term
+const filteredValidators = computed(() => {
+	let filtered = allValidators.value
+	
+	if (searchTerm.value.trim()) {
+		const search = searchTerm.value.toLowerCase().trim()
+		filtered = filtered.filter(validator => 
+			validator.name.toLowerCase().includes(search) ||
+			validator.validatorId.toLowerCase().includes(search)
+		)
+	}
+	
+	// Apply client-side sorting to filtered results
+	return sortValidators(filtered)
+})
 
-	const { data } = await fetchValidators({
-		limit: 20,
-		offset: (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
-
-const getInactiveValidators = async () => {
-	isLoading.value = true
-
-	const { data } = await fetchValidators({
-		jailed: false,
-		limit: 20,
-		offset: validatorsStats.value.active + (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
-
-const getJailedValidators = async () => {
-	isLoading.value = true
-
-	const { data } = await fetchValidators({
-		jailed: true,
-		limit: 20,
-		offset: (page.value - 1) * 20,
-	})
-	validators.value = data.value
-
-	isLoading.value = false
-}
+// Paginated validators for display
+const paginatedValidators = computed(() => {
+	const filtered = filteredValidators.value
+	const startIndex = (page.value - 1) * limit.value
+	const endIndex = startIndex + limit.value
+	
+	// Update pagination info for filtered results
+	const filteredTotal = filtered.length
+	const filteredPages = Math.ceil(filteredTotal / limit.value)
+	
+	// Update reactive pagination values
+	totalValidators.value = filteredTotal
+	totalPages.value = filteredPages || 1
+	hasNextPage.value = page.value < filteredPages
+	hasPrevPage.value = page.value > 1
+	
+	return filtered.slice(startIndex, endIndex)
+})
 
 const getValidators = async () => {
-	switch (activeTab.value) {
-		case "active":
-			getActiveValidators()
-			break
-		case "inactive":
-			getInactiveValidators()
-			break
-		case "jailed":
-			getJailedValidators()
-			break
-		default:
-			break
+	isLoading.value = true
+
+	try {
+		const { data } = await fetchValidatorRankings({
+			limit: 1000, // Fetch more validators to enable client-side search
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value,
+			page: 1 // Always fetch from page 1 to get all validators
+		})
+
+		if (data.value?.data) {
+			const validatorsList = data.value.data.map(validator => {
+				const totalBlockOpportunities = validator.details?.total_block_opportunities || 0
+				const blockProposalRatio = validator.metrics?.block_proposal_ratio || 0
+				
+				// NEW: Use block proposal ratio as uptime score (instead of combined uptime_score)
+				// If no block opportunities, uptime score is null
+				const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
+				
+				return {
+					rank: validator.rank || 0,
+					validatorId: validator.validator_id || '',
+					name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+					stake: validator.stake || 0,
+					uptimeScore,
+					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+					blockProposalRatio,
+					provider: validator.infrastructure?.provider || 'Unknown',
+					location: validator.infrastructure?.location || 'Unknown',
+					blocksProposed: validator.details?.blocks_proposed || 0,
+					totalBlockOpportunities,
+					qcParticipations: validator.details?.qc_participations || 0,
+					totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
+					logoUrl: validator.keybase?.logo_url || validator.logoUrl || null
+				}
+			})
+			
+			allValidators.value = validatorsList
+		}
+	} catch (error) {
+	} finally {
+		isLoading.value = false
 	}
 }
 
-/** Pagination */
-const page = ref(route.query.page ? parseInt(route.query.page) : 1)
-const pages = computed(() => Math.max(1, Math.ceil(validatorsStats.value[activeTab.value.toLowerCase()] / 20)))
-
 const handleNext = () => {
-	if (page.value === pages.value) return
-
+	if (!hasNextPage.value) return
 	page.value += 1
 }
 
 const handlePrev = () => {
-	if (page.value === 1) return
-
+	if (!hasPrevPage.value) return
 	page.value -= 1
 }
 
-/** Tabs */
-const tabs = ref(["active", "inactive", "jailed"])
-const activeTab = ref(
-	route.query.status && tabs.value.filter((tab) => tab === route.query.status).length > 0 ? route.query.status.toLowerCase() : "active",
-)
-const dropdownItems = computed(() => tabs.value.filter((tab) => tab !== activeTab.value))
+const handleSearchInput = () => {
+	// Reset to first page when searching
+	page.value = 1
+}
 
+const clearSearch = () => {
+	searchTerm.value = ""
+	page.value = 1
+}
+
+const formatPercentage = (value) => {
+	if (value === null || value === undefined) return 'N/A'
+	return `${value.toFixed(1)}%`
+}
+
+const getPerformanceColor = (score) => {
+	if (score === null || score === undefined) return 'tertiary'
+	if (score >= 99) return 'green'
+	if (score >= 95) return 'yellow'
+	return 'red'
+}
+
+// Column sorting handler - connects to existing sort system
+const handleColumnSort = (sortKey) => {
+	if (selectedSort.value === sortKey) {
+		// If clicking the same column, toggle direction
+		sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc"
+	} else {
+		// If clicking a different column, start with descending (higher values first)
+		selectedSort.value = sortKey
+		sortDirection.value = "desc"
+	}
+}
+
+// Get sort field mapping for column headers
+const getSortKeyForColumn = (column) => {
+	switch (column) {
+		case 'stake': return 'stake'
+		case 'uptime': return 'block_proposal_ratio'
+		default: return null
+	}
+}
+
+// Client-side sorting function
+const sortValidators = (validators) => {
+	if (!validators || validators.length === 0) return validators
+	
+	const sorted = [...validators].sort((a, b) => {
+		let valueA, valueB
+		
+		switch (selectedSort.value) {
+			case 'stake':
+				valueA = a.stake || 0
+				valueB = b.stake || 0
+				break
+			case 'block_proposal_ratio':
+				valueA = a.uptimeScore || 0
+				valueB = b.uptimeScore || 0
+				break
+			case 'qc_participation_rate':
+				valueA = a.qcParticipationRate || 0
+				valueB = b.qcParticipationRate || 0
+				break
+			default:
+				// For other sorts, keep original order
+				return 0
+		}
+		
+		// Handle null/undefined values
+		if (valueA === null || valueA === undefined) valueA = -1
+		if (valueB === null || valueB === undefined) valueB = -1
+		
+		const comparison = valueB - valueA // Default descending order
+		return sortDirection.value === 'asc' ? -comparison : comparison
+	})
+	
+	return sorted
+}
+
+// Initialize data
+await getValidators()
+
+// Preload GitHub validator data to prevent multiple API calls
+preloadGithubValidatorData().catch(error => {
+})
+
+// Update URL and refetch when parameters change (excluding search)
+watch([selectedSort, sortDirection, selectedTimeWindow], async () => {
+	await getValidators()
+	
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
+		} 
+	})
+})
+
+// Update URL when page or search changes (no refetch needed)
+watch([page, searchTerm], () => {
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
+		} 
+	})
+})
+
+// Handle URL query changes
 watch(
 	() => route.query,
 	() => {
-		if (route.query.status) activeTab.value = route.query.status
-	},
-)
-
-await getValidatorsStats()
-await getValidators()
-
-/** Refetch validators */
-watch(
-	() => page.value,
-	async () => {
-		getValidators()
-
-		router.replace({ query: { status: activeTab.value, page: page.value } })
-	},
-)
-
-watch(
-	() => activeTab.value,
-	async () => {
-		page.value = 1
-
-		getValidators()
-
-		router.replace({ query: { status: activeTab.value, page: page.value } })
+		if (route.query.page) page.value = parseInt(route.query.page)
+		if (route.query.sortBy) selectedSort.value = route.query.sortBy
+		if (route.query.sortDir) sortDirection.value = route.query.sortDir
+		if (route.query.window) selectedTimeWindow.value = route.query.window
+		if (route.query.search !== undefined) searchTerm.value = route.query.search || ""
 	},
 )
 
 onMounted(() => {
-	router.replace({ query: { status: activeTab.value, page: page.value } })
+	router.replace({ 
+		query: { 
+			page: page.value,
+			sortBy: selectedSort.value,
+			sortDir: sortDirection.value,
+			window: selectedTimeWindow.value,
+			search: searchTerm.value || undefined
+		} 
+	})
 })
 </script>
 
@@ -201,7 +300,7 @@ onMounted(() => {
 		<Flex align="end" justify="between" :class="$style.breadcrumbs">
 			<Breadcrumbs
 				:items="[
-					{ link: '/', name: 'Explore' },
+					{ link: '/', name: 'Dashboard' },
 					{ link: '/validators', name: `Validators` },
 				]"
 			/>
@@ -212,13 +311,37 @@ onMounted(() => {
 				<Flex align="center" gap="8">
 					<Icon name="validator" size="16" color="secondary" />
 					<Text as="h1" size="14" weight="600" color="primary">Validators</Text>
+					<Text v-if="searchTerm && filteredValidators.length !== allValidators.length" size="12" color="tertiary">
+						({{ filteredValidators.length }} of {{ allValidators.length }})
+					</Text>
 				</Flex>
 
-				<Flex align="center" gap="6">
+				<Flex align="center" gap="6" :class="$style.controls">
+					<!-- Search Input -->
+					<div :class="$style.search_wrapper">
+						<Input
+							v-model="searchTerm"
+							placeholder="Search validators..."
+							icon="search"
+							size="small"
+							@input="handleSearchInput"
+							:class="$style.search_input"
+						/>
+						<button 
+							v-if="searchTerm"
+							@click="clearSearch"
+							:class="$style.clear_button"
+							type="button"
+						>
+							<Icon name="close" size="10" color="tertiary" />
+						</button>
+					</div>
+
+					<!-- Time Window Selector -->
 					<Dropdown>
 						<template #trigger="{ isOpen }">
 							<Button type="secondary" size="mini">
-								{{ capitilize(activeTab) }}
+								{{ timeWindows.find(tw => tw.value === selectedTimeWindow)?.label }}
 								<Icon
 									name="chevron"
 									size="16"
@@ -232,16 +355,50 @@ onMounted(() => {
 						</template>
 
 						<template #popup>
-							<DropdownItem v-for="item in dropdownItems" @click="activeTab = item"> {{ capitilize(item) }} </DropdownItem>
+							<DropdownItem 
+								v-for="window in timeWindows" 
+								:key="window.value"
+								@click="selectedTimeWindow = window.value"
+							> 
+								{{ window.label }} 
+							</DropdownItem>
+						</template>
+					</Dropdown>
+
+					<!-- Sort Selector -->
+					<Dropdown>
+						<template #trigger="{ isOpen }">
+							<Button type="secondary" size="mini">
+								<span :class="$style.sort_label">Sort: </span>{{ sortOptions.find(so => so.value === selectedSort)?.label }}
+								<Icon
+									name="chevron"
+									size="16"
+									color="secondary"
+									:style="{
+										transform: `rotate(${!isOpen ? '0' : '180deg'})`,
+										transition: 'all 200ms ease',
+									}"
+								/>
+							</Button>
+						</template>
+
+						<template #popup>
+							<DropdownItem 
+								v-for="option in sortOptions" 
+								:key="option.value"
+								@click="selectedSort = option.value"
+							> 
+								{{ option.label }} 
+							</DropdownItem>
 						</template>
 					</Dropdown>
 
 					<!-- Pagination -->
-					<Flex align="center" gap="6">
-						<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
+					<Flex align="center" gap="6" :class="$style.pagination">
+						<Button @click="page = 1" type="secondary" size="mini" :disabled="!hasPrevPage">
 							<Icon name="arrow-left-stop" size="12" color="primary" />
 						</Button>
-						<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
+						<Button type="secondary" @click="handlePrev" size="mini" :disabled="!hasPrevPage">
 							<Icon name="arrow-left" size="12" color="primary" />
 						</Button>
 
@@ -249,10 +406,10 @@ onMounted(() => {
 							<Text size="12" weight="600" color="primary"> {{ page }} of {{ pages }} </Text>
 						</Button>
 
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="page === pages">
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasNextPage">
 							<Icon name="arrow-right" size="12" color="primary" />
 						</Button>
-						<Button @click="page = pages" type="secondary" size="mini" :disabled="page === pages">
+						<Button @click="page = pages" type="secondary" size="mini" :disabled="!hasNextPage">
 							<Icon name="arrow-right-stop" size="12" color="primary" />
 						</Button>
 					</Flex>
@@ -260,99 +417,129 @@ onMounted(() => {
 			</Flex>
 
 			<Flex direction="column" gap="16" wide :class="[$style.table, isLoading && $style.disabled]">
-				<div v-if="validators.length" :class="$style.table_scroller">
+				<div v-if="paginatedValidators.length" :class="$style.table_scroller">
 					<table>
 						<thead>
 							<tr>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Voting Power</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Outgoing Rewards</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Commissions</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Rate</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Max Rate</Text></th>
-								<th><Text size="12" weight="600" color="tertiary" noWrap>Max Change Rate</Text></th>
+								<th :class="$style.col_rank"><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
+								<th :class="$style.col_validator"><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
+								<th 
+									:class="[$style.col_stake, $style.sortable]" 
+									@click="handleColumnSort('stake')"
+								>
+									<Flex align="center" gap="4" :class="$style.header_content">
+										<Text size="12" weight="600" color="tertiary" noWrap>Stake</Text>
+										<Icon 
+											name="chevron" 
+											size="10" 
+											:color="selectedSort === 'stake' ? 'tertiary' : 'support'"
+											:style="{ 
+												transform: selectedSort === 'stake' 
+													? (sortDirection === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)')
+													: 'rotate(0deg)',
+												opacity: selectedSort === 'stake' ? 1 : 0.5,
+												transition: 'all 0.2s ease'
+											}"
+										/>
+									</Flex>
+								</th>
+								<th 
+									:class="[$style.col_uptime, $style.sortable]" 
+									@click="handleColumnSort('block_proposal_ratio')"
+								>
+									<Flex align="center" gap="4" :class="$style.header_content">
+										<Text size="12" weight="600" color="tertiary" noWrap>Uptime Score</Text>
+										<Icon 
+											name="chevron" 
+											size="10" 
+											:color="selectedSort === 'block_proposal_ratio' ? 'tertiary' : 'support'"
+											:style="{ 
+												transform: selectedSort === 'block_proposal_ratio' 
+													? (sortDirection === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)')
+													: 'rotate(0deg)',
+												opacity: selectedSort === 'block_proposal_ratio' ? 1 : 0.5,
+												transition: 'all 0.2s ease'
+											}"
+										/>
+									</Flex>
+								</th>
+								<th :class="$style.col_location"><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
+								<th :class="$style.col_bookmark"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
 						</thead>
 
 						<tbody>
-							<tr v-for="v in validators">
-								<td style="width: 1px">
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center" gap="6">
-											<Text size="13" weight="600" color="primary" mono>
-												{{ v.moniker ? v.moniker : splitAddress(v.address?.hash) }}
-											</Text>
+							<tr v-for="validator in paginatedValidators" :key="validator.validatorId">
+								<td :class="$style.col_rank">
+									<div :class="$style.cell_content">
+										<Text size="13" weight="600" color="tertiary">#{{ validator.rank }}</Text>
+									</div>
+								</td>
+								<td :class="$style.col_validator">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
+										<Flex align="center" gap="8">
+											<ValidatorLogo 
+												:logo-url="validator.logoUrl" 
+												:validator-name="validator.name"
+												size="small"
+											/>
+											<Flex direction="column" gap="2">
+												<Text size="13" weight="600" color="primary" mono>
+													{{ validator.name }}
+												</Text>
+												<Text size="11" color="tertiary">
+													{{ shortHex(validator.validatorId) }}
+												</Text>
+											</Flex>
 										</Flex>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="start" justify="center" direction="column" gap="4">
-											<Tooltip position="start" delay="400">
-												<Text size="12" weight="600" color="primary">{{ comma(v.voting_power) }}</Text>
-
-												<template #content>
-													<Flex v-if="activeTab === 'active'" align="center" justify="between" gap="8">
-														<Text size="12" weight="600" color="tertiary">Staking Share</Text>
-														<Text size="12" weight="600" color="primary"
-															>{{ shareOfTotalString(v.voting_power, totalVotingPower) }}%</Text
-														>
-													</Flex>
-												</template>
-											</Tooltip>
-
-											<Text v-if="activeTab === 'active'" size="12" weight="600" color="tertiary"
-												>{{ shareOfTotalString(v.voting_power, totalVotingPower) }}%</Text
-											>
-										</Flex>
+								<td :class="$style.col_stake">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
+										<Text size="13" weight="600" color="primary">
+											{{ comma(validator.stake) }}
+										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<AmountInCurrency
-											:amount="{ value: v.rewards }"
-											:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-										/>
+								<td :class="$style.col_uptime">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
+										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
+											{{ formatPercentage(validator.uptimeScore) }}
+										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<AmountInCurrency
-											:amount="{ value: v.commissions }"
-											:styles="{ amount: { size: '13' }, currency: { size: '13' } }"
-										/>
+								<td :class="$style.col_location">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
+										<Text size="12" color="tertiary">
+											{{ validator.location }}
+										</Text>
 									</NuxtLink>
 								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.rate) }}</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.max_rate) }}</Text>
-										</Flex>
-									</NuxtLink>
-								</td>
-								<td>
-									<NuxtLink :to="`/validator/${v.id}`">
-										<Flex align="center">
-											<Text size="13" weight="600" color="primary">{{ numToPercent(v.max_change_rate) }}</Text>
-										</Flex>
-									</NuxtLink>
+								<td :class="$style.col_bookmark">
+									<div :class="$style.cell_content">
+										<BookmarkButton type="validator" :id="validator.validatorId" />
+									</div>
 								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-				<Flex v-else direction="column" gap="20" align="center" :class="$style.empty">
+				<Flex v-else-if="!isLoading && allValidators.length > 0" direction="column" gap="20" align="center" :class="$style.empty">
 					<Flex direction="column" gap="8" align="center">
 						<Text size="13" weight="600" color="secondary"> No validators found </Text>
-						<Text size="12" weight="400" color="tertiary"> Try to select another status </Text>
+						<Text size="12" weight="400" color="tertiary"> 
+							{{ searchTerm ? 'Try adjusting your search term' : 'Try adjusting the time window or sort options' }}
+						</Text>
 					</Flex>
+				</Flex>
+				<Flex v-else-if="!isLoading" direction="column" gap="20" align="center" :class="$style.empty">
+					<Flex direction="column" gap="8" align="center">
+						<Text size="13" weight="600" color="secondary"> No validators found </Text>
+						<Text size="12" weight="400" color="tertiary"> Try adjusting the time window or sort options </Text>
+					</Flex>
+				</Flex>
+				<Flex v-else direction="column" gap="20" align="center" :class="$style.empty">
+					<Text size="13" weight="600" color="secondary"> Loading validators... </Text>
 				</Flex>
 			</Flex>
 		</Flex>
@@ -388,8 +575,9 @@ onMounted(() => {
 	transition: all 0.2s ease;
 
 	& table {
-		width: 100%;
+		width: calc(100% - 12px);
 		height: fit-content;
+		table-layout: fixed;
 
 		border-spacing: 0px;
 
@@ -413,55 +601,168 @@ onMounted(() => {
 
 		& tr th {
 			text-align: left;
-
-			padding: 0;
-			padding-right: 16px;
-			padding-top: 16px;
-			padding-bottom: 8px;
+			padding: 16px 16px 8px 16px;
+			white-space: nowrap;
+			vertical-align: middle;
 
 			& span {
 				display: flex;
 			}
 
-			&:first-child {
-				padding-left: 16px;
-				width: 16px;
-			}
-
 			&.sortable {
 				cursor: pointer;
+				user-select: none;
 			}
 
 			&.sortable:hover {
 				& span {
 					color: var(--txt-secondary);
 				}
+				
+				& svg {
+					opacity: 1 !important;
+					color: var(--txt-secondary) !important;
+				}
 			}
 		}
 
 		& tr td {
 			padding: 0;
-
 			white-space: nowrap;
+			vertical-align: middle;
+		}
 
-			&:first-child {
-				padding-left: 16px;
-			}
+		/* Column specific styles */
+		& .col_rank {
+			width: 60px;
+		}
 
-			& > a {
-				display: flex;
-
-				min-height: 44px;
-
-				padding-right: 24px;
+		& .col_validator {
+			width: 220px;
+			
+			& .cell_link {
+				overflow: hidden;
 			}
 		}
+
+		& .col_stake {
+			width: 130px;
+		}
+
+		& .col_uptime {
+			width: 130px;
+		}
+
+		& .col_location {
+			width: 150px;
+		}
+
+		& .col_bookmark {
+			width: 80px;
+		}
 	}
+}
+
+.cell_content {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 16px;
+}
+
+.cell_link {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 16px;
+}
+
+.header_content {
+	justify-content: flex-start;
+	min-height: 20px;
 }
 
 .table.disabled {
 	opacity: 0.5;
 	pointer-events: none;
+}
+
+.search_wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.search_input {
+	min-width: 200px;
+}
+
+.search_input :global(.base) {
+	padding-right: 32px !important;
+}
+
+.clear_button {
+	position: absolute;
+	right: 8px;
+	z-index: 2;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	transition: background-color 0.2s ease;
+}
+
+.clear_button:hover {
+	background-color: var(--op-5);
+}
+
+@media (max-width: 768px) {
+	.wrapper {
+		padding: 20px 16px;
+	}
+
+	.header {
+		flex-direction: column;
+		gap: 12px;
+		height: initial;
+		padding: 12px;
+	}
+	
+	.controls {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	
+	.sort_label {
+		display: none;
+	}
+	
+	.pagination {
+		gap: 4px;
+	}
+	
+	.table {
+		& table {
+			& tbody tr {
+				border-bottom: 1px solid var(--op-10);
+				
+				&:last-child {
+					border-bottom: none;
+				}
+			}
+			
+			& .col_location {
+				display: none;
+			}
+		}
+	}
 }
 
 @media (max-width: 500px) {
@@ -470,11 +771,63 @@ onMounted(() => {
 	}
 
 	.header {
-		gap: 4px;
-
-		height: initial;
-
+		gap: 8px;
 		padding: 8px;
+	}
+	
+	.controls {
+		flex-direction: column;
+		gap: 12px;
+		width: 100%;
+	}
+	
+	.search_wrapper {
+		width: 100%;
+		order: -1; /* Show search first on mobile */
+	}
+	
+	.search_input {
+		min-width: auto;
+		width: 100%;
+	}
+	
+	.pagination {
+		justify-content: center;
+		gap: 3px;
+	}
+	
+	.table {
+		& table {
+			& tbody tr {
+				border-bottom: 1px solid var(--op-10);
+				
+				&:last-child {
+					border-bottom: none;
+				}
+			}
+			
+			& .col_rank {
+				display: none;
+			}
+			
+			& .col_location {
+				display: none;
+			}
+			
+			& tr th {
+				padding: 12px 8px 6px 12px;
+			}
+		}
+	}
+	
+	.cell_content {
+		min-height: 40px !important;
+		padding: 0 8px 0 12px !important;
+	}
+	
+	.cell_link {
+		min-height: 40px !important;
+		padding: 0 8px 0 12px !important;
 	}
 }
 

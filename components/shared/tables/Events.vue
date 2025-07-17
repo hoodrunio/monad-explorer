@@ -7,7 +7,7 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
 
 /** Services */
-import { tia, splitAddress } from "@/services/utils"
+import { mon, splitAddress } from "@/services/utils"
 
 /** API */
 import { fetchTxEvents } from "@/services/api/tx"
@@ -30,6 +30,7 @@ const props = defineProps({
 
 const isLoading = ref(false)
 const events = ref([])
+const totalEventsCount = ref(0)
 
 const EventIconMapping = {
 	message: "message",
@@ -57,18 +58,27 @@ const EventIconMapping = {
 const getEvents = async () => {
 	isLoading.value = true
 
-	if (props.block) {
-		events.value = await fetchBlockEvents({
-			height: props.block.height,
-			limit: 10,
-			offset: (page.value - 1) * 10,
-		})
-	} else if (props.tx) {
-		events.value = await fetchTxEvents({
-			hash: props.tx.hash,
-			limit: 10,
-			offset: (page.value - 1) * 10,
-		})
+			try {
+		if (props.block) {
+			// For EVM blocks, use number instead of height
+			const blockId = props.block.number || props.block.height
+			const { data } = await fetchBlockEvents({
+				height: blockId,
+				limit: 10,
+				offset: (page.value - 1) * 10,
+			})
+			events.value = data?.value?.data?.logs || []
+			totalEventsCount.value = data?.value?.meta?.totalCount || 0
+		} else if (props.tx) {
+			// For EVM transactions, use decodedLogs directly from tx data
+			// instead of making additional API calls
+			const startIndex = (page.value - 1) * 10
+			const endIndex = startIndex + 10
+			const decodedLogs = props.tx.decodedLogs || []
+			events.value = decodedLogs.slice(startIndex, endIndex)
+		}
+	} catch (error) {
+		events.value = []
 	}
 
 	isLoading.value = false
@@ -98,7 +108,18 @@ const handleViewRawEvent = (event) => {
 }
 
 const page = ref(1)
-const pages = computed(() => (props.block ? Math.ceil(props.block.stats.events_count / 10) : Math.ceil(props.tx.events_count / 10)))
+const pages = computed(() => {
+	if (props.block) {
+		// For EVM blocks, use totalCount from the API response or fallback to current events length
+		const eventsCount = totalEventsCount.value || events.value.length || 0
+		return Math.ceil(eventsCount / 10)
+	} else if (props.tx) {
+		// For EVM transactions, use decodedLogs length
+		const eventsCount = props.tx.decodedLogs?.length || 0
+		return Math.ceil(eventsCount / 10)
+	}
+	return 1
+})
 const handleNext = () => {
 	if (page.value === pages.value) return
 	page.value += 1
@@ -139,13 +160,58 @@ watch(
 					:class="[$style.left, idx === 0 && $style.first, idx === events.length - 1 && $style.last]"
 				>
 					<div />
-					<Icon :name="EventIconMapping[event.type] ? EventIconMapping[event.type] : 'zap'" size="12" color="tertiary" />
+					<Icon :name="event.topics ? 'zap' : (EventIconMapping[event.type] ? EventIconMapping[event.type] : 'zap')" size="12" color="tertiary" />
 					<div />
 				</Flex>
 
 				<Flex wide justify="between" align="center" gap="6" :class="$style.right">
+					<!-- For EVM logs in blocks, show log details -->
+					<Flex v-if="props.block && event.address" align="center" gap="4" color="secondary" :class="$style.text">
+						<Text size="12" weight="500" color="secondary">Log from</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/address/${event.address}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ splitAddress(event.address) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.address }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">in tx</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/tx/${event.transactionHash}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ event.transactionHash.slice(0, 6) }}...{{ event.transactionHash.slice(-4) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.transactionHash }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">{{ event.topics?.length || 0 }} topics</Text>
+					</Flex>
+					<!-- For EVM logs in transactions, show simplified view -->
+					<Flex v-else-if="props.tx && (event.eventSignature || event.address)" align="center" gap="4" color="secondary" :class="$style.text">
+						<Text size="12" weight="500" color="secondary">Event</Text>
+						<Text size="12" weight="500" color="primary" mono>
+							{{ event.eventName || (event.eventSignature ? event.eventSignature.slice(0, 10) : 'Unknown') }}
+						</Text>
+						<Text size="12" weight="500" color="secondary">from</Text>
+						<Tooltip :class="$style.tooltip">
+							<NuxtLink :to="`/address/${event.address}`" @click.stop>
+								<Text size="12" weight="500" color="primary" mono>
+									{{ splitAddress(event.address) }}
+								</Text>
+							</NuxtLink>
+							<template #content>
+								{{ event.address }}
+							</template>
+						</Tooltip>
+						<Text size="12" weight="500" color="secondary">Log #{{ event.logIndex }}</Text>
+					</Flex>
 					<!-- Event: coin_spent -->
-					<Flex v-if="event.type === 'coin_spent'" align="center" gap="4" color="secondary" :class="$style.text">
+					<Flex v-else-if="event.type === 'coin_spent'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Tooltip :class="$style.tooltip">
 							<NuxtLink :to="`/address/${event.data.spender}`" @click.stop>
 								<Text size="12" weight="500" color="primary" mono>
@@ -161,7 +227,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">spent</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 					</Flex>
 					<!-- Event: coin_received -->
@@ -181,7 +247,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA
+							{{ mon(event.data.amount.replace("wei", "")) }} MON
 						</Text>
 					</Flex>
 					<!-- Event: delegate -->
@@ -223,7 +289,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">sent</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">to</Text>
@@ -297,7 +363,7 @@ watch(
 							<Text size="12" weight="500" color="secondary">paid</Text>
 
 							<Text size="12" weight="500" color="primary" mono no-wrap>
-								{{ tia(event.data.fee.replace("utia", "")) }} TIA</Text
+								{{ mon(event.data.fee.replace("wei", "")) }} MON</Text
 							>
 
 							<Text size="12" weight="500" color="secondary">fee</Text>
@@ -343,7 +409,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Withdrawal</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA</Text
+							{{ mon(event.data.amount.replace("wei", "")) }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">from</Text>
@@ -365,7 +431,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Commission</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ tia(event.data.amount.replace("utia", "")) }} TIA
+							{{ mon(event.data.amount.replace("wei", "")) }} MON
 						</Text>
 					</Flex>
 					<!-- Event: proposer_reward -->
@@ -387,7 +453,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received rewards</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: rewards -->
@@ -409,7 +475,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received rewards</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: commission -->
@@ -429,7 +495,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">received commission of</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: coinbase -->
@@ -449,13 +515,13 @@ watch(
 						<Text size="12" weight="500" color="secondary">received</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON
 						</Text>
 					</Flex>
 					<!-- Event: mint -->
 					<Flex v-else-if="event.type === 'mint'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was minted</Text>
@@ -463,7 +529,7 @@ watch(
 					<!-- Event: burn -->
 					<Flex v-else-if="event.type === 'burn'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was burned</Text>
@@ -471,7 +537,7 @@ watch(
 					<!-- Event: unbond -->
 					<Flex v-else-if="event.type === 'unbond'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">will unbond from</Text>
@@ -503,7 +569,7 @@ watch(
 					<!-- Event: redelegate -->
 					<Flex v-else-if="event.type === 'redelegate'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">will redelegate from</Text>
@@ -549,7 +615,7 @@ watch(
 					<!-- Event: complete_unbonding -->
 					<Flex v-else-if="event.type === 'complete_unbonding'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was unbonded from</Text>
@@ -583,7 +649,7 @@ watch(
 					<!-- Event: complete_redelegation -->
 					<Flex v-else-if="event.type === 'complete_redelegation'" align="center" gap="4" color="secondary" :class="$style.text">
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">was redelegated from</Text>
@@ -651,7 +717,7 @@ watch(
 						<Text size="12" weight="500" color="secondary">Unbonding</Text>
 
 						<Text size="12" weight="500" color="primary" mono no-wrap>
-							{{ event.data.amount ? tia(event.data.amount.replace("utia", "")) : 0 }} TIA</Text
+							{{ event.data.amount ? mon(event.data.amount.replace("wei", "")) : 0 }} MON</Text
 						>
 
 						<Text size="12" weight="500" color="secondary">from</Text>
@@ -800,7 +866,7 @@ watch(
 					</Flex>
 
 					<Text size="12" weight="600" color="tertiary" mono>
-						{{ handlingEventType(event.type) }}
+						{{ event.type ? handlingEventType(event.type) : (event.address ? `Log #${event.logIndex}` : 'Unknown') }}
 					</Text>
 				</Flex>
 			</Flex>

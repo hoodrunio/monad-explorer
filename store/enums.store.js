@@ -1,9 +1,6 @@
 /** Vendor */
 import { defineStore, acceptHMRUpdate } from "pinia"
 
-/** API */
-import { fetchEnums } from "@/services/api/main.js"
-
 /** Constants */
 import { defaultEnums } from "@/services/constants/enums.js"
 
@@ -16,14 +13,8 @@ export const useEnumStore = defineStore("enums", () => {
 	})
 
 	const init = async () => {
-		let data = await fetchEnums()
-
-		if (data) {
-			enums.value.messageTypes = data.message_type
-			enums.value.rollupCategories = data.categories
-			enums.value.rollupTypes = data.rollup_type
-			enums.value.rollupTags = data.tags?.filter(t => t)
-		}
+		// No enums to fetch for Monad validator monitoring
+		// Using default enums for backward compatibility
 	}
 
 	return { enums, init }

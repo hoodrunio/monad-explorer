@@ -5,23 +5,55 @@ import { ref, computed } from 'vue'
 import Badge from "@/components/ui/Badge.vue"
 
 /** API */
-// This would fetch from the /validators/centralization endpoint
-const centralizationData = ref({
-  nakamocoEfficient: 67,
-  giniCoefficient: 0.23,
-  topValidatorsControl: 0.15, // percentage controlled by top 10 validators
-  herfindahlIndex: 0.082,
-  decentralizationScore: 8.7
+import { fetchCentralizationRisks } from "@/services/api/main"
+
+const { data: riskData, pending: isLoading, error } = await fetchCentralizationRisks()
+
+const centralizationData = computed(() => {
+  if (!riskData.value?.data) {
+    // Fallback data while loading
+    return {
+      centralizationRisk: 'unknown',
+      diversityScore: 0,
+      providerConcentration: 0,
+      geographicConcentration: 0,
+      infrastructureDiversity: 0,
+      topProviders: []
+    }
+  }
+  
+  const data = riskData.value.data
+  return {
+    centralizationRisk: data.centralizationRisk || 'unknown',
+    diversityScore: data.diversityScore || 0,
+    providerConcentration: data.riskFactors?.providerConcentration || 0,
+    geographicConcentration: data.riskFactors?.geographicConcentration || 0,
+    infrastructureDiversity: data.riskFactors?.infrastructureDiversity || 0,
+    topProviders: Object.entries(data.providerRisks || {}).slice(0, 6).map(([name, info]) => ({
+      name: info.provider || 'unknown',
+      validatorCount: info.validatorCount || 0,
+      riskScore: info.riskScore || 0
+    }))
+  }
 })
 
 const riskLevel = computed(() => {
-  const score = centralizationData.value.decentralizationScore
-  if (score >= 8) return { level: 'Low', color: 'green' }
-  if (score >= 6) return { level: 'Medium', color: 'yellow' }
-  return { level: 'High', color: 'red' }
+  if (isLoading.value) return { level: 'Loading...', color: 'tertiary' }
+  if (error.value) return { level: 'Error', color: 'red' }
+  
+  const risk = centralizationData.value.centralizationRisk.toLowerCase()
+  if (risk === 'low') return { level: 'Low', color: 'green' }
+  if (risk === 'medium') return { level: 'Medium', color: 'yellow' }
+  if (risk === 'high') return { level: 'High', color: 'red' }
+  return { level: 'Unknown', color: 'tertiary' }
 })
 
 const formatPercentage = (value) => {
+  return `${value.toFixed(1)}%`
+}
+
+const formatDiversityScore = (value) => {
+  // Convert decimal value to percentage (multiply by 100) then format with 1 decimal place
   return `${(value * 100).toFixed(1)}%`
 }
 </script>
@@ -36,60 +68,63 @@ const formatPercentage = (value) => {
         </Badge>
       </Flex>
       
-      <Flex direction="column" gap="12">
-        <!-- Decentralization Score -->
+      <Flex v-if="isLoading" direction="column" gap="12">
+        <Text size="12" color="tertiary">Loading centralization metrics...</Text>
+      </Flex>
+      
+      <Flex v-else-if="error" direction="column" gap="12">
+        <Text size="12" color="red">Error loading centralization data</Text>
+      </Flex>
+      
+      <Flex v-else direction="column" gap="12">
+        <!-- Diversity Score -->
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Decentralization Score</Text>
+          <Text size="12" color="tertiary">Diversity Score</Text>
           <Text size="14" weight="600" color="primary">
-            {{ centralizationData.decentralizationScore }}/10
+            {{ centralizationData.diversityScore.toFixed(3) }}
           </Text>
         </Flex>
         
-        <!-- Progress bar for score -->
+        <!-- Progress bar for diversity score -->
         <div :class="$style.score_bar">
           <div 
             :class="$style.score_progress" 
-            :style="{ width: `${centralizationData.decentralizationScore * 10}%` }"
+            :style="{ width: `${centralizationData.diversityScore * 100}%` }"
           ></div>
         </div>
         
         <!-- Divider -->
         <div :class="$style.divider"></div>
         
-        <!-- Metrics -->
+        <!-- Risk Factors -->
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Nakamoto Coefficient</Text>
+          <Text size="12" color="tertiary">Provider Concentration</Text>
           <Text size="14" weight="600" color="primary">
-            {{ centralizationData.nakamocoEfficient }}
+            {{ formatPercentage(centralizationData.providerConcentration) }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Gini Coefficient</Text>
+          <Text size="12" color="tertiary">Geographic Risk</Text>
           <Text size="14" weight="600" color="primary">
-            {{ centralizationData.giniCoefficient.toFixed(3) }}
+            {{ formatPercentage(centralizationData.geographicConcentration) }}
           </Text>
         </Flex>
         
         <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Top 10 Control</Text>
+          <Text size="12" color="tertiary">Infrastructure Diversity</Text>
           <Text size="14" weight="600" color="primary">
-            {{ formatPercentage(centralizationData.topValidatorsControl) }}
+            {{ formatDiversityScore(centralizationData.infrastructureDiversity) }}
           </Text>
         </Flex>
         
-        <Flex align="center" justify="between">
-          <Text size="12" color="tertiary">Herfindahl Index</Text>
-          <Text size="14" weight="600" color="primary">
-            {{ centralizationData.herfindahlIndex.toFixed(3) }}
-          </Text>
-        </Flex>
-        
-        <!-- Info note -->
-        <div :class="$style.info_note">
-          <Text size="11" color="tertiary">
-            Lower values indicate better decentralization
-          </Text>
+        <!-- Top Providers -->
+        <div v-if="centralizationData.topProviders.length > 0" :class="$style.providers_section">
+          <Text size="11" color="tertiary" style="margin-bottom: 6px;">Top Providers</Text>
+          <div v-for="provider in centralizationData.topProviders" :key="provider.name" :class="$style.provider_item">
+            <Text size="10" color="secondary">{{ provider.name.slice(0, 20) }}{{ provider.name.length > 20 ? '...' : '' }}</Text>
+            <Text size="10" color="tertiary">{{ provider.validatorCount }} validators</Text>
+          </div>
         </div>
       </Flex>
     </Flex>
@@ -120,6 +155,11 @@ const formatPercentage = (value) => {
     background: linear-gradient(var(--red-op-10), var(--red-op-5));
     box-shadow: inset 0 0 0 1px var(--red);
   }
+  
+  &.tertiary {
+    background: linear-gradient(var(--op-10), var(--op-5));
+    box-shadow: inset 0 0 0 1px var(--op-20);
+  }
 }
 
 .score_bar {
@@ -143,10 +183,17 @@ const formatPercentage = (value) => {
   margin: 4px 0;
 }
 
-.info_note {
+.providers_section {
   padding: 8px;
   background: var(--op-5);
   border-radius: 4px;
-  margin-top: 8px;
+  margin-top: 4px;
+}
+
+.provider_item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
 }
 </style> 

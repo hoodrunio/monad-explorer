@@ -1,6 +1,6 @@
 <script setup>
 /** Services */
-import { fetchHead } from "@/services/api/main"
+// import { fetchHead } from "@/services/api/main"
 import amp from "@/services/amp"
 
 /** Components */
@@ -17,12 +17,18 @@ const appStore = useAppStore()
 const router = useRouter()
 const error = useError()
 
-onMounted(async () => {
-	const runtimeConfig = useRuntimeConfig()
-	amp.init(runtimeConfig.public.AMP)
+const props = defineProps({
+	error: Object,
+})
 
-	const data = await fetchHead()
-	if (data) appStore.head = data
+const handleError = () => navigateTo("/")
+
+onMounted(async () => {
+	try {
+		const runtimeConfig = useRuntimeConfig()
+		amp.init(runtimeConfig.public.AMP)
+	} catch (error) {
+	}
 })
 
 const handleBack = () => {
@@ -30,7 +36,7 @@ const handleBack = () => {
 }
 
 const getGithubIssueLink = computed(() => {
-	let link = `https://github.com/celenium-io/celenium-interface/issues/new?labels=bug&title=[${error.value.statusCode}] ${
+	let link = `https://github.com/hoodrunio/monad-explorer/issues/new?labels=bug&title=[${error.value.statusCode}] ${
 		error.value.statusMessage || error.value.message
 	}`
 
@@ -75,7 +81,7 @@ const getGithubIssueLink = computed(() => {
 				</Button>
 				<Button v-else link="/" type="secondary" size="small" style="width: fit-content">
 					<Icon name="arrow-back" size="12" color="secondary" />
-					Back to Explorer
+					Back to Dashboard
 				</Button>
 
 				<Text size="12" weight="500" color="tertiary">or</Text>
