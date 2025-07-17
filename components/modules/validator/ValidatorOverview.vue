@@ -16,6 +16,7 @@ import { convertUTCToLocal } from "@/services/utils/validator"
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
 import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed.vue"
 import ValidatorEventsTable from "./ValidatorEventsTable.vue"
+import ValidatorTransactionAnalytics from "./ValidatorTransactionAnalytics.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -39,6 +40,10 @@ const tabs = ref([
 	{
 		name: "Performance",
 		icon: "bar-chart",
+	},
+	{
+		name: "Analytics",
+		icon: "trending-up",
 	},
 	{
 		name: "History",
@@ -481,6 +486,13 @@ const toggleDescription = () => {
 					</template>
 
 
+
+					<!-- Transaction Analytics Tab -->
+					<template v-if="activeTab === 'Analytics'">
+						<ValidatorTransactionAnalytics 
+							:validatorId="props.validator.validator_id"
+						/>
+					</template>
 
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">

@@ -14,6 +14,9 @@ import ValidatorNetworkSummary from "@/components/data/ValidatorNetworkSummary.v
 import MonadGeoMap from "@/components/modules/stats/MonadGeoMap.vue"
 import MonadDistributionChart from "@/components/modules/stats/MonadDistributionChart.vue"
 
+/** Transaction Analytics Components */
+import TransactionAnalyticsDashboard from "@/components/modules/transaction-analytics/TransactionAnalyticsDashboard.vue"
+
 /** Services */
 import { capitilize } from "@/services/utils"
 
@@ -38,6 +41,10 @@ const tabs = ref([
 	},
 	{
 		name: "validators",
+		visible: true,
+	},
+	{
+		name: "transactions",
 		visible: true,
 	},
 	{
@@ -153,6 +160,11 @@ watch(
 				<Text size="14" weight="600" color="primary">Network Events</Text>
 				<ValidatorEventsWidget />
 			</Flex>
+		</Flex>
+
+		<!-- Transaction Analytics Tab -->
+		<Flex v-if="activeTab === 'transactions'" direction="column" gap="20">
+			<TransactionAnalyticsDashboard />
 		</Flex>
 
 		<!-- Geographic Distribution Tab -->

@@ -1,0 +1,348 @@
+<script setup>
+/** UI */
+import Button from "@/components/ui/Button.vue"
+import Tooltip from "@/components/ui/Tooltip.vue"
+
+/** API */
+import { 
+	fetchValidatorTransactionAnalytics, 
+	fetchValidatorTransactionTrends 
+} from "@/services/api/transaction-analytics"
+
+/** Services */
+import { abbreviate, comma } from "@/services/utils"
+
+/** Components */
+import TransactionTrendsChart from "@/components/modules/transaction-analytics/TransactionTrendsChart.vue"
+
+const props = defineProps({
+	validatorId: {
+		type: String,
+		required: true,
+	},
+})
+
+const isLoading = ref(true)
+const error = ref(null)
+const isMounted = ref(false)
+
+const validatorAnalytics = ref(null)
+const validatorTrends = ref(null)
+
+const timeWindow = ref('24h')
+const timeWindows = ref([
+	{ value: '1h', label: '1H' },
+	{ value: '24h', label: '24H' },
+	{ value: '7d', label: '7D' },
+])
+
+const loadValidatorAnalytics = async () => {
+	if (!isMounted.value) return
+	
+	try {
+		isLoading.value = true
+		error.value = null
+
+		const [analyticsResult, trendsResult] = await Promise.all([
+			fetchValidatorTransactionAnalytics(props.validatorId),
+			fetchValidatorTransactionTrends(props.validatorId, { timeWindow: timeWindow.value })
+		])
+
+		// Check if component is still mounted before updating data
+		if (!isMounted.value) return
+
+		validatorAnalytics.value = analyticsResult.data.value?.data || null
+		validatorTrends.value = trendsResult.data.value?.data || null
+
+	} catch (err) {
+		if (!isMounted.value) return
+		error.value = 'Failed to load transaction analytics'
+		console.error('Validator transaction analytics error:', err)
+	} finally {
+		if (isMounted.value) {
+			isLoading.value = false
+		}
+	}
+}
+
+const handleTimeWindowChange = async (newWindow) => {
+	if (!isMounted.value) return
+	timeWindow.value = newWindow
+	await loadValidatorAnalytics()
+}
+
+const metrics = computed(() => {
+	if (!validatorAnalytics.value) return []
+	
+	const data = validatorAnalytics.value
+	return [
+		{
+			name: 'totalTransactions',
+			title: 'Total Transactions',
+			value: data.transactionMetrics.totalTransactions,
+			icon: 'transaction',
+			formatter: 'comma'
+		},
+		{
+			name: 'totalProposals',
+			title: 'Total Proposals',
+			value: data.transactionMetrics.totalProposals,
+			icon: 'block',
+			formatter: 'comma'
+		},
+		{
+			name: 'avgTransactionsPerBlock',
+			title: 'Avg Tx per Block',
+			value: data.transactionMetrics.avgTransactionsPerBlock,
+			icon: 'bar-chart',
+			formatter: 'decimal'
+		},
+		{
+			name: 'transactionThroughput',
+			title: 'Throughput',
+			value: data.transactionMetrics.transactionThroughput,
+			icon: 'zap',
+			formatter: 'decimal',
+			suffix: 'tx/h'
+		},
+		{
+			name: 'blockUtilizationRate',
+			title: 'Block Utilization',
+			value: data.transactionMetrics.blockUtilizationRate,
+			icon: 'percent',
+			formatter: 'percentage'
+		},
+		{
+			name: 'transactionEfficiency',
+			title: 'Efficiency Score',
+			value: data.transactionMetrics.transactionEfficiency,
+			icon: 'check-circle',
+			formatter: 'decimal'
+		}
+	]
+})
+
+const formatValue = (value, formatter, suffix = '') => {
+	let formatted = value
+
+	switch (formatter) {
+		case 'comma':
+			formatted = comma(value)
+			break
+		case 'decimal':
+			formatted = comma(value, ",", 1)
+			break
+		case 'percentage':
+			formatted = `${comma(value, ",", 1)}%`
+			break
+		default:
+			formatted = abbreviate(value)
+	}
+
+	return suffix ? `${formatted} ${suffix}` : formatted
+}
+
+onMounted(() => {
+	isMounted.value = true
+	nextTick(() => {
+		loadValidatorAnalytics()
+	})
+})
+
+onUnmounted(() => {
+	isMounted.value = false
+})
+</script>
+
+<template>
+	<Flex direction="column" gap="20" wide :class="$style.wrapper">
+		<!-- Header -->
+		<Flex align="center" justify="between" :class="$style.header">
+			<Flex align="center" gap="8">
+				<Icon name="bar-chart" size="16" color="secondary" />
+				<Text size="16" weight="600" color="primary">Transaction Analytics</Text>
+			</Flex>
+
+			<Flex align="center" gap="4">
+				<Button
+					v-for="window in timeWindows"
+					:key="window.value"
+					@click="handleTimeWindowChange(window.value)"
+					:type="timeWindow === window.value ? 'primary' : 'secondary'"
+					size="mini"
+				>
+					{{ window.label }}
+				</Button>
+			</Flex>
+		</Flex>
+
+		<!-- Loading State -->
+		<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
+			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
+		</Flex>
+
+		<!-- Error State -->
+		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
+			<Text size="13" weight="600" color="red">{{ error }}</Text>
+			<Button @click="loadValidatorAnalytics" type="secondary" size="mini">
+				<Icon name="refresh" size="12" />
+				Retry
+			</Button>
+		</Flex>
+
+		<!-- Analytics Content -->
+		<template v-else-if="validatorAnalytics">
+			<!-- Metrics Overview -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Performance Metrics</Text>
+				
+				<Flex gap="16" :class="$style.metrics_grid">
+					<Flex
+						v-for="metric in metrics"
+						:key="metric.name"
+						direction="column"
+						justify="between"
+						:class="$style.metric_card"
+					>
+						<Flex align="center" gap="8">
+							<Icon 
+								:name="metric.icon" 
+								size="14" 
+								color="secondary" 
+							/>
+							<Text size="12" weight="600" color="tertiary">
+								{{ metric.title }}
+							</Text>
+						</Flex>
+
+						<Text size="16" weight="600" color="primary">
+							{{ formatValue(metric.value, metric.formatter, metric.suffix) }}
+						</Text>
+					</Flex>
+				</Flex>
+			</Flex>
+
+			<!-- Infrastructure Info -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Infrastructure Details</Text>
+				
+				<Flex gap="16" :class="$style.info_grid">
+					<Flex direction="column" gap="4" :class="$style.info_card">
+						<Text size="11" weight="600" color="tertiary">Provider</Text>
+						<Text size="13" weight="600" color="primary">
+							{{ validatorAnalytics.infrastructure.provider || 'Unknown' }}
+						</Text>
+					</Flex>
+					
+					<Flex direction="column" gap="4" :class="$style.info_card">
+						<Text size="11" weight="600" color="tertiary">Location</Text>
+						<Text size="13" weight="600" color="primary">
+							{{ validatorAnalytics.infrastructure.location || 'Unknown' }}
+						</Text>
+					</Flex>
+					
+					<Flex direction="column" gap="4" :class="$style.info_card">
+						<Text size="11" weight="600" color="tertiary">Stake</Text>
+						<Text size="13" weight="600" color="primary">
+							{{ validatorAnalytics.infrastructure.stake || 'N/A' }}
+						</Text>
+					</Flex>
+					
+					<Flex direction="column" gap="4" :class="$style.info_card">
+						<Text size="11" weight="600" color="tertiary">Time Window</Text>
+						<Text size="13" weight="600" color="primary">
+							{{ validatorAnalytics.timeWindow.hours }}h
+						</Text>
+					</Flex>
+				</Flex>
+			</Flex>
+
+			<!-- Transaction Trends Chart -->
+			<Flex v-if="validatorTrends" direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>
+				<TransactionTrendsChart 
+					:data="validatorTrends" 
+					:timeWindow="timeWindow"
+				/>
+			</Flex>
+		</template>
+	</Flex>
+</template>
+
+<style module>
+.wrapper {
+	background: var(--card-background);
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: inset 0 0 0 1px var(--op-3);
+}
+
+.header {
+	margin-bottom: 8px;
+}
+
+.loading,
+.error {
+	padding: 40px 20px;
+	text-align: center;
+	background: var(--op-3);
+	border-radius: 8px;
+}
+
+.metrics_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 12px;
+}
+
+.metric_card {
+	min-height: 70px;
+	background: var(--op-3);
+	border-radius: 8px;
+	padding: 12px;
+	transition: all 0.2s ease;
+}
+
+.metric_card:hover {
+	background: var(--op-5);
+}
+
+.info_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 12px;
+}
+
+.info_card {
+	background: var(--op-3);
+	border-radius: 8px;
+	padding: 12px;
+}
+
+@media (max-width: 768px) {
+	.wrapper {
+		padding: 16px;
+	}
+	
+	.metrics_grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	
+	.info_grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	
+	.header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+}
+
+@media (max-width: 480px) {
+	.metrics_grid,
+	.info_grid {
+		grid-template-columns: 1fr;
+	}
+}
+</style> 
