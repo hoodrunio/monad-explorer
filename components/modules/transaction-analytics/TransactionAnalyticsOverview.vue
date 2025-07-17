@@ -3,7 +3,7 @@
 import { abbreviate, comma } from "@/services/utils"
 
 /** Components */
-import DiffChip from "@/components/modules/stats/DiffChip.vue"
+import { TransactionAnalyticsOverviewSkeleton } from "./skeletons"
 
 const props = defineProps({
 	data: {
@@ -13,6 +13,10 @@ const props = defineProps({
 	timeWindow: {
 		type: String,
 		default: '24h',
+	},
+	loading: {
+		type: Boolean,
+		default: false,
 	},
 })
 
@@ -103,7 +107,11 @@ const getTimeWindowLabel = (window) => {
 </script>
 
 <template>
-	<Flex gap="16" :class="$style.grid">
+	<!-- Loading Skeleton -->
+	<TransactionAnalyticsOverviewSkeleton v-if="loading" />
+	
+	<!-- Content -->
+	<Flex v-else gap="16" :class="$style.grid">
 		<Flex
 			v-for="metric in metrics"
 			:key="metric.name"

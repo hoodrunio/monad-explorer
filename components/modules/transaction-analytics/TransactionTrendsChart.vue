@@ -6,6 +6,9 @@ import { DateTime } from "luxon"
 /** Services */
 import { abbreviate, comma } from "@/services/utils"
 
+/** Components */
+import { TransactionTrendsChartSkeleton } from "./skeletons"
+
 const props = defineProps({
 	data: {
 		type: Object,
@@ -14,6 +17,10 @@ const props = defineProps({
 	timeWindow: {
 		type: String,
 		default: '24h',
+	},
+	loading: {
+		type: Boolean,
+		default: false,
 	},
 })
 
@@ -274,7 +281,11 @@ watch(() => props.data, () => {
 </script>
 
 <template>
-	<Flex direction="column" :class="$style.wrapper">
+	<!-- Loading Skeleton -->
+	<TransactionTrendsChartSkeleton v-if="loading" />
+	
+	<!-- Content -->
+	<Flex v-else direction="column" :class="$style.wrapper">
 		<Flex align="center" justify="between" :class="$style.header">
 			<Text size="13" weight="600" color="secondary">
 				Transaction Processing Trends

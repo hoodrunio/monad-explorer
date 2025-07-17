@@ -5,8 +5,6 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** API */
 import { 
-	fetchValidatorTransactionAnalytics, 
-	fetchValidatorTransactionTrends,
 	fetchValidatorTransactionAnalyticsClient,
 	fetchValidatorTransactionTrendsClient
 } from "@/services/api/transaction-analytics"
@@ -16,6 +14,7 @@ import { abbreviate, comma } from "@/services/utils"
 
 /** Components */
 import TransactionTrendsChart from "@/components/modules/transaction-analytics/TransactionTrendsChart.vue"
+import { ValidatorTransactionAnalyticsSkeleton } from "@/components/modules/transaction-analytics/skeletons"
 
 const props = defineProps({
 	validatorId: {
@@ -25,6 +24,7 @@ const props = defineProps({
 })
 
 const isLoading = ref(true)
+const isUpdating = ref(false)
 const error = ref(null)
 
 const validatorAnalytics = ref(null)
@@ -38,7 +38,7 @@ const timeWindows = ref([
 	{ value: '30d', label: '30D' },
 ])
 
-// Initial data load using useFetch (for SSR/initial load)
+// Load initial data using client-side functions only
 const loadInitialValidatorAnalytics = async () => {
 	try {
 		isLoading.value = true
@@ -48,12 +48,12 @@ const loadInitialValidatorAnalytics = async () => {
 		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
 
 		const [analyticsResult, trendsResult] = await Promise.all([
-			fetchValidatorTransactionAnalytics(props.validatorId, {timeWindow: timeWindow.value, granularity}),
-			fetchValidatorTransactionTrends(props.validatorId, { timeWindow: timeWindow.value, granularity })
+			fetchValidatorTransactionAnalyticsClient(props.validatorId, {timeWindow: timeWindow.value, granularity}),
+			fetchValidatorTransactionTrendsClient(props.validatorId, { timeWindow: timeWindow.value, granularity })
 		])
 
-		validatorAnalytics.value = analyticsResult.data.value?.data
-		validatorTrends.value = trendsResult.data.value?.data
+		validatorAnalytics.value = analyticsResult?.data
+		validatorTrends.value = trendsResult?.data
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics'
@@ -63,11 +63,11 @@ const loadInitialValidatorAnalytics = async () => {
 	}
 }
 
-// Update data using $fetch (for client-side updates after mount)
+// Update data using client-side functions
 const updateValidatorAnalytics = async () => {
 	try {
 		const currentWindow = timeWindow.value
-		isLoading.value = true
+		isUpdating.value = true
 		error.value = null
 
 		await nextTick()
@@ -91,7 +91,7 @@ const updateValidatorAnalytics = async () => {
 			console.error('Validator transaction analytics error:', err)
 		}
 	} finally {
-		isLoading.value = false
+		isUpdating.value = false
 	}
 }
 
@@ -168,7 +168,10 @@ const formatValue = (value, formatter, suffix = '') => {
 }
 
 onMounted(() => {
-	loadInitialValidatorAnalytics()
+	// Non-blocking initial fetch, similar to other widgets
+	nextTick(() => {
+		loadInitialValidatorAnalytics()
+	})
 })
 </script>
 
@@ -187,6 +190,8 @@ onMounted(() => {
 					:key="window.value"
 					@click="handleTimeWindowChange(window.value)"
 					:type="timeWindow === window.value ? 'primary' : 'secondary'"
+					:loading="isUpdating"
+					:disabled="isUpdating"
 					size="mini"
 				>
 					{{ window.label }}
@@ -195,12 +200,10 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Loading State -->
-		<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
-			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
-		</Flex>
+		<ValidatorTransactionAnalyticsSkeleton v-if="isLoading && !validatorAnalytics" />
 
 		<!-- Error State -->
-		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
+		<Flex v-else-if="error && !validatorAnalytics" direction="column" gap="20" align="center" :class="$style.error">
 			<Text size="13" weight="600" color="red">{{ error }}</Text>
 			<Button @click="updateValidatorAnalytics" type="secondary" size="mini">
 				<Icon name="refresh" size="12" />
@@ -209,9 +212,9 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Analytics Content -->
-		<template v-else-if="!isLoading && !error && validatorAnalytics">
+		<template v-else-if="validatorAnalytics">
 			<!-- Metrics Overview -->
-			<Flex direction="column" gap="16">
+			<Flex direction="column" gap="16" :class="{ [$style.updating]: isUpdating }">
 				<Text size="14" weight="600" color="primary">Performance Metrics</Text>
 				
 				<Flex gap="16" :class="$style.metrics_grid">
@@ -240,7 +243,7 @@ onMounted(() => {
 				</Flex>
 			</Flex>
 			<!-- Transaction Trends Chart -->
-			<Flex v-if="validatorTrends" direction="column" gap="16">
+			<Flex v-if="validatorTrends" direction="column" gap="16" :class="{ [$style.updating]: isUpdating }">
 				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>
 				<TransactionTrendsChart 
 					:data="validatorTrends" 
@@ -263,7 +266,6 @@ onMounted(() => {
 	margin-bottom: 8px;
 }
 
-.loading,
 .error {
 	padding: 40px 20px;
 	text-align: center;
@@ -326,5 +328,11 @@ onMounted(() => {
 	.info_grid {
 		grid-template-columns: 1fr;
 	}
+}
+
+.updating {
+	opacity: 0.6;
+	pointer-events: none;
+	transition: opacity 0.3s ease;
 }
 </style> 

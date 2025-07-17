@@ -5,9 +5,6 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** API */
 import { 
-	fetchNetworkTransactionSummary, 
-	fetchNetworkTransactionTrends,
-	fetchTransactionAnalyticsRankings,
 	fetchNetworkTransactionSummaryClient,
 	fetchNetworkTransactionTrendsClient,
 	fetchTransactionAnalyticsRankingsClient
@@ -20,6 +17,7 @@ import { abbreviate, comma, formatBytes } from "@/services/utils"
 import TransactionAnalyticsOverview from "./TransactionAnalyticsOverview.vue"
 import TransactionTrendsChart from "./TransactionTrendsChart.vue"
 import ValidatorRankingsTable from "./ValidatorRankingsTable.vue"
+import { TransactionAnalyticsOverviewSkeleton, TransactionTrendsChartSkeleton, ValidatorRankingsTableSkeleton } from "./skeletons"
 
 const isLoading = ref(true)
 const error = ref(null)
@@ -36,7 +34,7 @@ const timeWindows = ref([
 	{ value: '30d', label: '30 Days' },
 ])
 
-// Initial data load using useFetch (for SSR/initial load)
+// Load initial data using client-side functions only
 const loadInitialData = async () => {
 	try {
 		isLoading.value = true
@@ -46,14 +44,14 @@ const loadInitialData = async () => {
 		const granularity = (timeWindow.value === '7d' || timeWindow.value === '30d') ? 'day' : 'hour'
 
 		const [summaryResult, trendsResult, rankingsResult] = await Promise.all([
-			fetchNetworkTransactionSummary({ timeWindow: timeWindow.value }),
-			fetchNetworkTransactionTrends({ timeWindow: timeWindow.value, granularity }),
-			fetchTransactionAnalyticsRankings({ limit: 10, timeWindow: timeWindow.value })
+			fetchNetworkTransactionSummaryClient({ timeWindow: timeWindow.value }),
+			fetchNetworkTransactionTrendsClient({ timeWindow: timeWindow.value, granularity }),
+			fetchTransactionAnalyticsRankingsClient({ limit: 10, timeWindow: timeWindow.value })
 		])
 
-		networkSummary.value = summaryResult.data.value?.data
-		networkTrends.value = trendsResult.data.value?.data
-		topValidators.value = rankingsResult.data.value?.data?.rankings || rankingsResult.data.value?.data
+		networkSummary.value = summaryResult?.data
+		networkTrends.value = trendsResult?.data
+		topValidators.value = rankingsResult?.data?.rankings || rankingsResult?.data
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics data'
@@ -63,7 +61,7 @@ const loadInitialData = async () => {
 	}
 }
 
-// Update data using $fetch (for client-side updates after mount)
+// Update data using client-side functions
 const updateDashboardData = async () => {
 	try {
 		const currentWindow = timeWindow.value
@@ -106,7 +104,10 @@ const handleTimeWindowChange = async (newWindow) => {
 }
 
 onMounted(() => {
-	loadInitialData()
+	// Non-blocking initial fetch, similar to other widgets
+	nextTick(() => {
+		loadInitialData()
+	})
 })
 </script>
 
@@ -136,9 +137,32 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Loading State -->
-		<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
-			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
-		</Flex>
+		<template v-if="isLoading">
+			<!-- Network Overview Skeleton -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Network Transaction Overview</Text>
+				<TransactionAnalyticsOverviewSkeleton />
+			</Flex>
+
+			<!-- Transaction Trends Chart Skeleton -->
+			<Flex direction="column" gap="16">
+				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>
+				<TransactionTrendsChartSkeleton />
+			</Flex>
+
+			<!-- Top Performing Validators Skeleton -->
+			<Flex direction="column" gap="16">
+				<Flex align="center" justify="between">
+					<Text size="14" weight="600" color="primary">Top Performing Validators</Text>
+					<Button link="/validators?sort=transaction_performance" type="secondary" size="mini">
+						<Icon name="validator" size="12" color="secondary" />
+						View All Rankings
+					</Button>
+				</Flex>
+				
+				<ValidatorRankingsTableSkeleton :rowCount="5" />
+			</Flex>
+		</template>
 
 		<!-- Error State -->
 		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
@@ -201,7 +225,6 @@ onMounted(() => {
 	margin-bottom: 8px;
 }
 
-.loading,
 .error {
 	padding: 40px 20px;
 	text-align: center;
