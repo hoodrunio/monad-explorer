@@ -349,8 +349,6 @@ watch(() => chartData.value, () => {
 	flex: 1;
 	min-width: 200px;
 	padding: 12px;
-	background: var(--op-3);
-	border-radius: 8px;
 }
 
 .chart_section {
