@@ -368,9 +368,9 @@ watch(() => chartData.value, () => {
 							</Text>
 						</Flex>
 						<Flex align="center" justify="between">
-							<Text size="11" color="tertiary">Active Validators</Text>
+							<Text size="11" color="tertiary">Max Tx/Block</Text>
 							<Text size="11" weight="600" color="secondary">
-								{{ currentTpsData.activeValidators }}
+								{{ comma(currentTpsData.maxTransactionsInBlock) }}
 							</Text>
 						</Flex>
 					</Flex>
