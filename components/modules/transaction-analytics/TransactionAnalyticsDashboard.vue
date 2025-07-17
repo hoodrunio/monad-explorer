@@ -20,7 +20,6 @@ import ValidatorRankingsTable from "./ValidatorRankingsTable.vue"
 
 const isLoading = ref(true)
 const error = ref(null)
-const isMounted = ref(false)
 
 const networkSummary = ref(null)
 const networkTrends = ref(null)
@@ -35,8 +34,6 @@ const timeWindows = ref([
 ])
 
 const loadDashboardData = async () => {
-	if (!isMounted.value) return
-	
 	try {
 		isLoading.value = true
 		error.value = null
@@ -47,39 +44,25 @@ const loadDashboardData = async () => {
 			fetchTransactionAnalyticsRankings({ limit: 10, timeWindow: timeWindow.value })
 		])
 
-		// Check if component is still mounted before updating data
-		if (!isMounted.value) return
-
-		networkSummary.value = summaryResult.data.value?.data || null
-		networkTrends.value = trendsResult.data.value?.data || null
-		topValidators.value = rankingsResult.data.value?.data || []
+		networkSummary.value = summaryResult.data.value?.data
+		networkTrends.value = trendsResult.data.value?.data
+		topValidators.value = rankingsResult.data.value?.data
 
 	} catch (err) {
-		if (!isMounted.value) return
 		error.value = 'Failed to load transaction analytics data'
 		console.error('Transaction analytics error:', err)
 	} finally {
-		if (isMounted.value) {
-			isLoading.value = false
-		}
+		isLoading.value = false
 	}
 }
 
 const handleTimeWindowChange = async (newWindow) => {
-	if (!isMounted.value) return
 	timeWindow.value = newWindow
 	await loadDashboardData()
 }
 
 onMounted(() => {
-	isMounted.value = true
-	nextTick(() => {
-		loadDashboardData()
-	})
-})
-
-onUnmounted(() => {
-	isMounted.value = false
+	loadDashboardData()
 })
 </script>
 

@@ -24,7 +24,6 @@ const props = defineProps({
 
 const isLoading = ref(true)
 const error = ref(null)
-const isMounted = ref(false)
 
 const validatorAnalytics = ref(null)
 const validatorTrends = ref(null)
@@ -37,36 +36,30 @@ const timeWindows = ref([
 ])
 
 const loadValidatorAnalytics = async () => {
-	if (!isMounted.value) return
-	
 	try {
 		isLoading.value = true
 		error.value = null
 
+		// Determine granularity based on time window
+		const granularity = timeWindow.value === '7d' ? 'day' : 'hour'
+
 		const [analyticsResult, trendsResult] = await Promise.all([
-			fetchValidatorTransactionAnalytics(props.validatorId),
-			fetchValidatorTransactionTrends(props.validatorId, { timeWindow: timeWindow.value })
+			fetchValidatorTransactionAnalytics(props.validatorId, {timeWindow: timeWindow.value, granularity}),
+			fetchValidatorTransactionTrends(props.validatorId, { timeWindow: timeWindow.value, granularity })
 		])
 
-		// Check if component is still mounted before updating data
-		if (!isMounted.value) return
-
-		validatorAnalytics.value = analyticsResult.data.value?.data || null
-		validatorTrends.value = trendsResult.data.value?.data || null
+		validatorAnalytics.value = analyticsResult.data.value?.data
+		validatorTrends.value = trendsResult.data.value?.data
 
 	} catch (err) {
-		if (!isMounted.value) return
 		error.value = 'Failed to load transaction analytics'
 		console.error('Validator transaction analytics error:', err)
 	} finally {
-		if (isMounted.value) {
-			isLoading.value = false
-		}
+		isLoading.value = false
 	}
 }
 
 const handleTimeWindowChange = async (newWindow) => {
-	if (!isMounted.value) return
 	timeWindow.value = newWindow
 	await loadValidatorAnalytics()
 }
@@ -143,14 +136,7 @@ const formatValue = (value, formatter, suffix = '') => {
 }
 
 onMounted(() => {
-	isMounted.value = true
-	nextTick(() => {
-		loadValidatorAnalytics()
-	})
-})
-
-onUnmounted(() => {
-	isMounted.value = false
+	loadValidatorAnalytics()
 })
 </script>
 

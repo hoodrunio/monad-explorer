@@ -30,10 +30,8 @@ const chartData = computed(() => {
 	}))
 })
 
-const isMounted = ref(false)
-
 const buildChart = () => {
-	if (!isMounted.value || !chartContainer.value || !chartData.value.length) return
+	if (!chartContainer.value || !chartData.value.length) return
 
 	// Clear previous chart
 	d3.select(chartContainer.value).selectAll("*").remove()
@@ -255,24 +253,18 @@ const debouncedRedraw = () => {
 }
 
 onMounted(() => {
-	isMounted.value = true
-	nextTick(() => {
-		buildChart()
-	})
+	buildChart()
 	window.addEventListener("resize", debouncedRedraw)
 })
 
 onBeforeUnmount(() => {
-	isMounted.value = false
 	window.removeEventListener("resize", debouncedRedraw)
 	// Clean up tooltip
 	d3.select("body").selectAll(".d3-tooltip").remove()
 })
 
 watch(() => props.data, () => {
-	if (isMounted.value) {
-		buildChart()
-	}
+	buildChart()
 }, { deep: true })
 </script>
 
