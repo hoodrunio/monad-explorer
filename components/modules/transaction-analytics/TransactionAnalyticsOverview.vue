@@ -21,7 +21,7 @@ const metrics = computed(() => [
 		name: 'totalTransactions',
 		title: 'Total Transactions',
 		value: props.data.totalTransactions,
-		icon: 'transaction',
+		icon: 'tx',
 		color: 'mint',
 		formatter: 'comma'
 	},

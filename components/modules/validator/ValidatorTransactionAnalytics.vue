@@ -111,7 +111,7 @@ const metrics = computed(() => {
 			name: 'totalTransactions',
 			title: 'Total Transactions',
 			value: data.transactionMetrics.totalTransactions,
-			icon: 'transaction',
+			icon: 'tx',
 			formatter: 'comma'
 		},
 		{
@@ -140,15 +140,8 @@ const metrics = computed(() => {
 			name: 'blockUtilizationRate',
 			title: 'Block Utilization',
 			value: data.transactionMetrics.blockUtilizationRate,
-			icon: 'percent',
+			icon: 'coins_up',
 			formatter: 'percentage'
-		},
-		{
-			name: 'transactionEfficiency',
-			title: 'Efficiency Score',
-			value: data.transactionMetrics.transactionEfficiency,
-			icon: 'check-circle',
-			formatter: 'decimal'
 		}
 	]
 })
@@ -245,42 +238,6 @@ onMounted(() => {
 					</Flex>
 				</Flex>
 			</Flex>
-
-			<!-- Infrastructure Info -->
-			<Flex direction="column" gap="16">
-				<Text size="14" weight="600" color="primary">Infrastructure Details</Text>
-				
-				<Flex gap="16" :class="$style.info_grid">
-					<Flex direction="column" gap="4" :class="$style.info_card">
-						<Text size="11" weight="600" color="tertiary">Provider</Text>
-						<Text size="13" weight="600" color="primary">
-							{{ validatorAnalytics.infrastructure.provider || 'Unknown' }}
-						</Text>
-					</Flex>
-					
-					<Flex direction="column" gap="4" :class="$style.info_card">
-						<Text size="11" weight="600" color="tertiary">Location</Text>
-						<Text size="13" weight="600" color="primary">
-							{{ validatorAnalytics.infrastructure.location || 'Unknown' }}
-						</Text>
-					</Flex>
-					
-					<Flex direction="column" gap="4" :class="$style.info_card">
-						<Text size="11" weight="600" color="tertiary">Stake</Text>
-						<Text size="13" weight="600" color="primary">
-							{{ validatorAnalytics.infrastructure.stake || 'N/A' }}
-						</Text>
-					</Flex>
-					
-					<Flex direction="column" gap="4" :class="$style.info_card">
-						<Text size="11" weight="600" color="tertiary">Time Window</Text>
-						<Text size="13" weight="600" color="primary">
-							{{ validatorAnalytics.timeWindow.hours }}h
-						</Text>
-					</Flex>
-				</Flex>
-			</Flex>
-
 			<!-- Transaction Trends Chart -->
 			<Flex v-if="validatorTrends" direction="column" gap="16">
 				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>

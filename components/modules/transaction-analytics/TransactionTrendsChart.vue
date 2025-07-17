@@ -23,11 +23,16 @@ const isLoading = ref(false)
 const chartData = computed(() => {
 	if (!props.data?.trends) return []
 	
-	return props.data.trends.map(item => ({
-		...item,
-		timestamp: new Date(item.timestamp),
-		formattedTime: DateTime.fromISO(item.timestamp).toFormat('MMM dd HH:mm')
-	}))
+	return props.data.trends.map(item => {
+		// Parse SQL datetime format: "2025-07-17 15:00:00"
+		const dateTime = DateTime.fromSQL(item.timestamp)
+		
+		return {
+			...item,
+			timestamp: dateTime.toJSDate(),
+			formattedTime: dateTime.isValid ? dateTime.toFormat('MMM dd HH:mm') : 'Invalid Date'
+		}
+	})
 })
 
 const buildChart = () => {
