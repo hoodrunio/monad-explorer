@@ -23,6 +23,7 @@ const props = defineProps({
 })
 
 const isLoading = ref(true)
+const isUpdating = ref(false)
 const error = ref(null)
 
 const validatorAnalytics = ref(null)
@@ -65,7 +66,7 @@ const loadInitialValidatorAnalytics = async () => {
 const updateValidatorAnalytics = async () => {
 	try {
 		const currentWindow = timeWindow.value
-		isLoading.value = true
+		isUpdating.value = true
 		error.value = null
 
 		await nextTick()
@@ -89,7 +90,7 @@ const updateValidatorAnalytics = async () => {
 			console.error('Validator transaction analytics error:', err)
 		}
 	} finally {
-		isLoading.value = false
+		isUpdating.value = false
 	}
 }
 
@@ -188,6 +189,8 @@ onMounted(() => {
 					:key="window.value"
 					@click="handleTimeWindowChange(window.value)"
 					:type="timeWindow === window.value ? 'primary' : 'secondary'"
+					:loading="isUpdating"
+					:disabled="isUpdating"
 					size="mini"
 				>
 					{{ window.label }}
@@ -196,12 +199,12 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Loading State -->
-		<Flex v-if="isLoading" direction="column" gap="20" align="center" :class="$style.loading">
+		<Flex v-if="isLoading && !validatorAnalytics" direction="column" gap="20" align="center" :class="$style.loading">
 			<Text size="13" weight="600" color="secondary">Loading transaction analytics...</Text>
 		</Flex>
 
 		<!-- Error State -->
-		<Flex v-else-if="error" direction="column" gap="20" align="center" :class="$style.error">
+		<Flex v-else-if="error && !validatorAnalytics" direction="column" gap="20" align="center" :class="$style.error">
 			<Text size="13" weight="600" color="red">{{ error }}</Text>
 			<Button @click="updateValidatorAnalytics" type="secondary" size="mini">
 				<Icon name="refresh" size="12" />
@@ -210,9 +213,9 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Analytics Content -->
-		<template v-else-if="!isLoading && !error && validatorAnalytics">
+		<template v-else-if="validatorAnalytics">
 			<!-- Metrics Overview -->
-			<Flex direction="column" gap="16">
+			<Flex direction="column" gap="16" :class="{ [$style.updating]: isUpdating }">
 				<Text size="14" weight="600" color="primary">Performance Metrics</Text>
 				
 				<Flex gap="16" :class="$style.metrics_grid">
@@ -241,7 +244,7 @@ onMounted(() => {
 				</Flex>
 			</Flex>
 			<!-- Transaction Trends Chart -->
-			<Flex v-if="validatorTrends" direction="column" gap="16">
+			<Flex v-if="validatorTrends" direction="column" gap="16" :class="{ [$style.updating]: isUpdating }">
 				<Text size="14" weight="600" color="primary">Transaction Processing Trends</Text>
 				<TransactionTrendsChart 
 					:data="validatorTrends" 
@@ -327,5 +330,11 @@ onMounted(() => {
 	.info_grid {
 		grid-template-columns: 1fr;
 	}
+}
+
+.updating {
+	opacity: 0.6;
+	pointer-events: none;
+	transition: opacity 0.3s ease;
 }
 </style> 
