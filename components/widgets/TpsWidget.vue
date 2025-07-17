@@ -189,6 +189,98 @@ const buildChart = () => {
 		.selectAll("text")
 		.style("fill", "var(--txt-tertiary)")
 		.style("font-size", "10px")
+
+	// Create tooltip
+	const tooltip = d3.select(chartContainer.value)
+		.append("div")
+		.attr("class", "chart-tooltip")
+		.style("opacity", 0)
+		.style("position", "absolute")
+		.style("background", "var(--card-background)")
+		.style("border", "1px solid var(--op-5)")
+		.style("border-radius", "6px")
+		.style("padding", "8px 12px")
+		.style("font-size", "12px")
+		.style("box-shadow", "0 4px 12px rgba(0, 0, 0, 0.15)")
+		.style("pointer-events", "none")
+		.style("z-index", "1000")
+
+	// Create focus circle (invisible by default)
+	const focus = g.append("g")
+		.style("opacity", 0)
+
+	focus.append("circle")
+		.attr("r", 4)
+		.attr("fill", "var(--green)")
+		.attr("stroke", "white")
+		.attr("stroke-width", 2)
+
+	// Create vertical line
+	focus.append("line")
+		.attr("class", "focus-line")
+		.attr("stroke", "var(--op-10)")
+		.attr("stroke-width", 1)
+		.attr("stroke-dasharray", "3,3")
+
+	// Bisector for finding closest data point
+	const bisect = d3.bisector(d => d.timestamp).left
+
+	// Add invisible overlay for mouse interaction
+	g.append("rect")
+		.attr("width", width)
+		.attr("height", height)
+		.attr("fill", "none")
+		.attr("pointer-events", "all")
+		.on("mouseover", () => {
+			focus.style("opacity", 1)
+			tooltip.style("opacity", 1)
+		})
+		.on("mouseout", () => {
+			focus.style("opacity", 0)
+			tooltip.style("opacity", 0)
+		})
+		.on("mousemove", (event) => {
+			const [mouseX] = d3.pointer(event)
+			const x0 = xScale.invert(mouseX)
+			const i = bisect(chartData.value, x0, 1)
+			const d0 = chartData.value[i - 1]
+			const d1 = chartData.value[i]
+			
+			if (!d0 && !d1) return
+			
+			const d = d1 && d0 ? (x0 - d0.timestamp > d1.timestamp - x0 ? d1 : d0) : (d0 || d1)
+			
+			const x = xScale(d.timestamp)
+			const y = yScale(d.tps)
+			
+			// Update focus circle position
+			focus.select("circle")
+				.attr("cx", x)
+				.attr("cy", y)
+			
+			// Update focus line
+			focus.select(".focus-line")
+				.attr("x1", x)
+				.attr("x2", x)
+				.attr("y1", 0)
+				.attr("y2", height)
+			
+			// Update tooltip
+			const tooltipX = mouseX + margin.left + 10
+			const tooltipY = y + margin.top - 10
+			
+			tooltip
+				.style("left", tooltipX + "px")
+				.style("top", tooltipY + "px")
+				.html(`
+					<div style="font-weight: 600; color: var(--green); margin-bottom: 4px;">
+						${comma(d.tps, ",", 2)} TPS
+					</div>
+					<div style="color: var(--txt-tertiary); font-size: 11px;">
+						${d.formattedTime}
+					</div>
+				`)
+		})
 }
 
 const debouncedRedraw = () => {
@@ -359,6 +451,7 @@ watch(() => chartData.value, () => {
 .chart_container {
 	width: 100%;
 	height: 200px;
+	position: relative;
 }
 
 .metrics {
