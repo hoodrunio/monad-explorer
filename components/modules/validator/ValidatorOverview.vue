@@ -42,10 +42,6 @@ const tabs = ref([
 		icon: "bar-chart",
 	},
 	{
-		name: "Analytics",
-		icon: "trending-up",
-	},
-	{
 		name: "History",
 		icon: "time",
 	},
@@ -487,13 +483,6 @@ const toggleDescription = () => {
 
 
 
-					<!-- Transaction Analytics Tab -->
-					<template v-if="activeTab === 'Analytics'">
-						<ValidatorTransactionAnalytics 
-							:validatorId="props.validator.validator_id"
-						/>
-					</template>
-
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
 						<ValidatorPerformanceGridDetailed :performance-history="performanceHistory" />
@@ -505,6 +494,17 @@ const toggleDescription = () => {
 					</template>
 				</Flex>
 			</Flex>
+		</Flex>
+
+		<!-- Transaction Analytics Section -->
+		<Flex direction="column" gap="4" :class="$style.analytics_section">
+			<Flex align="center" gap="8" :class="$style.analytics_header">
+				<Icon name="trending-up" size="16" color="primary" />
+				<Text size="14" weight="600" color="primary">Transaction Analytics</Text>
+			</Flex>
+			<ValidatorTransactionAnalytics 
+				:validatorId="props.validator.validator_id"
+			/>
 		</Flex>
 	</Flex>
 </template>
@@ -699,6 +699,16 @@ const toggleDescription = () => {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	max-width: 250px; /* Adjust as needed */
+}
+
+.analytics_section {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid var(--op-8);
+}
+
+.analytics_header {
+	margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {
