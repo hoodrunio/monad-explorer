@@ -115,7 +115,9 @@ onMounted(async () => {
 
 	// Initialize Sentry with your own DSN
 	if (runtimeConfig.public.SENTRY_DSN && !import.meta.dev) {
+		const nuxtApp = useNuxtApp()
 		Sentry.init({
+			app: nuxtApp.vueApp,
 			dsn: runtimeConfig.public.SENTRY_DSN,
 			integrations: [
 				Sentry.replayIntegration({

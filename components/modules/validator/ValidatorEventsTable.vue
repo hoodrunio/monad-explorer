@@ -305,7 +305,8 @@ onMounted(() => {
 		<Flex v-else direction="column" gap="16">
 			<!-- Events Table -->
 			<div :class="$style.table_container">
-				<table :class="$style.events_table">
+				<div :class="$style.scrollable_wrapper">
+					<table :class="$style.events_table">
 					<thead>
 						<tr>
 							<th><Text size="12" weight="600" color="tertiary">Type</Text></th>
@@ -357,7 +358,8 @@ onMounted(() => {
 							</td>
 						</tr>
 					</tbody>
-				</table>
+					</table>
+				</div>
 			</div>
 			
 			<!-- Pagination -->
@@ -386,10 +388,34 @@ onMounted(() => {
 
 <style module>
 .table_container {
-	overflow-x: auto;
 	border: 1px solid var(--op-8);
 	border-radius: 8px;
 	background: var(--op-3);
+}
+
+.scrollable_wrapper {
+	max-height: 400px;
+	overflow-y: auto;
+	overflow-x: auto;
+}
+
+.scrollable_wrapper::-webkit-scrollbar {
+	width: 6px;
+}
+
+.scrollable_wrapper::-webkit-scrollbar-track {
+	background: var(--op-3);
+	border-radius: 3px;
+}
+
+.scrollable_wrapper::-webkit-scrollbar-thumb {
+	background: var(--op-10);
+	border-radius: 3px;
+	transition: background 0.2s ease;
+}
+
+.scrollable_wrapper::-webkit-scrollbar-thumb:hover {
+	background: var(--op-15);
 }
 
 .events_table {
