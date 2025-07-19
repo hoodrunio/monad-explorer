@@ -93,7 +93,13 @@ const validatorStatus = computed(() => {
 			color: "var(--brand)",
 			description: ["Performing good"]
 		}
-	} else if (uptime <= 90) {
+	} else if (uptime >= 90) {
+		return {
+			name: "Fair",
+			color: "var(--orange)",
+			description: ["Could improve"]
+		}
+	} else {
 		return {
 			name: "Warning",
 			color: "var(--yellow)",
