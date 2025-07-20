@@ -2,10 +2,14 @@
 import { useAppStore } from "~/stores/app.store"
 import { useCanvasStore } from "~/stores/canvas.store"
 import { useNotificationsStore } from "~/stores/notifications.store"
+import multisynqService from "~/services/multisynq.js"
 
 const appStore = useAppStore()
 const canvasStore = useCanvasStore()
 const notificationsStore = useNotificationsStore()
+
+// Get Multisynq API key from runtime config
+const config = useRuntimeConfig()
 
 // Page meta
 useHead({
@@ -20,32 +24,131 @@ onMounted(async () => {
 
 const initializeServices = async () => {
 	try {
-		// TODO: Initialize Multisynq connection
-		// TODO: Initialize blockchain connection
+		// Initialize Multisynq with API key from config
+		const multisynqApiKey = config.public.MULTISYNQ_API_KEY
+		const userId = generateUserId()
+		
+		notificationsStore.showInfo(
+			"Connecting to Multisynq...",
+			"Setting up real-time collaboration"
+		)
+
+		const multisynqConnected = await multisynqService.initialize(multisynqApiKey, userId)
+		
+		if (multisynqConnected) {
+			canvasStore.setMultisynqConnection(true)
+			
+			// Set up Multisynq event listeners
+			setupMultisynqListeners()
+			
+			notificationsStore.showSuccess(
+				"Multisynq Connected!",
+				"Real-time collaboration is now active"
+			)
+		} else {
+			throw new Error("Failed to connect to Multisynq")
+		}
 		
 		notificationsStore.showInfo(
 			"Welcome to MonadDoodle!",
-			"Start drawing on the collaborative canvas. Each pixel costs 0.0001 MON."
+			"Connect your wallet to start drawing. Each pixel costs 0.0001 MON."
 		)
 	} catch (error) {
 		console.error("Failed to initialize services:", error)
 		notificationsStore.showError(
-			"Initialization Failed",
-			"Failed to connect to collaboration services"
+			"Connection Failed",
+			"Failed to connect to collaboration services. You can still draw locally."
 		)
 	}
+}
+
+const generateUserId = () => {
+	// Generate a unique user ID
+	return "user_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now()
+}
+
+const setupMultisynqListeners = () => {
+	// Listen for canvas updates from other users
+	multisynqService.on("canvas:updated", (data) => {
+		const { x, y, color, userId } = data
+		
+		// Update local canvas state
+		canvasStore.setPixel(x, y, color, userId)
+		
+		// Show notification for other users' pixels
+		if (userId !== appStore.currentUser.id) {
+			notificationsStore.showInfo(
+				"Pixel Updated",
+				`User ${userId.slice(0, 8)}... set pixel at (${x}, ${y})`
+			)
+		}
+	})
+
+	// Listen for cursor updates
+	multisynqService.on("cursor:updated", (data) => {
+		const { userId, x, y, users } = data
+		
+		// Update user cursors (excluding current user)
+		users.forEach(user => {
+			if (user.id !== appStore.currentUser.id) {
+				canvasStore.updateUserCursor(user.id, user.cursor.x, user.cursor.y)
+			}
+		})
+	})
+
+	// Listen for user joined
+	multisynqService.on("user:joined", (data) => {
+		const { user, totalUsers } = data
+		
+		canvasStore.addConnectedUser(user)
+		
+		notificationsStore.showUserJoined(user.id, user.address)
+	})
+
+	// Listen for user left
+	multisynqService.on("user:left", (data) => {
+		const { userId, totalUsers } = data
+		
+		const user = canvasStore.connectedUsers.get(userId)
+		if (user) {
+			notificationsStore.showUserLeft(userId, user.address)
+			canvasStore.removeConnectedUser(userId)
+		}
+	})
+
+	// Listen for full canvas state (when joining)
+	multisynqService.on("canvas:state", (data) => {
+		const { pixels, totalPixelsSet, connectedUsers } = data
+		
+		// Update local state with server state
+		canvasStore.loadCanvasFromData(pixels)
+		canvasStore.totalPixelsSet = totalPixelsSet
+		
+		// Update connected users
+		connectedUsers.forEach(user => {
+			canvasStore.addConnectedUser(user)
+		})
+		
+		notificationsStore.showInfo(
+			"Canvas Synchronized",
+			`Loaded canvas with ${totalPixelsSet} pixels and ${connectedUsers.length} users`
+		)
+	})
 }
 
 const connectWallet = async () => {
 	try {
 		appStore.setLoading(true)
 		
-		// TODO: Implement wallet connection
+		// TODO: Implement real wallet connection
 		// For now, simulate connection
 		await new Promise(resolve => setTimeout(resolve, 1000))
 		
 		const mockAddress = "0x1234567890abcdef1234567890abcdef12345678"
 		appStore.setWalletConnection(true, mockAddress)
+		
+		// Update user ID with wallet address
+		appStore.currentUser.id = mockAddress
 		
 		notificationsStore.showSuccess(
 			"Wallet Connected",
@@ -61,6 +164,11 @@ const connectWallet = async () => {
 		appStore.setLoading(false)
 	}
 }
+
+// Cleanup on unmount
+onUnmounted(() => {
+	multisynqService.disconnect()
+})
 </script>
 
 <template>
@@ -130,6 +238,30 @@ const connectWallet = async () => {
 							</Flex>
 						</div>
 
+						<!-- Connection Status -->
+						<div :class="$style.connectionSection">
+							<Text size="14" weight="600" color="primary">
+								Collaboration
+							</Text>
+							<Flex direction="col" gap="4">
+								<Flex justify="between">
+									<Text size="12" color="secondary">Multisynq:</Text>
+									<Text 
+										size="12" 
+										:color="canvasStore.isMultisynqConnected ? 'green' : 'red'"
+									>
+										{{ canvasStore.isMultisynqConnected ? 'Connected' : 'Disconnected' }}
+									</Text>
+								</Flex>
+								<Flex justify="between">
+									<Text size="12" color="secondary">Users:</Text>
+									<Text size="12" color="primary" tabular>
+										{{ canvasStore.getConnectedUsersList.length }}
+									</Text>
+								</Flex>
+							</Flex>
+						</div>
+
 						<!-- Stats -->
 						<div :class="$style.statsSection">
 							<Text size="14" weight="600" color="primary">
@@ -146,12 +278,6 @@ const connectWallet = async () => {
 									<Text size="12" color="secondary">Gas Used:</Text>
 									<Text size="12" color="primary" tabular>
 										{{ canvasStore.totalGasUsed.toFixed(6) }} MON
-									</Text>
-								</Flex>
-								<Flex justify="between">
-									<Text size="12" color="secondary">Connected:</Text>
-									<Text size="12" color="primary" tabular>
-										{{ canvasStore.getConnectedUsersList.length }}
 									</Text>
 								</Flex>
 							</Flex>
@@ -274,6 +400,7 @@ const connectWallet = async () => {
 }
 
 .toolSection,
+.connectionSection,
 .statsSection,
 .walletSection {
 	padding: 16px;

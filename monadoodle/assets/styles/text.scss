@@ -36,19 +36,19 @@ $font_weights: (
 
 /* Colors */
 $colors: (
-	primary: var(--txt-primary),
-	body: var(--txt-body),
-	secondary: var(--txt-secondary),
-	tertiary: var(--txt-tertiary),
-	support: var(--txt-support),
-	brand: var(--brand),
-	blue: var(--blue),
-	red: var(--red),
-	orange: var(--orange),
-	yellow: var(--yellow),
-	green: var(--green),
-	purple: var(--purple),
-	mint: var(--mint),
+	"primary": var(--txt-primary),
+	"body": var(--txt-body),
+	"secondary": var(--txt-secondary),
+	"tertiary": var(--txt-tertiary),
+	"support": var(--txt-support),
+	"brand": var(--brand),
+	"blue": var(--blue),
+	"red": var(--red),
+	"orange": var(--orange),
+	"yellow": var(--yellow),
+	"green": var(--green),
+	"purple": var(--purple),
+	"mint": var(--mint),
 );
 
 @each $color, $value in $colors {

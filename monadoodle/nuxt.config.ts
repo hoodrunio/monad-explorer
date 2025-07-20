@@ -7,6 +7,14 @@ import path from "path"
 export default defineNuxtConfig({
 	modules: ["@pinia/nuxt", "@nuxtjs/sitemap"],
 
+	// Component auto-import configuration
+	components: [
+		{
+			path: '~/components',
+			pathPrefix: false,
+		}
+	],
+
 	site: {
 		url: "https://monadoodle.vercel.app",
 	},

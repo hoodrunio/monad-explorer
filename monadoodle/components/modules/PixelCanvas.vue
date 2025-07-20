@@ -2,6 +2,7 @@
 import { useCanvasStore } from "~/stores/canvas.store"
 import { useAppStore } from "~/stores/app.store"
 import { useNotificationsStore } from "~/stores/notifications.store"
+import multisynqService from "~/services/multisynq.js"
 
 const canvasStore = useCanvasStore()
 const appStore = useAppStore()
@@ -16,18 +17,7 @@ const PIXEL_SIZE = 16
 const CANVAS_SIZE = canvasStore.canvasSize * PIXEL_SIZE
 const GRID_COLOR = "var(--canvas-grid)"
 
-onMounted(() => {
-	// Initialize canvas drawing
-	drawCanvas()
-})
-
-// Watch for pixel changes and redraw
-watchEffect(() => {
-	// Watch the pixels array for changes
-	canvasStore.pixels
-	drawCanvas()
-})
-
+// Define drawCanvas function first before using it
 const drawCanvas = () => {
 	if (!canvasRef.value) return
 	
@@ -107,6 +97,20 @@ const drawUserCursors = (ctx) => {
 	})
 }
 
+onMounted(() => {
+	// Initialize canvas drawing
+	drawCanvas()
+})
+
+// Watch for pixel changes and redraw
+watchEffect(() => {
+	// Watch the pixels array for changes
+	canvasStore.pixels
+	nextTick(() => {
+		drawCanvas()
+	})
+})
+
 const getPixelCoords = (event) => {
 	const canvas = canvasRef.value
 	const rect = canvas.getBoundingClientRect()
@@ -136,11 +140,13 @@ const handleMouseDown = (event) => {
 const handleMouseMove = (event) => {
 	const { x, y } = getPixelCoords(event)
 	
-	// Update user cursor position
+	// Update user cursor position locally
 	appStore.updateUserCursor(x, y)
 	
-	// Broadcast cursor position to other users
-	// TODO: Send cursor position via Multisynq
+	// Broadcast cursor position via Multisynq if connected
+	if (canvasStore.isMultisynqConnected && appStore.currentUser.id) {
+		multisynqService.moveCursor(x, y, appStore.currentUser.id)
+	}
 	
 	// Draw if mouse is down
 	if (isMouseDown.value) {
@@ -148,7 +154,9 @@ const handleMouseMove = (event) => {
 	}
 	
 	// Redraw to show cursor updates
-	drawCanvas()
+	nextTick(() => {
+		drawCanvas()
+	})
 }
 
 const handleMouseUp = () => {
@@ -189,13 +197,15 @@ const drawPixel = async (event) => {
 		// Set pixel locally first for immediate feedback
 		canvasStore.setPixel(x, y, color, appStore.currentUser.id)
 		
-		// Send to blockchain
+		// Broadcast pixel update via Multisynq if connected
+		if (canvasStore.isMultisynqConnected && appStore.currentUser.id) {
+			multisynqService.setPixel(x, y, color, appStore.currentUser.id)
+		}
+		
+		// Send to blockchain (simulate for now)
 		await sendPixelTransaction(x, y, color)
 		
-		// Broadcast to other users via Multisynq
-		// TODO: Send pixel data via Multisynq
-		
-		// Show notification
+		// Show local notification
 		notificationsStore.showPixelDrawn(x, y, color, appStore.currentUser.id)
 		
 	} catch (error) {
@@ -273,6 +283,13 @@ onUnmounted(() => {
 				{{ appStore.currentUser.cursor.x }}, {{ appStore.currentUser.cursor.y }}
 			</Text>
 		</div>
+		
+		<!-- Multisynq status indicator -->
+		<div v-if="canvasStore.isMultisynqConnected" :class="$style.multisynqStatus">
+			<Text size="10" color="green">
+				● Live
+			</Text>
+		</div>
 	</div>
 </template>
 
@@ -312,6 +329,16 @@ onUnmounted(() => {
 	position: absolute;
 	top: 4px;
 	right: 4px;
+	background: var(--tooltip-background);
+	padding: 2px 6px;
+	border-radius: 4px;
+	pointer-events: none;
+}
+
+.multisynqStatus {
+	position: absolute;
+	top: 4px;
+	left: 4px;
 	background: var(--tooltip-background);
 	padding: 2px 6px;
 	border-radius: 4px;
