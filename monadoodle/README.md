@@ -81,6 +81,8 @@ monadoodle/
 ├── pages/              # Nuxt.js pages/routes
 ├── stores/             # Pinia state management
 ├── services/           # Business logic services
+│   └── multisynq.js    # Real Multisynq integration
+├── contracts/          # Solidity smart contracts
 ├── plugins/            # Nuxt.js plugins
 ├── public/             # Static assets
 ├── nuxt.config.ts      # Nuxt.js configuration

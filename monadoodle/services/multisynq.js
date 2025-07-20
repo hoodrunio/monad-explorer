@@ -6,13 +6,9 @@
 
 // MonadDoodle Model - Contains all canvas logic and state
 class MonadDoodleModel {
-	constructor() {
-		// Will be set when Multisynq initializes
-		this.Multisynq = null
-	}
-
 	// Initialize model state and event handlers
-	init() {
+	init(options = {}) {
+		super.init(options)
 		// Canvas state
 		this.canvasSize = 32
 		this.pixels = Array(32).fill().map(() => Array(32).fill("#000000"))
@@ -128,8 +124,8 @@ class MonadDoodleModel {
 
 // MonadDoodle View - Handles UI updates and user input
 class MonadDoodleView {
-	constructor(model) {
-		this.model = model
+	init(options = {}) {
+		super.init(options)
 		this.callbacks = new Map()
 
 		// Subscribe to model events
@@ -256,11 +252,16 @@ class MultisynqService {
 			this.Multisynq = window.Multisynq
 
 			// Set up Model and View classes
-			MonadDoodleModel.prototype = Object.create(this.Multisynq.Model.prototype)
-			MonadDoodleModel.prototype.constructor = MonadDoodleModel
+			Object.setPrototypeOf(MonadDoodleModel.prototype, this.Multisynq.Model.prototype)
+			Object.setPrototypeOf(MonadDoodleView.prototype, this.Multisynq.View.prototype)
 
-			MonadDoodleView.prototype = Object.create(this.Multisynq.View.prototype)
-			MonadDoodleView.prototype.constructor = MonadDoodleView
+			// Copy static methods including register
+			MonadDoodleModel.register = this.Multisynq.Model.register.bind(MonadDoodleModel)
+			MonadDoodleView.register = this.Multisynq.View.register.bind(MonadDoodleView)
+
+			// Register the classes
+			MonadDoodleModel.register("MonadDoodleModel")
+			MonadDoodleView.register("MonadDoodleView")
 
 			// Join session
 			await this.joinSession(userId)
@@ -300,6 +301,7 @@ class MultisynqService {
 				apiKey: this.apiKey,
 				appId: this.appId,
 				name: this.sessionName,
+				password: this.Multisynq.App.autoPassword(),
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
 				debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
