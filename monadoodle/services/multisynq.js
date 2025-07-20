@@ -82,7 +82,6 @@ class MultisynqService {
 
 				handlePixelSet(data) {
 					const { x, y, color, userId, timestamp } = data
-					console.log("🔄 Model received pixelSet event:", data)
 
 					if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
 						this.pixels[y][x] = color
@@ -98,24 +97,12 @@ class MultisynqService {
 							pixels: this.pixels,
 							totalPixelsSet: this.totalPixelsSet
 						}
-						console.log("📡 Model publishing canvasUpdated event:", updateData)
 						
-						// Direct approach: Call view methods directly
+						// Direct View notification via global reference (WORKING SOLUTION)
 						try {
-							// Use connected view reference
-							if (this.connectedView) {
-								console.log("🚀 Calling connectedView.onCanvasUpdated directly")
-								this.connectedView.onCanvasUpdated(updateData)
-							}
-							
-							// Fallback: Use global reference
 							if (typeof window !== 'undefined' && window.monadDoodleView) {
-								console.log("🚀 Calling view.onCanvasUpdated via global reference (fallback)")
 								window.monadDoodleView.onCanvasUpdated(updateData)
 							}
-							
-							// Last resort: Use publish
-							this.publish(this.sessionId, "canvasUpdated", updateData)
 						} catch (error) {
 							console.error("Error notifying views:", error)
 						}
@@ -207,7 +194,6 @@ class MultisynqService {
 				}
 
 				onCanvasUpdated(data) {
-					console.log("👁️ View received canvasUpdated event:", data)
 					this.emit("canvas:updated", data)
 				}
 
@@ -347,13 +333,7 @@ class MultisynqService {
 				this.view.init()
 			}
 
-			// Connect Model and View via global references
-			if (typeof window !== 'undefined') {
-				if (window.monadDoodleModel && window.monadDoodleView) {
-					window.monadDoodleModel.connectedView = window.monadDoodleView
-					console.log("🔗 Connected Model and View via global references")
-				}
-			}
+			// Global references are set up automatically in init() methods
 
 			// Register any pending callbacks
 			if (this.pendingCallbacks) {
