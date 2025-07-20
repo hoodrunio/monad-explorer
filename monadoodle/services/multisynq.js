@@ -4,219 +4,8 @@
  * Docs: https://docs.multisynq.io/api-reference/introduction
  */
 
-// MonadDoodle Model - Contains all canvas logic and state
-class MonadDoodleModel {
-	// Initialize model state and event handlers
-	init(options = {}) {
-		super.init(options)
-		// Canvas state
-		this.canvasSize = 32
-		this.pixels = Array(32).fill().map(() => Array(32).fill("#000000"))
-		this.connectedUsers = new Map()
-		this.totalPixelsSet = 0
-		this.pixelHistory = []
-
-		// Subscribe to canvas events
-		this.subscribe(this.sessionId, "pixelSet", this.handlePixelSet.bind(this))
-		this.subscribe(this.sessionId, "cursorMove", this.handleCursorMove.bind(this))
-		this.subscribe(this.sessionId, "userJoin", this.handleUserJoin.bind(this))
-		this.subscribe(this.sessionId, "userLeave", this.handleUserLeave.bind(this))
-
-		console.log("MonadDoodle Model initialized")
-	}
-
-	// Handle pixel being set by any user
-	handlePixelSet(data) {
-		const { x, y, color, userId, timestamp } = data
-
-		// Validate coordinates
-		if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
-			// Update pixel
-			this.pixels[y][x] = color
-
-			// Track statistics
-			this.totalPixelsSet++
-			
-			// Add to history
-			this.pixelHistory.push({
-				x, y, color, userId, timestamp,
-				id: this.random() // Deterministic random
-			})
-
-			// Notify views of canvas change
-			this.publish(this.sessionId, "canvasUpdated", {
-				x, y, color, userId,
-				pixels: this.pixels,
-				totalPixelsSet: this.totalPixelsSet
-			})
-		}
-	}
-
-	// Handle cursor movement
-	handleCursorMove(data) {
-		const { x, y, userId } = data
-
-		// Update user cursor position
-		if (this.connectedUsers.has(userId)) {
-			const user = this.connectedUsers.get(userId)
-			user.cursor = { x, y }
-			user.lastSeen = this.now() // Synchronized time
-		}
-
-		// Broadcast cursor update
-		this.publish(this.sessionId, "cursorUpdated", {
-			userId, x, y,
-			users: Array.from(this.connectedUsers.values())
-		})
-	}
-
-	// Handle user joining
-	handleUserJoin(userData) {
-		const { userId, address, color } = userData
-
-		this.connectedUsers.set(userId, {
-			id: userId,
-			address,
-			color: color || "#18d2a5",
-			cursor: { x: 0, y: 0 },
-			joinedAt: this.now(),
-			lastSeen: this.now()
-		})
-
-		// Notify views
-		this.publish(this.sessionId, "userJoined", {
-			userId,
-			user: this.connectedUsers.get(userId),
-			totalUsers: this.connectedUsers.size
-		})
-
-		// Send current canvas state to new user
-		this.publish(this.sessionId, "canvasState", {
-			pixels: this.pixels,
-			totalPixelsSet: this.totalPixelsSet,
-			connectedUsers: Array.from(this.connectedUsers.values())
-		})
-	}
-
-	// Handle user leaving
-	handleUserLeave(data) {
-		const { userId } = data
-
-		if (this.connectedUsers.has(userId)) {
-			this.connectedUsers.delete(userId)
-
-			this.publish(this.sessionId, "userLeft", {
-				userId,
-				totalUsers: this.connectedUsers.size
-			})
-		}
-	}
-
-	// Get current canvas state
-	getCanvasState() {
-		return {
-			pixels: this.pixels,
-			totalPixelsSet: this.totalPixelsSet,
-			connectedUsers: Array.from(this.connectedUsers.values())
-		}
-	}
-}
-
-// MonadDoodle View - Handles UI updates and user input
-class MonadDoodleView {
-	init(options = {}) {
-		super.init(options)
-		this.callbacks = new Map()
-
-		// Subscribe to model events
-		this.subscribe(this.sessionId, "canvasUpdated", this.onCanvasUpdated.bind(this))
-		this.subscribe(this.sessionId, "cursorUpdated", this.onCursorUpdated.bind(this))
-		this.subscribe(this.sessionId, "userJoined", this.onUserJoined.bind(this))
-		this.subscribe(this.sessionId, "userLeft", this.onUserLeft.bind(this))
-		this.subscribe(this.sessionId, "canvasState", this.onCanvasState.bind(this))
-
-		console.log("MonadDoodle View initialized")
-	}
-
-	// Canvas updated event
-	onCanvasUpdated(data) {
-		this.emit("canvas:updated", data)
-	}
-
-	// Cursor updated event
-	onCursorUpdated(data) {
-		this.emit("cursor:updated", data)
-	}
-
-	// User joined event
-	onUserJoined(data) {
-		this.emit("user:joined", data)
-	}
-
-	// User left event
-	onUserLeft(data) {
-		this.emit("user:left", data)
-	}
-
-	// Full canvas state event
-	onCanvasState(data) {
-		this.emit("canvas:state", data)
-	}
-
-	// Send pixel set event to model
-	setPixel(x, y, color, userId) {
-		// Publish to model via events (never write directly)
-		this.publish(this.sessionId, "pixelSet", {
-			x, y, color, userId,
-			timestamp: Date.now()
-		})
-	}
-
-	// Send cursor move event to model
-	moveCursor(x, y, userId) {
-		this.publish(this.sessionId, "cursorMove", { x, y, userId })
-	}
-
-	// Send user join event to model
-	joinUser(userData) {
-		this.publish(this.sessionId, "userJoin", userData)
-	}
-
-	// Send user leave event to model
-	leaveUser(userId) {
-		this.publish(this.sessionId, "userLeave", { userId })
-	}
-
-	// Event system for Vue components
-	on(event, callback) {
-		if (!this.callbacks.has(event)) {
-			this.callbacks.set(event, [])
-		}
-		this.callbacks.get(event).push(callback)
-	}
-
-	off(event, callback) {
-		if (this.callbacks.has(event)) {
-			const callbacks = this.callbacks.get(event)
-			const index = callbacks.indexOf(callback)
-			if (index > -1) {
-				callbacks.splice(index, 1)
-			}
-		}
-	}
-
-	emit(event, data) {
-		if (this.callbacks.has(event)) {
-			this.callbacks.get(event).forEach(callback => {
-				try {
-					callback(data)
-				} catch (error) {
-					console.error(`Error in ${event} callback:`, error)
-				}
-			})
-		}
-	}
-}
+// Model and View classes will be created dynamically after Multisynq loads
+let MonadDoodleModel, MonadDoodleView
 
 // Main Multisynq Service
 class MultisynqService {
@@ -251,17 +40,211 @@ class MultisynqService {
 			}
 			this.Multisynq = window.Multisynq
 
-			// Set up Model and View classes
-			Object.setPrototypeOf(MonadDoodleModel.prototype, this.Multisynq.Model.prototype)
-			Object.setPrototypeOf(MonadDoodleView.prototype, this.Multisynq.View.prototype)
+			// Set up proper inheritance using class extends pattern
+			// Create new classes that properly extend Multisynq classes
+			const BaseModel = this.Multisynq.Model
+			const BaseView = this.Multisynq.View
+			
+			// Create proper subclasses
+			class ExtendedMonadDoodleModel extends BaseModel {
+				static types() {
+					return {
+						// Using standard JavaScript types - no custom serialization needed
+					}
+				}
 
-			// Copy static methods including register
-			MonadDoodleModel.register = this.Multisynq.Model.register.bind(MonadDoodleModel)
-			MonadDoodleView.register = this.Multisynq.View.register.bind(MonadDoodleView)
+				init(options = {}) {
+					super.init(options)
+					// Canvas state
+					this.canvasSize = 32
+					this.pixels = Array(32).fill().map(() => Array(32).fill("#000000"))
+					this.connectedUsers = new Map()
+					this.totalPixelsSet = 0
+					this.pixelHistory = []
 
-			// Register the classes
+					// Subscribe to canvas events
+					this.subscribe(this.sessionId, "pixelSet", "handlePixelSet")
+					this.subscribe(this.sessionId, "cursorMove", "handleCursorMove")
+					this.subscribe(this.sessionId, "userJoin", "handleUserJoin")
+					this.subscribe(this.sessionId, "userLeave", "handleUserLeave")
+
+					console.log("MonadDoodle Model initialized")
+				}
+
+				handlePixelSet(data) {
+					const { x, y, color, userId, timestamp } = data
+
+					if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
+						this.pixels[y][x] = color
+						this.totalPixelsSet++
+						
+						this.pixelHistory.push({
+							x, y, color, userId, timestamp,
+							id: this.random()
+						})
+
+						this.publish(this.sessionId, "canvasUpdated", {
+							x, y, color, userId,
+							pixels: this.pixels,
+							totalPixelsSet: this.totalPixelsSet
+						})
+					}
+				}
+
+				handleCursorMove(data) {
+					const { x, y, userId } = data
+
+					if (this.connectedUsers.has(userId)) {
+						const user = this.connectedUsers.get(userId)
+						user.cursor = { x, y }
+						user.lastSeen = this.now()
+					}
+
+					this.publish(this.sessionId, "cursorUpdated", {
+						userId, x, y,
+						users: Array.from(this.connectedUsers.values())
+					})
+				}
+
+				handleUserJoin(userData) {
+					const { userId, address, color } = userData
+
+					this.connectedUsers.set(userId, {
+						id: userId,
+						address,
+						color: color || "#18d2a5",
+						cursor: { x: 0, y: 0 },
+						joinedAt: this.now(),
+						lastSeen: this.now()
+					})
+
+					this.publish(this.sessionId, "userJoined", {
+						userId,
+						user: this.connectedUsers.get(userId),
+						totalUsers: this.connectedUsers.size
+					})
+
+					this.publish(this.sessionId, "canvasState", {
+						pixels: this.pixels,
+						totalPixelsSet: this.totalPixelsSet,
+						connectedUsers: Array.from(this.connectedUsers.values())
+					})
+				}
+
+				handleUserLeave(data) {
+					const { userId } = data
+
+					if (this.connectedUsers.has(userId)) {
+						this.connectedUsers.delete(userId)
+
+						this.publish(this.sessionId, "userLeft", {
+							userId,
+							totalUsers: this.connectedUsers.size
+						})
+					}
+				}
+
+				getCanvasState() {
+					return {
+						pixels: this.pixels,
+						totalPixelsSet: this.totalPixelsSet,
+						connectedUsers: Array.from(this.connectedUsers.values())
+					}
+				}
+			}
+
+			class ExtendedMonadDoodleView extends BaseView {
+				init(options = {}) {
+					super.init(options)
+					this.callbacks = new Map()
+
+					this.subscribe(this.sessionId, "canvasUpdated", "onCanvasUpdated")
+					this.subscribe(this.sessionId, "cursorUpdated", "onCursorUpdated")
+					this.subscribe(this.sessionId, "userJoined", "onUserJoined")
+					this.subscribe(this.sessionId, "userLeft", "onUserLeft")
+					this.subscribe(this.sessionId, "canvasState", "onCanvasState")
+
+					console.log("MonadDoodle View initialized")
+				}
+
+				onCanvasUpdated(data) {
+					this.emit("canvas:updated", data)
+				}
+
+				onCursorUpdated(data) {
+					this.emit("cursor:updated", data)
+				}
+
+				onUserJoined(data) {
+					this.emit("user:joined", data)
+				}
+
+				onUserLeft(data) {
+					this.emit("user:left", data)
+				}
+
+				onCanvasState(data) {
+					this.emit("canvas:state", data)
+				}
+
+				setPixel(x, y, color, userId) {
+					this.publish(this.sessionId, "pixelSet", {
+						x, y, color, userId,
+						timestamp: Date.now()
+					})
+				}
+
+				moveCursor(x, y, userId) {
+					this.publish(this.sessionId, "cursorMove", { x, y, userId })
+				}
+
+				joinUser(userData) {
+					this.publish(this.sessionId, "userJoin", userData)
+				}
+
+				leaveUser(userId) {
+					this.publish(this.sessionId, "userLeave", { userId })
+				}
+
+				on(event, callback) {
+					if (!this.callbacks) {
+						this.callbacks = new Map()
+					}
+					if (!this.callbacks.has(event)) {
+						this.callbacks.set(event, [])
+					}
+					this.callbacks.get(event).push(callback)
+				}
+
+				off(event, callback) {
+					if (this.callbacks && this.callbacks.has(event)) {
+						const callbacks = this.callbacks.get(event)
+						const index = callbacks.indexOf(callback)
+						if (index > -1) {
+							callbacks.splice(index, 1)
+						}
+					}
+				}
+
+				emit(event, data) {
+					if (this.callbacks && this.callbacks.has(event)) {
+						this.callbacks.get(event).forEach(callback => {
+							try {
+								callback(data)
+							} catch (error) {
+								console.error(`Error in ${event} callback:`, error)
+							}
+						})
+					}
+				}
+			}
+
+			// Use the new extended classes
+			MonadDoodleModel = ExtendedMonadDoodleModel
+			MonadDoodleView = ExtendedMonadDoodleView
+
+			// Register the Model class (Views don't need registration)
 			MonadDoodleModel.register("MonadDoodleModel")
-			MonadDoodleView.register("MonadDoodleView")
 
 			// Join session
 			await this.joinSession(userId)
@@ -300,7 +283,7 @@ class MultisynqService {
 			this.session = await this.Multisynq.Session.join({
 				apiKey: this.apiKey,
 				appId: this.appId,
-				name: this.sessionName,
+				name: this.Multisynq.App.autoSession(),
 				password: this.Multisynq.App.autoPassword(),
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
