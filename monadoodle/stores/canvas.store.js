@@ -82,7 +82,12 @@ export const useCanvasStore = defineStore("canvas", {
 		setPixel(x, y, color, userId = null, txHash = null) {
 			if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
 				const oldColor = this.pixels[y][x]
-				this.pixels[y][x] = color
+				
+				// Use Vue's reactivity system to ensure changes are detected
+				const newPixels = [...this.pixels]
+				newPixels[y] = [...newPixels[y]]
+				newPixels[y][x] = color
+				this.pixels = newPixels
 				
 				// Track statistics
 				if (oldColor === "#000000" && color !== "#000000") {
@@ -181,8 +186,9 @@ export const useCanvasStore = defineStore("canvas", {
 		// Load/Save canvas state
 		loadCanvasFromData(pixelData) {
 			if (Array.isArray(pixelData) && pixelData.length === this.canvasSize) {
+				// Create a completely new array to trigger Vue reactivity
 				this.pixels = pixelData.map(row => 
-					Array.isArray(row) && row.length === this.canvasSize ? row : Array(this.canvasSize).fill("#000000")
+					Array.isArray(row) && row.length === this.canvasSize ? [...row] : Array(this.canvasSize).fill("#000000")
 				)
 			}
 		},

@@ -102,14 +102,27 @@ onMounted(() => {
 	drawCanvas()
 })
 
-// Watch for pixel changes and redraw
-watchEffect(() => {
-	// Watch the pixels array for changes
-	canvasStore.pixels
-	nextTick(() => {
-		drawCanvas()
-	})
-})
+// Watch for pixel changes and redraw - more reliable tracking
+watch(
+	() => canvasStore.pixels,
+	() => {
+		nextTick(() => {
+			drawCanvas()
+		})
+	},
+	{ deep: true, immediate: true }
+)
+
+// Also watch for connected users changes to redraw cursors
+watch(
+	() => canvasStore.connectedUsers,
+	() => {
+		nextTick(() => {
+			drawCanvas()
+		})
+	},
+	{ deep: true }
+)
 
 const getPixelCoords = (event) => {
 	const canvas = canvasRef.value

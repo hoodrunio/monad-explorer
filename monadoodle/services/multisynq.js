@@ -20,6 +20,7 @@ class MultisynqService {
 		this.sessionName = "monadoodle-canvas"
 		this.localMode = false
 		this.fallbackCallbacks = new Map()
+		this.pendingCallbacks = new Map()
 	}
 
 	// Initialize Multisynq
@@ -54,7 +55,10 @@ class MultisynqService {
 				}
 
 				init(options = {}) {
-					super.init(options)
+					// Only call super.init if it exists
+					if (super.init && typeof super.init === 'function') {
+						super.init(options)
+					}
 					// Canvas state
 					this.canvasSize = 32
 					this.pixels = Array(32).fill().map(() => Array(32).fill("#000000"))
@@ -68,11 +72,17 @@ class MultisynqService {
 					this.subscribe(this.sessionId, "userJoin", "handleUserJoin")
 					this.subscribe(this.sessionId, "userLeave", "handleUserLeave")
 
+					// Store reference to self in global scope
+					if (typeof window !== 'undefined') {
+						window.monadDoodleModel = this
+					}
+
 					console.log("MonadDoodle Model initialized")
 				}
 
 				handlePixelSet(data) {
 					const { x, y, color, userId, timestamp } = data
+					console.log("🔄 Model received pixelSet event:", data)
 
 					if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
 						this.pixels[y][x] = color
@@ -83,11 +93,32 @@ class MultisynqService {
 							id: this.random()
 						})
 
-						this.publish(this.sessionId, "canvasUpdated", {
+						const updateData = {
 							x, y, color, userId,
 							pixels: this.pixels,
 							totalPixelsSet: this.totalPixelsSet
-						})
+						}
+						console.log("📡 Model publishing canvasUpdated event:", updateData)
+						
+						// Direct approach: Call view methods directly
+						try {
+							// Use connected view reference
+							if (this.connectedView) {
+								console.log("🚀 Calling connectedView.onCanvasUpdated directly")
+								this.connectedView.onCanvasUpdated(updateData)
+							}
+							
+							// Fallback: Use global reference
+							if (typeof window !== 'undefined' && window.monadDoodleView) {
+								console.log("🚀 Calling view.onCanvasUpdated via global reference (fallback)")
+								window.monadDoodleView.onCanvasUpdated(updateData)
+							}
+							
+							// Last resort: Use publish
+							this.publish(this.sessionId, "canvasUpdated", updateData)
+						} catch (error) {
+							console.error("Error notifying views:", error)
+						}
 					}
 				}
 
@@ -155,7 +186,10 @@ class MultisynqService {
 
 			class ExtendedMonadDoodleView extends BaseView {
 				init(options = {}) {
-					super.init(options)
+					// Only call super.init if it exists
+					if (super.init && typeof super.init === 'function') {
+						super.init(options)
+					}
 					this.callbacks = new Map()
 
 					this.subscribe(this.sessionId, "canvasUpdated", "onCanvasUpdated")
@@ -164,10 +198,16 @@ class MultisynqService {
 					this.subscribe(this.sessionId, "userLeft", "onUserLeft")
 					this.subscribe(this.sessionId, "canvasState", "onCanvasState")
 
+					// Store reference to self in global scope for Model to access
+					if (typeof window !== 'undefined') {
+						window.monadDoodleView = this
+					}
+
 					console.log("MonadDoodle View initialized")
 				}
 
 				onCanvasUpdated(data) {
+					console.log("👁️ View received canvasUpdated event:", data)
 					this.emit("canvas:updated", data)
 				}
 
@@ -176,6 +216,7 @@ class MultisynqService {
 				}
 
 				onUserJoined(data) {
+					console.log("👥 View received userJoined event:", data)
 					this.emit("user:joined", data)
 				}
 
@@ -188,10 +229,12 @@ class MultisynqService {
 				}
 
 				setPixel(x, y, color, userId) {
-					this.publish(this.sessionId, "pixelSet", {
+					const eventData = {
 						x, y, color, userId,
 						timestamp: Date.now()
-					})
+					}
+					console.log("🎨 View publishing pixelSet event:", eventData)
+					this.publish(this.sessionId, "pixelSet", eventData)
 				}
 
 				moveCursor(x, y, userId) {
@@ -280,19 +323,49 @@ class MultisynqService {
 	// Join Multisynq session
 	async joinSession(userId) {
 		try {
-			this.session = await this.Multisynq.Session.join({
+			// Use fixed session name for all users to ensure they join the same session
+			const sessionConfig = {
 				apiKey: this.apiKey,
 				appId: this.appId,
-				name: this.Multisynq.App.autoSession(),
-				password: this.Multisynq.App.autoPassword(),
+				name: this.sessionName, // Use fixed session name
+				password: "monadoodle-collaboration", // Use fixed password
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
-				debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
-			})
+				//debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
+			}
+			
+			console.log("Joining Multisynq session with config:", sessionConfig)
+			this.session = await this.Multisynq.Session.join(sessionConfig)
 
 			this.model = this.session.model
 			this.view = this.session.view
 			this.isConnected = true
+
+			// Ensure View is properly initialized
+			if (this.view && typeof this.view.init === 'function') {
+				console.log("🔧 Manually initializing View")
+				this.view.init()
+			}
+
+			// Connect Model and View via global references
+			if (typeof window !== 'undefined') {
+				if (window.monadDoodleModel && window.monadDoodleView) {
+					window.monadDoodleModel.connectedView = window.monadDoodleView
+					console.log("🔗 Connected Model and View via global references")
+				}
+			}
+
+			// Register any pending callbacks
+			if (this.pendingCallbacks) {
+				console.log("🔄 Registering pending callbacks:", this.pendingCallbacks)
+				for (const [event, callbacks] of this.pendingCallbacks.entries()) {
+					for (const callback of callbacks) {
+						console.log("📝 Registering pending callback for event:", event)
+						this.view.on(event, callback)
+					}
+				}
+				this.pendingCallbacks.clear()
+			}
 
 			// Join as user
 			this.view.joinUser({
@@ -366,8 +439,20 @@ class MultisynqService {
 			return
 		}
 
+		console.log("🔌 MultisynqService.on() called for event:", event)
 		if (this.view) {
+			console.log("🔗 Registering callback with View for event:", event)
 			this.view.on(event, callback)
+		} else {
+			console.warn("⚠️ View not ready, storing callback for later")
+			// Store callbacks for when view becomes available
+			if (!this.pendingCallbacks) {
+				this.pendingCallbacks = new Map()
+			}
+			if (!this.pendingCallbacks.has(event)) {
+				this.pendingCallbacks.set(event, [])
+			}
+			this.pendingCallbacks.get(event).push(callback)
 		}
 	}
 

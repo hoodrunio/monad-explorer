@@ -71,6 +71,7 @@ const setupMultisynqListeners = () => {
 	// Listen for canvas updates from other users
 	multisynqService.on("canvas:updated", (data) => {
 		const { x, y, color, userId } = data
+		console.log("🎯 Vue app received canvas:updated event:", data)
 		
 		// Update local canvas state
 		canvasStore.setPixel(x, y, color, userId)
@@ -99,6 +100,7 @@ const setupMultisynqListeners = () => {
 	// Listen for user joined
 	multisynqService.on("user:joined", (data) => {
 		const { user, totalUsers } = data
+		console.log("👤 Vue app received user:joined event:", data)
 		
 		canvasStore.addConnectedUser(user)
 		
