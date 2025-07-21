@@ -99,7 +99,14 @@ export default defineNuxtConfig({
 				"unenv/runtime/node/buffer/index/": path.resolve(__dirname, "./node_modules/buffer/index"),
 			},
 		},
-		plugins: [wasm(), topLevelAwait(), nodePolyfills()],
+		plugins: [
+			wasm(), 
+			topLevelAwait(), 
+			nodePolyfills({
+				include: ['buffer', 'process', 'util'],
+				exclude: ['net']
+			})
+		],
 		worker: {
 			format: "es",
 			plugins: () => [wasm(), topLevelAwait()],

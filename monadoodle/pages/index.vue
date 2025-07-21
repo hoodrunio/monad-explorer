@@ -63,7 +63,8 @@ const initializeServices = async () => {
 }
 
 const generateUserId = () => {
-	// Generate a unique user ID
+	// Generate a unique user ID for this session
+	// Multisynq will handle session persistence and reconnection internally
 	return "user_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now()
 }
 
@@ -77,9 +78,11 @@ const setupMultisynqListeners = () => {
 		
 		// Show notification for other users' pixels
 		if (userId !== appStore.currentUser.id) {
+			const user = canvasStore.connectedUsers.get(userId)
+			const displayName = user?.nickname || `User ${userId.slice(0, 8)}...`
 			notificationsStore.showInfo(
 				"Pixel Updated",
-				`User ${userId.slice(0, 8)}... set pixel at (${x}, ${y})`
+				`${displayName} set pixel at (${x}, ${y})`
 			)
 		}
 	})
@@ -147,8 +150,8 @@ const connectWallet = async () => {
 		const mockAddress = "0x1234567890abcdef1234567890abcdef12345678"
 		appStore.setWalletConnection(true, mockAddress)
 		
-		// Update user ID with wallet address
-		appStore.currentUser.id = mockAddress
+		// Keep consistent user ID (don't change it when wallet connects)
+		// The user ID should remain the same for session continuity
 		
 		notificationsStore.showSuccess(
 			"Wallet Connected",
@@ -165,8 +168,22 @@ const connectWallet = async () => {
 	}
 }
 
+// Handle browser close/refresh properly
+const handleBeforeUnload = () => {
+	// Leave user from session before page unloads
+	if (multisynqService.isConnected) {
+		multisynqService.disconnect()
+	}
+}
+
+onMounted(() => {
+	// Add beforeunload listener for proper cleanup
+	window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
 // Cleanup on unmount
 onUnmounted(() => {
+	window.removeEventListener('beforeunload', handleBeforeUnload)
 	multisynqService.disconnect()
 })
 </script>
@@ -332,7 +349,7 @@ onUnmounted(() => {
 							:style="{ backgroundColor: user.color }"
 						/>
 						<Text size="12" color="secondary">
-							{{ user.address?.slice(0, 6) }}...{{ user.address?.slice(-4) }}
+							{{ user.nickname || (user.address?.slice(0, 6) + '...' + user.address?.slice(-4)) }}
 						</Text>
 					</div>
 				</Flex>

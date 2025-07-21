@@ -21,11 +21,13 @@ class MultisynqService {
 		this.localMode = false
 		this.fallbackCallbacks = new Map()
 		this.pendingCallbacks = new Map()
+		this.currentUserId = null
 	}
 
 	// Initialize Multisynq
 	async initialize(apiKey, userId) {
 		this.apiKey = apiKey
+		this.currentUserId = userId
 
 		// Check if we have a valid API key
 		if (!apiKey || apiKey === "your_multisynq_api_key") {
@@ -125,11 +127,12 @@ class MultisynqService {
 				}
 
 				handleUserJoin(userData) {
-					const { userId, address, color } = userData
+					const { userId, address, color, nickname } = userData
 
 					this.connectedUsers.set(userId, {
 						id: userId,
 						address,
+						nickname: nickname || "Anonymous User",
 						color: color || "#18d2a5",
 						cursor: { x: 0, y: 0 },
 						joinedAt: this.now(),
@@ -317,6 +320,8 @@ class MultisynqService {
 				password: "monadoodle-collaboration", // Use fixed password
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
+				rejoinLimit: 5000, // 5 seconds to rejoin after disconnect (handles page refresh)
+				autoSleep: 30, // Sleep after 30 seconds of inactivity
 				//debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
 			}
 			
@@ -347,12 +352,25 @@ class MultisynqService {
 				this.pendingCallbacks.clear()
 			}
 
-			// Join as user
+			// Join as user - Use Multisynq's built-in view ID for unique identification
+			const multisynqUserId = this.view?.id || this.session?.id || userId
+			
+			// Generate consistent user display using Multisynq utilities
+			const userColor = this.getUserColor(multisynqUserId)
+			const userNickname = this.deriveNickname(multisynqUserId)
+			
 			this.view.joinUser({
-				userId,
-				address: userId,
-				color: "#18d2a5"
+				userId: multisynqUserId,
+				address: userId, // Keep original ID as address
+				nickname: userNickname,
+				color: userColor
 			})
+			
+			// Update current user ID to use Multisynq's unique ID
+			this.currentUserId = multisynqUserId
+			console.log("🆔 Using Multisynq user ID:", multisynqUserId)
+			console.log("👤 User nickname:", userNickname)
+			console.log("🎨 User color:", userColor)
 
 			console.log("Joined Multisynq session:", this.sessionName)
 		} catch (error) {
@@ -364,11 +382,15 @@ class MultisynqService {
 	// Disconnect from session
 	disconnect() {
 		if (this.session) {
-			// Leave as user first
-			if (this.view && this.getCurrentUserId()) {
-				this.view.leaveUser(this.getCurrentUserId())
+			// Leave as user first to properly clean up user state
+			const userId = this.getCurrentUserId()
+			if (this.view && userId) {
+				console.log("🚪 Leaving user from session:", userId)
+				this.view.leaveUser(userId)
 			}
 
+			// Leave the session itself
+			console.log("🚪 Leaving Multisynq session")
 			this.session.leave()
 			this.session = null
 			this.model = null
@@ -377,11 +399,9 @@ class MultisynqService {
 		}
 	}
 
-	// Get current user ID (you'll need to implement this based on your app logic)
+	// Get current user ID from session
 	getCurrentUserId() {
-		// This should return the current user's ID
-		// For now, return a placeholder
-		return "user_" + Math.random().toString(36).substr(2, 9)
+		return this.currentUserId
 	}
 
 	// Canvas-specific methods
@@ -464,6 +484,41 @@ class MultisynqService {
 				}
 			})
 		}
+	}
+
+	// Multisynq user management utilities
+	deriveNickname(userId) {
+		// Simple nickname generation based on user ID
+		// In production, you might want to use Multisynq's official deriveNickname utility
+		const adjectives = ['Swift', 'Bright', 'Calm', 'Bold', 'Quick', 'Smart', 'Cool', 'Wild']
+		const nouns = ['Fox', 'Wolf', 'Bear', 'Eagle', 'Tiger', 'Lion', 'Shark', 'Hawk']
+		
+		const hash = this.simpleHash(userId)
+		const adjective = adjectives[hash % adjectives.length]
+		const noun = nouns[Math.floor(hash / adjectives.length) % nouns.length]
+		
+		return `${adjective} ${noun}`
+	}
+	
+	getUserColor(userId) {
+		// Generate consistent HSL color based on user ID
+		// Implementation similar to Multisynq's getUserColor utility
+		const hash = this.simpleHash(userId)
+		const hue = hash % 360
+		const saturation = 70 + (hash % 30) // 70-100%
+		const lightness = 45 + (hash % 20)  // 45-65%
+		
+		return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+	}
+	
+	simpleHash(str) {
+		let hash = 0
+		for (let i = 0; i < str.length; i++) {
+			const char = str.charCodeAt(i)
+			hash = ((hash << 5) - hash) + char
+			hash = hash & hash // Convert to 32-bit integer
+		}
+		return Math.abs(hash)
 	}
 
 	// Get connection status
