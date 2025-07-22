@@ -36,7 +36,7 @@ export const useNotificationsStore = defineStore("notifications", {
 				duration,
 				persistent,
 				data,
-				timestamp: Date.now(),
+				timestamp: performance.now(),
 				dismissed: false
 			}
 			
@@ -75,7 +75,7 @@ export const useNotificationsStore = defineStore("notifications", {
 		
 		cleanupNotifications() {
 			// Remove dismissed notifications older than 1 hour
-			const oneHourAgo = Date.now() - (60 * 60 * 1000)
+			const oneHourAgo = performance.now() - (60 * 60 * 1000)
 			this.notifications = this.notifications.filter(n => 
 				!n.dismissed || n.timestamp > oneHourAgo
 			)
