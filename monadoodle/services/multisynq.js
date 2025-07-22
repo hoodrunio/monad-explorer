@@ -74,6 +74,10 @@ class MultisynqService {
 					this.subscribe(this.sessionId, "userJoin", "handleUserJoin")
 					this.subscribe(this.sessionId, "userLeave", "handleUserLeave")
 
+					// Subscribe to Multisynq built-in view lifecycle events
+					this.subscribe(this.sessionId, "view-join", "handleViewJoin")
+					this.subscribe(this.sessionId, "view-exit", "handleViewExit")
+
 					// Store reference to self in global scope
 					if (typeof window !== 'undefined') {
 						window.monadDoodleModel = this
@@ -160,6 +164,50 @@ class MultisynqService {
 
 						this.publish(this.sessionId, "userLeft", {
 							userId,
+							totalUsers: this.connectedUsers.size
+						})
+					}
+				}
+
+				// Handle Multisynq built-in view lifecycle events
+				handleViewJoin(data) {
+					console.log("🔗 View joined session:", data)
+					// The viewId from Multisynq represents a unique connection
+					const viewId = data.viewId || data.id
+					
+					if (viewId && !this.connectedUsers.has(viewId)) {
+						// Auto-create user record for new view connections
+						// This ensures proper user tracking via Multisynq's lifecycle
+						const userColor = this.getUserColor ? this.getUserColor(viewId) : "#18d2a5"
+						const userNickname = this.deriveNickname ? this.deriveNickname(viewId) : "Anonymous User"
+						
+						this.connectedUsers.set(viewId, {
+							id: viewId,
+							nickname: userNickname,
+							color: userColor,
+							cursor: { x: 0, y: 0 },
+							joinedAt: this.now(),
+							lastSeen: this.now()
+						})
+
+						this.publish(this.sessionId, "userJoined", {
+							userId: viewId,
+							user: this.connectedUsers.get(viewId),
+							totalUsers: this.connectedUsers.size
+						})
+					}
+				}
+
+				handleViewExit(data) {
+					console.log("🚪 View exited session:", data)
+					// The viewId represents the disconnected connection
+					const viewId = data.viewId || data.id
+					
+					if (viewId && this.connectedUsers.has(viewId)) {
+						this.connectedUsers.delete(viewId)
+
+						this.publish(this.sessionId, "userLeft", {
+							userId: viewId,
 							totalUsers: this.connectedUsers.size
 						})
 					}
@@ -320,7 +368,7 @@ class MultisynqService {
 				password: "monadoodle-collaboration", // Use fixed password
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
-				rejoinLimit: 5000, // 5 seconds to rejoin after disconnect (handles page refresh)
+				rejoinLimit: 1000, // 1 second to rejoin after disconnect (faster cleanup)
 				autoSleep: 30, // Sleep after 30 seconds of inactivity
 				//debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
 			}
@@ -372,10 +420,46 @@ class MultisynqService {
 			console.log("👤 User nickname:", userNickname)
 			console.log("🎨 User color:", userColor)
 
+			// Setup browser close detection for proper cleanup
+			this.setupBrowserCloseHandling()
+
 			console.log("Joined Multisynq session:", this.sessionName)
 		} catch (error) {
 			console.error("Failed to join Multisynq session:", error)
 			throw error
+		}
+	}
+
+	// Setup browser close/refresh detection
+	setupBrowserCloseHandling() {
+		if (typeof window !== 'undefined') {
+			// Handle page unload (browser close, refresh, navigation)
+			const handleBeforeUnload = () => {
+				console.log("🚪 Browser closing, cleaning up user session")
+				const userId = this.getCurrentUserId()
+				if (this.view && userId) {
+					// Immediately notify other users that this user is leaving
+					this.view.leaveUser(userId)
+				}
+			}
+
+			// Add event listeners for various unload scenarios
+			window.addEventListener('beforeunload', handleBeforeUnload)
+			window.addEventListener('unload', handleBeforeUnload)
+			
+			// Handle page visibility changes (tab switching, minimize)
+			document.addEventListener('visibilitychange', () => {
+				if (document.hidden) {
+					console.log("🔇 Page hidden, user may be leaving")
+					// Optional: You could implement logic here for when page becomes hidden
+				} else {
+					console.log("👀 Page visible again")
+					// Optional: You could implement logic here for when page becomes visible
+				}
+			})
+
+			// Store cleanup function reference for potential later removal
+			this.browserCleanupHandler = handleBeforeUnload
 		}
 	}
 
@@ -387,6 +471,12 @@ class MultisynqService {
 			if (this.view && userId) {
 				console.log("🚪 Leaving user from session:", userId)
 				this.view.leaveUser(userId)
+			}
+
+			// Clean up browser event listeners
+			if (typeof window !== 'undefined' && this.browserCleanupHandler) {
+				window.removeEventListener('beforeunload', this.browserCleanupHandler)
+				window.removeEventListener('unload', this.browserCleanupHandler)
 			}
 
 			// Leave the session itself
