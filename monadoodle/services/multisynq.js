@@ -72,6 +72,9 @@ class MultisynqService {
 					this.subscribe(this.sessionId, "pixelSet", "handlePixelSet")
 					this.subscribe(this.sessionId, "cursorMove", "handleCursorMove")
 
+					// Subscribe to View requests
+					this.subscribe(this.sessionId, "requestCanvasState", "handleCanvasStateRequest")
+
 					// Subscribe to Multisynq built-in view lifecycle events (NATIVE USER TRACKING)
 					this.subscribe(this.sessionId, "view-join", "handleViewJoin")
 					this.subscribe(this.sessionId, "view-exit", "handleViewExit")
@@ -154,11 +157,13 @@ class MultisynqService {
 						totalUsers: this.viewCount // Use Multisynq's native viewCount
 					})
 
-					// Send canvas state to new user
+					// CRITICAL: Send canvas state to new user (for page refresh)
+					console.log("📤 Sending canvas state to new user:", viewId)
 					this.publish(this.sessionId, "canvasState", {
 						pixels: this.pixels,
 						totalPixelsSet: this.totalPixelsSet,
-						connectedUsers: Array.from(this.connectedUsers.values())
+						connectedUsers: Array.from(this.connectedUsers.values()),
+						totalUsers: this.viewCount // Include current user count
 					})
 				}
 
@@ -182,6 +187,17 @@ class MultisynqService {
 						totalPixelsSet: this.totalPixelsSet,
 						connectedUsers: Array.from(this.connectedUsers.values())
 					}
+				}
+
+				// Handle canvas state request from View
+				handleCanvasStateRequest() {
+					console.log("📤 Model responding to canvas state request")
+					this.publish(this.sessionId, "canvasState", {
+						pixels: this.pixels,
+						totalPixelsSet: this.totalPixelsSet,
+						connectedUsers: Array.from(this.connectedUsers.values()),
+						totalUsers: this.viewCount
+					})
 				}
 			}
 
@@ -240,6 +256,11 @@ class MultisynqService {
 
 				moveCursor(x, y, viewId) {
 					this.publish(this.sessionId, "cursorMove", { x, y, viewId }) // Use viewId instead of userId
+				}
+
+				requestCanvasState() {
+					console.log("📥 View requesting canvas state from Model")
+					this.publish(this.sessionId, "requestCanvasState", {})
 				}
 
 				on(event, callback) {
@@ -372,6 +393,15 @@ class MultisynqService {
 			
 			// Multisynq handles user tracking automatically via view-join/view-exit events
 			// No manual joinUser call needed!
+
+			// CRITICAL: Request canvas state via View -> Model message
+			// This ensures page refresh gets the current state
+			setTimeout(() => {
+				if (this.view) {
+					console.log("🔄 View requesting canvas state from Model")
+					this.view.requestCanvasState()
+				}
+			}, 100) // Small delay to ensure View event listeners are ready
 
 			// Setup browser close detection for proper cleanup
 			this.setupBrowserCloseHandling()

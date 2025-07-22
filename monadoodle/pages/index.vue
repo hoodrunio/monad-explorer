@@ -126,7 +126,9 @@ const setupMultisynqListeners = () => {
 
 	// Listen for full canvas state (when joining)
 	multisynqService.on("canvas:state", (data) => {
-		const { pixels, totalPixelsSet, connectedUsers } = data
+		const { pixels, totalPixelsSet, connectedUsers, totalUsers } = data
+		
+		console.log("🎯 Received canvas state:", { totalPixelsSet, userCount: connectedUsers.length, totalUsers })
 		
 		// Update local state with server state
 		canvasStore.loadCanvasFromData(pixels)
@@ -137,12 +139,13 @@ const setupMultisynqListeners = () => {
 			canvasStore.addConnectedUser(user)
 		})
 		
-		// Update user count based on connected users
-		canvasStore.updateNativeUserCount(connectedUsers.length)
+		// Update user count from Multisynq's native count (totalUsers) or fallback to connectedUsers length
+		const userCount = totalUsers || connectedUsers.length
+		canvasStore.updateNativeUserCount(userCount)
 		
 		notificationsStore.showInfo(
 			"Canvas Synchronized",
-			`Loaded canvas with ${totalPixelsSet} pixels and ${connectedUsers.length} users`
+			`Loaded canvas with ${totalPixelsSet} pixels and ${userCount} users`
 		)
 	})
 }
