@@ -71,10 +71,8 @@ class MultisynqService {
 					// Subscribe to canvas events
 					this.subscribe(this.sessionId, "pixelSet", "handlePixelSet")
 					this.subscribe(this.sessionId, "cursorMove", "handleCursorMove")
-					this.subscribe(this.sessionId, "userJoin", "handleUserJoin")
-					this.subscribe(this.sessionId, "userLeave", "handleUserLeave")
 
-					// Subscribe to Multisynq built-in view lifecycle events
+					// Subscribe to Multisynq built-in view lifecycle events (NATIVE USER TRACKING)
 					this.subscribe(this.sessionId, "view-join", "handleViewJoin")
 					this.subscribe(this.sessionId, "view-exit", "handleViewExit")
 
@@ -87,19 +85,19 @@ class MultisynqService {
 				}
 
 				handlePixelSet(data) {
-					const { x, y, color, userId, timestamp } = data
+					const { x, y, color, viewId, timestamp } = data
 
 					if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
 						this.pixels[y][x] = color
 						this.totalPixelsSet++
 						
 						this.pixelHistory.push({
-							x, y, color, userId, timestamp,
+							x, y, color, viewId, timestamp,
 							id: this.random()
 						})
 
 						const updateData = {
-							x, y, color, userId,
+							x, y, color, viewId,
 							pixels: this.pixels,
 							totalPixelsSet: this.totalPixelsSet
 						}
@@ -116,39 +114,47 @@ class MultisynqService {
 				}
 
 				handleCursorMove(data) {
-					const { x, y, userId } = data
+					const { x, y, viewId } = data
 
-					if (this.connectedUsers.has(userId)) {
-						const user = this.connectedUsers.get(userId)
+					if (this.connectedUsers.has(viewId)) {
+						const user = this.connectedUsers.get(viewId)
 						user.cursor = { x, y }
 						user.lastSeen = this.now()
 					}
 
 					this.publish(this.sessionId, "cursorUpdated", {
-						userId, x, y,
+						viewId, x, y,
 						users: Array.from(this.connectedUsers.values())
 					})
 				}
 
-				handleUserJoin(userData) {
-					const { userId, address, color, nickname } = userData
+				// Remove custom user join/leave handlers - using native view-join/view-exit instead
 
-					this.connectedUsers.set(userId, {
-						id: userId,
-						address,
-						nickname: nickname || "Anonymous User",
-						color: color || "#18d2a5",
+				// Handle Multisynq built-in view lifecycle events (NATIVE USER TRACKING)
+				handleViewJoin(viewId) {
+					console.log("🔗 User joined:", { viewId, totalUsers: this.viewCount })
+					
+					// Create user with Multisynq's viewId as the user identifier
+					const userColor = this.getUserColor ? this.getUserColor(viewId) : "#18d2a5"
+					const userNickname = this.deriveNickname ? this.deriveNickname(viewId) : "Anonymous User"
+					
+					this.connectedUsers.set(viewId, {
+						id: viewId,
+						nickname: userNickname,
+						color: userColor,
 						cursor: { x: 0, y: 0 },
 						joinedAt: this.now(),
 						lastSeen: this.now()
 					})
 
+					// Notify views about user join using NATIVE viewCount
 					this.publish(this.sessionId, "userJoined", {
-						userId,
-						user: this.connectedUsers.get(userId),
-						totalUsers: this.connectedUsers.size
+						viewId,
+						user: this.connectedUsers.get(viewId),
+						totalUsers: this.viewCount // Use Multisynq's native viewCount
 					})
 
+					// Send canvas state to new user
 					this.publish(this.sessionId, "canvasState", {
 						pixels: this.pixels,
 						totalPixelsSet: this.totalPixelsSet,
@@ -156,59 +162,16 @@ class MultisynqService {
 					})
 				}
 
-				handleUserLeave(data) {
-					const { userId } = data
-
-					if (this.connectedUsers.has(userId)) {
-						this.connectedUsers.delete(userId)
-
-						this.publish(this.sessionId, "userLeft", {
-							userId,
-							totalUsers: this.connectedUsers.size
-						})
-					}
-				}
-
-				// Handle Multisynq built-in view lifecycle events
-				handleViewJoin(data) {
-					console.log("🔗 View joined session:", data)
-					// The viewId from Multisynq represents a unique connection
-					const viewId = data.viewId || data.id
+				handleViewExit(viewId) {
+					console.log("🚪 User left:", { viewId, totalUsers: this.viewCount })
 					
-					if (viewId && !this.connectedUsers.has(viewId)) {
-						// Auto-create user record for new view connections
-						// This ensures proper user tracking via Multisynq's lifecycle
-						const userColor = this.getUserColor ? this.getUserColor(viewId) : "#18d2a5"
-						const userNickname = this.deriveNickname ? this.deriveNickname(viewId) : "Anonymous User"
-						
-						this.connectedUsers.set(viewId, {
-							id: viewId,
-							nickname: userNickname,
-							color: userColor,
-							cursor: { x: 0, y: 0 },
-							joinedAt: this.now(),
-							lastSeen: this.now()
-						})
-
-						this.publish(this.sessionId, "userJoined", {
-							userId: viewId,
-							user: this.connectedUsers.get(viewId),
-							totalUsers: this.connectedUsers.size
-						})
-					}
-				}
-
-				handleViewExit(data) {
-					console.log("🚪 View exited session:", data)
-					// The viewId represents the disconnected connection
-					const viewId = data.viewId || data.id
-					
-					if (viewId && this.connectedUsers.has(viewId)) {
+					if (this.connectedUsers.has(viewId)) {
 						this.connectedUsers.delete(viewId)
 
+						// Notify views about user leave using NATIVE viewCount
 						this.publish(this.sessionId, "userLeft", {
-							userId: viewId,
-							totalUsers: this.connectedUsers.size
+							viewId,
+							totalUsers: this.viewCount // Use Multisynq's native viewCount
 						})
 					}
 				}
@@ -258,6 +221,7 @@ class MultisynqService {
 				}
 
 				onUserLeft(data) {
+					console.log("👥 View received userLeft event:", data)
 					this.emit("user:left", data)
 				}
 
@@ -265,25 +229,17 @@ class MultisynqService {
 					this.emit("canvas:state", data)
 				}
 
-				setPixel(x, y, color, userId) {
+				setPixel(x, y, color, viewId) {
 					const eventData = {
-						x, y, color, userId,
+						x, y, color, viewId, // Use viewId instead of userId
 						timestamp: Date.now()
 					}
 					console.log("🎨 View publishing pixelSet event:", eventData)
 					this.publish(this.sessionId, "pixelSet", eventData)
 				}
 
-				moveCursor(x, y, userId) {
-					this.publish(this.sessionId, "cursorMove", { x, y, userId })
-				}
-
-				joinUser(userData) {
-					this.publish(this.sessionId, "userJoin", userData)
-				}
-
-				leaveUser(userId) {
-					this.publish(this.sessionId, "userLeave", { userId })
+				moveCursor(x, y, viewId) {
+					this.publish(this.sessionId, "cursorMove", { x, y, viewId }) // Use viewId instead of userId
 				}
 
 				on(event, callback) {
@@ -368,8 +324,8 @@ class MultisynqService {
 				password: "monadoodle-collaboration", // Use fixed password
 				model: MonadDoodleModel,
 				view: MonadDoodleView,
-				rejoinLimit: 1000, // 1 second to rejoin after disconnect (faster cleanup)
-				autoSleep: 30, // Sleep after 30 seconds of inactivity
+				rejoinLimit: 3, // Allow 3 rejoin attempts after disconnect
+				autoSleep: 60000, // Sleep after 60 seconds of inactivity (in milliseconds)
 				//debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
 			}
 			
@@ -400,25 +356,17 @@ class MultisynqService {
 				this.pendingCallbacks.clear()
 			}
 
-			// Join as user - Use Multisynq's built-in view ID for unique identification
-			const multisynqUserId = this.view?.id || this.session?.id || userId
+			// Use Multisynq's native viewId - no localStorage needed!
+			// Multisynq handles reconnection and persistence automatically
+			const currentViewId = this.view?.viewId || this.view?.id
 			
-			// Generate consistent user display using Multisynq utilities
-			const userColor = this.getUserColor(multisynqUserId)
-			const userNickname = this.deriveNickname(multisynqUserId)
+			// Update current user ID to use Multisynq's native view ID
+			this.currentUserId = currentViewId
+			console.log("🆔 Using Multisynq native viewId:", currentViewId)
+			console.log("📊 Current viewCount:", this.model?.viewCount || "unknown")
 			
-			this.view.joinUser({
-				userId: multisynqUserId,
-				address: userId, // Keep original ID as address
-				nickname: userNickname,
-				color: userColor
-			})
-			
-			// Update current user ID to use Multisynq's unique ID
-			this.currentUserId = multisynqUserId
-			console.log("🆔 Using Multisynq user ID:", multisynqUserId)
-			console.log("👤 User nickname:", userNickname)
-			console.log("🎨 User color:", userColor)
+			// Multisynq handles user tracking automatically via view-join/view-exit events
+			// No manual joinUser call needed!
 
 			// Setup browser close detection for proper cleanup
 			this.setupBrowserCloseHandling()
@@ -494,27 +442,29 @@ class MultisynqService {
 		return this.currentUserId
 	}
 
-	// Canvas-specific methods
-	setPixel(x, y, color, userId) {
+	// Canvas-specific methods using native viewId
+	setPixel(x, y, color, viewId) {
 		if (this.localMode) {
 			// In local mode, just emit to local callbacks
-			this.emitFallback("canvas:updated", { x, y, color, userId })
+			this.emitFallback("canvas:updated", { x, y, color, viewId })
 			return
 		}
 
 		if (this.view) {
-			this.view.setPixel(x, y, color, userId)
+			const currentViewId = viewId || this.getCurrentUserId()
+			this.view.setPixel(x, y, color, currentViewId)
 		}
 	}
 
-	moveCursor(x, y, userId) {
+	moveCursor(x, y, viewId) {
 		if (this.localMode) {
 			// In local mode, do nothing (no collaboration)
 			return
 		}
 
 		if (this.view) {
-			this.view.moveCursor(x, y, userId)
+			const currentViewId = viewId || this.getCurrentUserId()
+			this.view.moveCursor(x, y, currentViewId)
 		}
 	}
 

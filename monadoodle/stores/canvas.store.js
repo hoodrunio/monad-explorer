@@ -68,8 +68,8 @@ export const useCanvasStore = defineStore("canvas", {
 			return Array.from(state.connectedUsers.values())
 		},
 		
-		getUserContribution: (state) => (userId) => {
-			return state.userContributions[userId] || 0
+		getUserContribution: (state) => (viewId) => {
+			return state.userContributions[viewId] || 0
 		},
 		
 		getAverageGasPerPixel: (state) => {
@@ -79,7 +79,7 @@ export const useCanvasStore = defineStore("canvas", {
 	
 	actions: {
 		// Canvas operations
-		setPixel(x, y, color, userId = null, txHash = null) {
+		setPixel(x, y, color, viewId = null, txHash = null) {
 			if (x >= 0 && x < this.canvasSize && y >= 0 && y < this.canvasSize) {
 				const oldColor = this.pixels[y][x]
 				
@@ -96,9 +96,9 @@ export const useCanvasStore = defineStore("canvas", {
 					this.totalPixelsSet = Math.max(0, this.totalPixelsSet - 1)
 				}
 				
-				// Track user contributions
-				if (userId) {
-					this.userContributions[userId] = (this.userContributions[userId] || 0) + 1
+				// Track user contributions (using viewId)
+				if (viewId) {
+					this.userContributions[viewId] = (this.userContributions[viewId] || 0) + 1
 				}
 				
 				// Track transaction
@@ -108,7 +108,7 @@ export const useCanvasStore = defineStore("canvas", {
 						x,
 						y,
 						color,
-						userId,
+						viewId, // Use viewId instead of userId
 						txHash,
 						timestamp: Date.now()
 					})
@@ -151,12 +151,12 @@ export const useCanvasStore = defineStore("canvas", {
 			})
 		},
 		
-		removeConnectedUser(userId) {
-			this.connectedUsers.delete(userId)
+		removeConnectedUser(viewId) {
+			this.connectedUsers.delete(viewId)
 		},
 		
-		updateUserCursor(userId, x, y) {
-			const user = this.connectedUsers.get(userId)
+		updateUserCursor(viewId, x, y) {
+			const user = this.connectedUsers.get(viewId)
 			if (user) {
 				user.cursor = { x, y }
 				user.lastSeen = Date.now()

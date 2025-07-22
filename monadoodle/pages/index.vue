@@ -71,15 +71,16 @@ const generateUserId = () => {
 const setupMultisynqListeners = () => {
 	// Listen for canvas updates from other users
 	multisynqService.on("canvas:updated", (data) => {
-		const { x, y, color, userId } = data
+		const { x, y, color, viewId } = data
 		
 		// Update local canvas state
-		canvasStore.setPixel(x, y, color, userId)
+		canvasStore.setPixel(x, y, color, viewId)
 		
-		// Show notification for other users' pixels
-		if (userId !== appStore.currentUser.id) {
-			const user = canvasStore.connectedUsers.get(userId)
-			const displayName = user?.nickname || `User ${userId.slice(0, 8)}...`
+		// Show notification for other users' pixels (compare with current viewId)
+		const currentViewId = multisynqService.getCurrentUserId()
+		if (viewId !== currentViewId) {
+			const user = canvasStore.connectedUsers.get(viewId)
+			const displayName = user?.nickname || `User ${viewId.slice(0, 8)}...`
 			notificationsStore.showInfo(
 				"Pixel Updated",
 				`${displayName} set pixel at (${x}, ${y})`
@@ -89,11 +90,12 @@ const setupMultisynqListeners = () => {
 
 	// Listen for cursor updates
 	multisynqService.on("cursor:updated", (data) => {
-		const { userId, x, y, users } = data
+		const { viewId, x, y, users } = data
 		
 		// Update user cursors (excluding current user)
+		const currentViewId = multisynqService.getCurrentUserId()
 		users.forEach(user => {
-			if (user.id !== appStore.currentUser.id) {
+			if (user.id !== currentViewId) {
 				canvasStore.updateUserCursor(user.id, user.cursor.x, user.cursor.y)
 			}
 		})
@@ -101,7 +103,7 @@ const setupMultisynqListeners = () => {
 
 	// Listen for user joined
 	multisynqService.on("user:joined", (data) => {
-		const { user, totalUsers } = data
+		const { viewId, user, totalUsers } = data
 		
 		canvasStore.addConnectedUser(user)
 		
@@ -110,12 +112,12 @@ const setupMultisynqListeners = () => {
 
 	// Listen for user left
 	multisynqService.on("user:left", (data) => {
-		const { userId, totalUsers } = data
+		const { viewId, totalUsers } = data
 		
-		const user = canvasStore.connectedUsers.get(userId)
+		const user = canvasStore.connectedUsers.get(viewId)
 		if (user) {
-			notificationsStore.showUserLeft(userId, user.address)
-			canvasStore.removeConnectedUser(userId)
+			notificationsStore.showUserLeft(viewId, user.address)
+			canvasStore.removeConnectedUser(viewId)
 		}
 	})
 
