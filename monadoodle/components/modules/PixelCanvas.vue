@@ -12,6 +12,11 @@ const canvasRef = ref(null)
 const isMouseDown = ref(false)
 const lastDrawnPixel = ref({ x: -1, y: -1 })
 
+// Throttling for cursor movements
+let lastCursorBroadcast = 0
+const CURSOR_THROTTLE_MS = 50 // 20 updates per second max
+let animationFrameId = null
+
 // Canvas configuration
 const PIXEL_SIZE = 16
 const CANVAS_SIZE = canvasStore.canvasSize * PIXEL_SIZE
@@ -153,23 +158,28 @@ const handleMouseDown = (event) => {
 const handleMouseMove = (event) => {
 	const { x, y } = getPixelCoords(event)
 	
-	// Update user cursor position locally
+	// Update user cursor position locally (always immediate)
 	appStore.updateUserCursor(x, y)
 	
-	// Broadcast cursor position via Multisynq if connected
-	if (canvasStore.isMultisynqConnected && appStore.currentUser.id) {
+	// Throttled Multisynq cursor broadcast
+	const now = performance.now()
+	if (canvasStore.isMultisynqConnected && appStore.currentUser.id && (now - lastCursorBroadcast > CURSOR_THROTTLE_MS)) {
 		multisynqService.moveCursor(x, y, appStore.currentUser.id)
+		lastCursorBroadcast = now
 	}
 	
-	// Draw if mouse is down
+	// Draw if mouse is down (immediate for drawing)
 	if (isMouseDown.value) {
 		drawPixel(event)
 	}
 	
-	// Redraw to show cursor updates
-	nextTick(() => {
-		drawCanvas()
-	})
+	// Throttled canvas redraw using requestAnimationFrame
+	if (!animationFrameId) {
+		animationFrameId = requestAnimationFrame(() => {
+			drawCanvas()
+			animationFrameId = null
+		})
+	}
 }
 
 const handleMouseUp = () => {
