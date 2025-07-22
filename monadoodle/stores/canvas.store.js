@@ -17,6 +17,7 @@ export const useCanvasStore = defineStore("canvas", {
 		// Collaboration
 		connectedUsers: new Map(),
 		isMultisynqConnected: false,
+		nativeUserCount: 0, // Reactive user count updated from Multisynq events
 		
 		// Statistics
 		totalPixelsSet: 0,
@@ -68,13 +69,9 @@ export const useCanvasStore = defineStore("canvas", {
 			return Array.from(state.connectedUsers.values())
 		},
 		
-		// Get native Multisynq user count
-		getNativeUserCount: () => {
-			// Access Multisynq's native viewCount directly
-			if (typeof window !== 'undefined' && window.monadDoodleModel) {
-				return window.monadDoodleModel.viewCount || 0
-			}
-			return 0
+		// Get native Multisynq user count from reactive state
+		getNativeUserCount: (state) => {
+			return state.nativeUserCount
 		},
 		
 		getUserContribution: (state) => (viewId) => {
@@ -175,6 +172,12 @@ export const useCanvasStore = defineStore("canvas", {
 		setMultisynqConnection(isConnected) {
 			this.isMultisynqConnected = isConnected
 		},
+		
+		updateNativeUserCount(count) {
+			console.log("📊 Updating reactive user count:", count)
+			this.nativeUserCount = count
+		},
+		
 		
 		// Blockchain
 		addGasUsed(gasAmount) {

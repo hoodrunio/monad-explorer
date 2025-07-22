@@ -106,6 +106,7 @@ const setupMultisynqListeners = () => {
 		const { viewId, user, totalUsers } = data
 		
 		canvasStore.addConnectedUser(user)
+		canvasStore.updateNativeUserCount(totalUsers) // Update reactive count
 		
 		notificationsStore.showUserJoined(user.id, user.address)
 	})
@@ -119,6 +120,8 @@ const setupMultisynqListeners = () => {
 			notificationsStore.showUserLeft(viewId, user.address)
 			canvasStore.removeConnectedUser(viewId)
 		}
+		
+		canvasStore.updateNativeUserCount(totalUsers) // Update reactive count
 	})
 
 	// Listen for full canvas state (when joining)
@@ -133,6 +136,9 @@ const setupMultisynqListeners = () => {
 		connectedUsers.forEach(user => {
 			canvasStore.addConnectedUser(user)
 		})
+		
+		// Update user count based on connected users
+		canvasStore.updateNativeUserCount(connectedUsers.length)
 		
 		notificationsStore.showInfo(
 			"Canvas Synchronized",

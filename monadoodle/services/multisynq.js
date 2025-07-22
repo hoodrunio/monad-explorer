@@ -285,6 +285,11 @@ class MultisynqService {
 			// Join session
 			await this.joinSession(userId)
 
+			// Expose service to window for store access
+			if (typeof window !== 'undefined') {
+				window.multisynqService = this
+			}
+
 			console.log("Multisynq initialized successfully")
 			return true
 		} catch (error) {
