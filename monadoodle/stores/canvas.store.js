@@ -174,7 +174,6 @@ export const useCanvasStore = defineStore("canvas", {
 		},
 		
 		updateNativeUserCount(count) {
-			console.log("📊 Updating reactive user count:", count)
 			this.nativeUserCount = count
 		},
 		

@@ -84,7 +84,6 @@ class MultisynqService {
 						window.monadDoodleModel = this
 					}
 
-					console.log("MonadDoodle Model initialized")
 				}
 
 				handlePixelSet(data) {
@@ -135,7 +134,6 @@ class MultisynqService {
 
 				// Handle Multisynq built-in view lifecycle events (NATIVE USER TRACKING)
 				handleViewJoin(viewId) {
-					console.log("🔗 User joined:", { viewId, totalUsers: this.viewCount })
 					
 					// Create user with Multisynq's viewId as the user identifier
 					const userColor = this.getUserColor ? this.getUserColor(viewId) : "#18d2a5"
@@ -158,7 +156,6 @@ class MultisynqService {
 					})
 
 					// CRITICAL: Send canvas state to new user (for page refresh)
-					console.log("📤 Sending canvas state to new user:", viewId)
 					this.publish(this.sessionId, "canvasState", {
 						pixels: this.pixels,
 						totalPixelsSet: this.totalPixelsSet,
@@ -168,7 +165,6 @@ class MultisynqService {
 				}
 
 				handleViewExit(viewId) {
-					console.log("🚪 User left:", { viewId, totalUsers: this.viewCount })
 					
 					if (this.connectedUsers.has(viewId)) {
 						this.connectedUsers.delete(viewId)
@@ -191,7 +187,6 @@ class MultisynqService {
 
 				// Handle canvas state request from View
 				handleCanvasStateRequest() {
-					console.log("📤 Model responding to canvas state request")
 					this.publish(this.sessionId, "canvasState", {
 						pixels: this.pixels,
 						totalPixelsSet: this.totalPixelsSet,
@@ -220,7 +215,6 @@ class MultisynqService {
 						window.monadDoodleView = this
 					}
 
-					console.log("MonadDoodle View initialized")
 				}
 
 				onCanvasUpdated(data) {
@@ -232,12 +226,10 @@ class MultisynqService {
 				}
 
 				onUserJoined(data) {
-					console.log("👥 View received userJoined event:", data)
 					this.emit("user:joined", data)
 				}
 
 				onUserLeft(data) {
-					console.log("👥 View received userLeft event:", data)
 					this.emit("user:left", data)
 				}
 
@@ -250,7 +242,6 @@ class MultisynqService {
 						x, y, color, viewId, // Use viewId instead of userId
 						timestamp: Date.now()
 					}
-					console.log("🎨 View publishing pixelSet event:", eventData)
 					this.publish(this.sessionId, "pixelSet", eventData)
 				}
 
@@ -259,7 +250,6 @@ class MultisynqService {
 				}
 
 				requestCanvasState() {
-					console.log("📥 View requesting canvas state from Model")
 					this.publish(this.sessionId, "requestCanvasState", {})
 				}
 
@@ -311,7 +301,6 @@ class MultisynqService {
 				window.multisynqService = this
 			}
 
-			console.log("Multisynq initialized successfully")
 			return true
 		} catch (error) {
 			console.error("Failed to initialize Multisynq:", error)
@@ -355,7 +344,6 @@ class MultisynqService {
 				//debug: process.env.NODE_ENV === 'development' ? ["session", "events"] : []
 			}
 			
-			console.log("Joining Multisynq session with config:", sessionConfig)
 			this.session = await this.Multisynq.Session.join(sessionConfig)
 
 			this.model = this.session.model
@@ -364,7 +352,6 @@ class MultisynqService {
 
 			// Ensure View is properly initialized
 			if (this.view && typeof this.view.init === 'function') {
-				console.log("🔧 Manually initializing View")
 				this.view.init()
 			}
 
@@ -372,10 +359,8 @@ class MultisynqService {
 
 			// Register any pending callbacks
 			if (this.pendingCallbacks) {
-				console.log("🔄 Registering pending callbacks:", this.pendingCallbacks)
 				for (const [event, callbacks] of this.pendingCallbacks.entries()) {
 					for (const callback of callbacks) {
-						console.log("📝 Registering pending callback for event:", event)
 						this.view.on(event, callback)
 					}
 				}
@@ -388,8 +373,6 @@ class MultisynqService {
 			
 			// Update current user ID to use Multisynq's native view ID
 			this.currentUserId = currentViewId
-			console.log("🆔 Using Multisynq native viewId:", currentViewId)
-			console.log("📊 Current viewCount:", this.model?.viewCount || "unknown")
 			
 			// Multisynq handles user tracking automatically via view-join/view-exit events
 			// No manual joinUser call needed!
@@ -398,7 +381,6 @@ class MultisynqService {
 			// This ensures page refresh gets the current state
 			setTimeout(() => {
 				if (this.view) {
-					console.log("🔄 View requesting canvas state from Model")
 					this.view.requestCanvasState()
 				}
 			}, 100) // Small delay to ensure View event listeners are ready
@@ -406,7 +388,6 @@ class MultisynqService {
 			// Setup browser close detection for proper cleanup
 			this.setupBrowserCloseHandling()
 
-			console.log("Joined Multisynq session:", this.sessionName)
 		} catch (error) {
 			console.error("Failed to join Multisynq session:", error)
 			throw error
@@ -418,7 +399,6 @@ class MultisynqService {
 		if (typeof window !== 'undefined') {
 			// Handle page unload (browser close, refresh, navigation)
 			const handleBeforeUnload = () => {
-				console.log("🚪 Browser closing, cleaning up user session")
 				const userId = this.getCurrentUserId()
 				if (this.view && userId) {
 					// Immediately notify other users that this user is leaving
@@ -433,10 +413,8 @@ class MultisynqService {
 			// Handle page visibility changes (tab switching, minimize)
 			document.addEventListener('visibilitychange', () => {
 				if (document.hidden) {
-					console.log("🔇 Page hidden, user may be leaving")
 					// Optional: You could implement logic here for when page becomes hidden
 				} else {
-					console.log("👀 Page visible again")
 					// Optional: You could implement logic here for when page becomes visible
 				}
 			})
@@ -452,7 +430,6 @@ class MultisynqService {
 			// Leave as user first to properly clean up user state
 			const userId = this.getCurrentUserId()
 			if (this.view && userId) {
-				console.log("🚪 Leaving user from session:", userId)
 				this.view.leaveUser(userId)
 			}
 
@@ -463,7 +440,6 @@ class MultisynqService {
 			}
 
 			// Leave the session itself
-			console.log("🚪 Leaving Multisynq session")
 			this.session.leave()
 			this.session = null
 			this.model = null
@@ -514,12 +490,9 @@ class MultisynqService {
 			return
 		}
 
-		console.log("🔌 MultisynqService.on() called for event:", event)
 		if (this.view) {
-			console.log("🔗 Registering callback with View for event:", event)
 			this.view.on(event, callback)
 		} else {
-			console.warn("⚠️ View not ready, storing callback for later")
 			// Store callbacks for when view becomes available
 			if (!this.pendingCallbacks) {
 				this.pendingCallbacks = new Map()

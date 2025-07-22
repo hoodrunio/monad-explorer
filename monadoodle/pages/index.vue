@@ -128,8 +128,6 @@ const setupMultisynqListeners = () => {
 	multisynqService.on("canvas:state", (data) => {
 		const { pixels, totalPixelsSet, connectedUsers, totalUsers } = data
 		
-		console.log("🎯 Received canvas state:", { totalPixelsSet, userCount: connectedUsers.length, totalUsers })
-		
 		// Update local state with server state
 		canvasStore.loadCanvasFromData(pixels)
 		canvasStore.totalPixelsSet = totalPixelsSet
