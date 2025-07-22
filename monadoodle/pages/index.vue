@@ -275,7 +275,7 @@ onUnmounted(() => {
 								<Flex justify="between">
 									<Text size="12" color="secondary">Users:</Text>
 									<Text size="12" color="primary" tabular>
-										{{ canvasStore.getConnectedUsersList.length }}
+										{{ canvasStore.getNativeUserCount }}
 									</Text>
 								</Flex>
 							</Flex>
@@ -336,9 +336,9 @@ onUnmounted(() => {
 			</div>
 
 			<!-- Connected Users -->
-			<div v-if="canvasStore.getConnectedUsersList.length > 0" :class="$style.usersSection">
+			<div v-if="canvasStore.getNativeUserCount > 0" :class="$style.usersSection">
 				<Text size="14" weight="600" color="primary">
-					Connected Users ({{ canvasStore.getConnectedUsersList.length }})
+					Connected Users ({{ canvasStore.getNativeUserCount }})
 				</Text>
 				<Flex gap="8" wrap="wrap">
 					<div

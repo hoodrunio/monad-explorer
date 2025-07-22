@@ -68,6 +68,15 @@ export const useCanvasStore = defineStore("canvas", {
 			return Array.from(state.connectedUsers.values())
 		},
 		
+		// Get native Multisynq user count
+		getNativeUserCount: () => {
+			// Access Multisynq's native viewCount directly
+			if (typeof window !== 'undefined' && window.monadDoodleModel) {
+				return window.monadDoodleModel.viewCount || 0
+			}
+			return 0
+		},
+		
 		getUserContribution: (state) => (viewId) => {
 			return state.userContributions[viewId] || 0
 		},

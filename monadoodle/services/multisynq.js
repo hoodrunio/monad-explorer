@@ -571,6 +571,14 @@ class MultisynqService {
 		}
 	}
 
+	// Get native Multisynq user count
+	getNativeUserCount() {
+		if (this.model && typeof this.model.viewCount !== 'undefined') {
+			return this.model.viewCount
+		}
+		return 0
+	}
+
 	// Get canvas state
 	getCanvasState() {
 		if (this.model) {
