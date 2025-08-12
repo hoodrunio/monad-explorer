@@ -423,6 +423,10 @@ const toggleDescription = () => {
 								<Flex align="center" gap="8" :class="$style.qc_toggle_wrapper">
 									<Text size="11" weight="500" color="secondary">Show QC Metrics</Text>
 									<Toggle v-model="showQcMetrics" />
+									<Flex align="center" gap="6">
+										<Icon name="info" size="14" color="brand" />
+										<Text size="11" weight="600" color="brand">Informational only — does not affect performance</Text>
+									</Flex>
 								</Flex>
 							</Flex>
 							
@@ -447,7 +451,7 @@ const toggleDescription = () => {
 										<Text size="16" weight="600" :color="getPerformanceColor(validatorMetrics.qcParticipationRate)">
 											{{ formatPercentage(validatorMetrics.qcParticipationRate) }}
 										</Text>
-										<Text size="10" weight="500" color="brand">Additional metric</Text>
+										<Text size="11" weight="600" color="secondary">Informational only — does not affect performance</Text>
 									</Flex>
 								</Transition>
 							</Flex>
