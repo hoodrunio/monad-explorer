@@ -335,7 +335,10 @@ const handleViewRawTransaction = () => {
 									</Flex>
 								</Flex>
 								<Flex direction="column" gap="4" align="end">
-									<Text size="13" weight="600" color="primary">{{ transfer.value }}</Text>
+									<Flex align="center" gap="4">
+										<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.value, 6) }}</Text>
+										<Text size="13" weight="600" color="brand">{{ transfer.tokenMetadata?.symbol }}</Text>
+									</Flex>
 									<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.tokenAddress) }}</Text>
 								</Flex>
 							</Flex>
