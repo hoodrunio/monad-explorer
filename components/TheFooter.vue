@@ -61,7 +61,17 @@ const handleChangeTheme = (target) => {
 				<Flex>
 					<Flex direction="column" gap="24" :class="$style.left">
 						<NuxtLink to="/" :class="$style.logo">
-							<Icon name="logo" size="16" color="secondary" :class="$style.logo_symbol" />
+							<Flex align="center" gap="8">
+								<Icon name="logo" size="16" color="secondary" :class="$style.logo_symbol" />
+
+								<Flex direction="column" gap="2">
+									<Text size="14" weight="600" color="primary">Monad Explorer</Text>
+									<Flex align="center" gap="4" :class="$style.brand_attribution">
+										<Text size="10" weight="500" color="secondary">by</Text>
+										<Text size="10" weight="600" color="primary" :class="$style.brand_text">Hood<span :class="$style.brand_green">Run</span></Text>
+									</Flex>
+								</Flex>
+							</Flex>
 						</NuxtLink>
 
 						<Flex align="center" gap="8" :class="$style.socials">
@@ -328,11 +338,22 @@ const handleChangeTheme = (target) => {
 		gap: 12px;
 	}
 
-	.attribution {
-		text-align: center;
-		font-size: 11px;
-		padding: 6px 10px;
-		margin-top: 8px;
+	.brand_attribution {
+		opacity: 0.8;
+		transition: opacity 0.2s ease;
+	}
+
+	.logo:hover .brand_attribution {
+		opacity: 1;
+	}
+
+	.brand_text {
+		line-height: 1;
+	}
+
+	.brand_green {
+		color: var(--green);
+		font-weight: 600;
 	}
 }
 </style>
