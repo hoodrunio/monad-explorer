@@ -7,9 +7,6 @@ import Button from "@/components/ui/Button.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Checkbox from "@/components/ui/Checkbox.vue"
 
-/** Services */
-import { shortHex } from "@/services/utils"
-
 /** API */
 import { fetchEventSearch } from "@/services/api/main"
 
@@ -311,6 +308,7 @@ onMounted(() => {
 						<tr>
 							<th><Text size="12" weight="600" color="tertiary">Type</Text></th>
 							<th><Text size="12" weight="600" color="tertiary">Description</Text></th>
+							<th><Text size="12" weight="600" color="tertiary">Block</Text></th>
 							<th><Text size="12" weight="600" color="tertiary">Round</Text></th>
 							<th><Text size="12" weight="600" color="tertiary">Time</Text></th>
 						</tr>
@@ -320,9 +318,9 @@ onMounted(() => {
 						<tr v-for="event in events" :key="`${event.event_type}-${event.round_number}-${event.timestamp}`" :class="$style.event_row">
 							<td :class="$style.type_cell">
 								<Flex align="center" gap="8">
-																	<Icon 
-									:name="getEventIcon(event.event_type, event)" 
-									size="14" 
+																	<Icon
+									:name="getEventIcon(event.event_type, event)"
+									size="14"
 									:color="getEventColor(event.event_type, event)"
 								/>
 									<Text size="12" weight="600" color="primary">
@@ -330,13 +328,19 @@ onMounted(() => {
 									</Text>
 								</Flex>
 							</td>
-							
+
 							<td :class="$style.description_cell">
 								<Text size="12" weight="500" color="secondary">
 									{{ getEventDescription(event) }}
 								</Text>
 							</td>
-							
+
+							<td :class="$style.block_cell">
+								<Text size="12" weight="600" color="tertiary" mono>
+									#{{ event.sequence_number || 0 }}
+								</Text>
+							</td>
+
 							<td :class="$style.round_cell">
 								<Text size="12" weight="600" color="tertiary" mono>
 									#{{ event.round_number || 0 }}
@@ -459,6 +463,11 @@ onMounted(() => {
 .description_cell {
 	min-width: 200px;
 	max-width: 300px;
+}
+
+.block_cell {
+	min-width: 80px;
+	white-space: nowrap;
 }
 
 .round_cell {
