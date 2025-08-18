@@ -68,7 +68,7 @@ const handleChangeTheme = (target) => {
 									<Text size="14" weight="600" color="primary">Monad Explorer</Text>
 									<Flex align="center" gap="4" :class="$style.brand_attribution">
 										<Text size="10" weight="500" color="secondary">by</Text>
-										<Text size="10" weight="600" color="primary" :class="$style.brand_text">Hood<span :class="$style.brand_green">Run</span></Text>
+										<Text size="10" weight="600" color="primary" :class="$style.brand_text">Hood<span style="color: var(--green); font-weight: 600;">Run</span></Text>
 									</Flex>
 								</Flex>
 							</Flex>
