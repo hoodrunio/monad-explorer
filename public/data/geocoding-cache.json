@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-08-18T17:32:59.275Z",
-  "totalLocations": 85,
+  "generatedAt": "2025-09-15T14:48:28.310Z",
+  "totalLocations": 89,
   "source": "nominatim",
   "locations": {
     "Falkenstein, Germany": [
@@ -343,6 +343,22 @@
     "Sollentuna, Sweden": [
       17.9500556,
       59.4293164
+    ],
+    "Södertälje, Sweden": [
+      17.6271663,
+      59.1964289
+    ],
+    "Cambridge, United States": [
+      -71.1040018,
+      42.3656347
+    ],
+    "Fulham, United Kingdom": [
+      -0.206809,
+      51.474408
+    ],
+    "New Orleans, United States": [
+      -90.0730259,
+      29.9559145
     ]
   }
 }
