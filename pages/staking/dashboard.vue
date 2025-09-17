@@ -1,6 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
-import { getDelegatorWithdrawals } from '~/services/api/staking'
+import { getValidatorById, getStakingStats, getDelegatorWithdrawals } from '~/services/api/staking'
 import { formatEther } from 'viem'
 
 // Components
@@ -62,19 +62,62 @@ const portfolioSummary = computed(() => {
 	}
 })
 
+// Validator details
+const validators = ref(new Map())
+
 // Get validator info for delegations
 const enrichedDelegations = computed(() => {
-	return userDelegations.value.map(delegation => ({
-		...delegation,
-		validator: delegation.validator || {
-			valId: delegation.valId,
-			authAddress: 'Unknown',
-			formattedCommissionRate: 'Unknown',
-			formattedConsensusStake: 'Unknown',
-			isActive: false,
+	const result = userDelegations.value.map(delegation => {
+		const validatorDetails = validators.value.get(delegation.valId)
+		console.log(`Mapping delegation ${delegation.valId}:`, { delegation, validatorDetails })
+		return {
+			...delegation,
+			validator: validatorDetails || {
+				valId: delegation.valId,
+				authAddress: `0x${delegation.valId.toString().padStart(40, '0')}`,
+				formattedCommissionRate: 'Loading...',
+				formattedConsensusStake: 'Loading...',
+				isActive: true, // Default to true instead of false
+			}
 		}
-	}))
+	})
+	console.log('Enriched delegations result:', result)
+	return result
 })
+
+// Load validator details for delegations
+async function loadValidatorDetails() {
+	if (userDelegations.value.length === 0) return
+	
+	console.log('Loading validator details for delegations:', userDelegations.value)
+	
+	try {
+		// Get validator details for each delegation individually
+		const validatorMap = new Map()
+		
+		for (const delegation of userDelegations.value) {
+			try {
+				const validatorInfo = await getValidatorById(delegation.valId)
+				console.log(`Validator ${delegation.valId} details:`, validatorInfo)
+				validatorMap.set(delegation.valId, validatorInfo)
+			} catch (error) {
+				console.error(`Failed to load validator ${delegation.valId}:`, error)
+				// Add fallback data for failed requests
+				validatorMap.set(delegation.valId, {
+					valId: delegation.valId,
+					authAddress: `0x${delegation.valId.toString().padStart(40, '0')}`,
+					formattedCommissionRate: 'Error loading',
+					formattedConsensusStake: 'Error loading',
+					isActive: false,
+				})
+			}
+		}
+		
+		validators.value = validatorMap
+	} catch (error) {
+		console.error('Failed to load validator details:', error)
+	}
+}
 
 // Withdrawable amounts
 const withdrawableTotal = computed(() => {
@@ -99,14 +142,14 @@ async function loadWithdrawals() {
 
 // Refresh all data
 async function refreshData() {
-	if (!isConnected.value) return
-	
 	try {
 		refreshing.value = true
 		await Promise.all([
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
+		// Load validator details after refreshing user data
+		await loadValidatorDetails()
 	} catch (error) {
 		console.error('Failed to refresh data:', error)
 	} finally {
@@ -165,6 +208,8 @@ onMounted(async () => {
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
+		// Load validator details after user delegations are loaded
+		await loadValidatorDetails()
 	}
 })
 
@@ -175,11 +220,21 @@ watch(() => stakingStore.isConnected, async (connected) => {
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
+		// Load validator details after user delegations are loaded
+		await loadValidatorDetails()
 	} else {
 		// Clear data when disconnected
 		withdrawals.value = []
+		validators.value.clear()
 	}
 })
+
+// Watch user delegations and load validator details when they change
+watch(userDelegations, async (newDelegations) => {
+	if (newDelegations && newDelegations.length > 0) {
+		await loadValidatorDetails()
+	}
+}, { deep: true })
 
 // Redirect if not connected - but allow user to see the connect wallet UI
 // Remove the automatic redirect to let users connect their wallet on dashboard page
