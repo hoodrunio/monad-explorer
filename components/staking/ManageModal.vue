@@ -10,11 +10,11 @@ import ValidatorLogo from '@/components/ValidatorLogo.vue'
 const props = defineProps({
 	validator: {
 		type: Object,
-		required: true
+		default: null
 	},
 	delegation: {
 		type: Object,
-		required: true
+		default: null
 	},
 	show: {
 		type: Boolean,
@@ -129,7 +129,7 @@ onMounted(() => {
 </script>
 
 <template>
-	<div v-if="show" class="modal-overlay" @click.self="handleClose">
+	<div v-if="show && validator && delegation" class="modal-overlay" @click.self="handleClose">
 		<div class="modal-content">
 			<!-- Header -->
 			<div class="modal-header">

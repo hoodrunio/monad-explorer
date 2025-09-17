@@ -10,7 +10,7 @@ import ValidatorLogo from '@/components/ValidatorLogo.vue'
 const props = defineProps({
 	validator: {
 		type: Object,
-		required: true
+		default: null
 	},
 	show: {
 		type: Boolean,
@@ -89,7 +89,7 @@ onMounted(() => {
 </script>
 
 <template>
-	<div v-if="show" class="modal-overlay" @click.self="handleClose">
+	<div v-if="show && validator" class="modal-overlay" @click.self="handleClose">
 		<div class="modal-content">
 			<!-- Header -->
 			<div class="modal-header">
@@ -155,7 +155,7 @@ onMounted(() => {
 					type="primary"
 					size="medium"
 					:loading="loading"
-					:disabled="!canStake || !validator.isActive"
+					:disabled="!canStake || !validator?.isActive"
 					@click="handleStake"
 				>
 					Stake {{ stakeAmount || '0' }} MON
