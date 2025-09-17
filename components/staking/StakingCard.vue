@@ -5,6 +5,7 @@ import { formatEther, parseEther } from 'viem'
 // UI Components
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
+import ValidatorLogo from '@/components/ValidatorLogo.vue'
 
 const props = defineProps({
 	validator: {
@@ -133,15 +134,22 @@ function setMaxUnstake() {
 		<!-- Validator Info -->
 		<div class="validator-header">
 			<div class="validator-info">
-				<div class="validator-name">
-					Validator #{{ validator.valId }}
-				</div>
+				<ValidatorLogo 
+					:address="validator.secpPubkey?.replace('0x', '') || validator.authAddress"
+					size="medium"
+					class="validator-logo"
+				/>
 				<div class="validator-details">
-					<span class="commission">{{ validator.formattedCommissionRate }}</span>
-					<span class="stake">{{ validator.formattedConsensusStake }} MON</span>
-					<span class="status" :class="{ active: validator.isActive }">
-						{{ validator.isActive ? 'Active' : 'Inactive' }}
-					</span>
+					<div class="validator-name">
+						Validator #{{ validator.valId }}
+					</div>
+					<div class="validator-meta">
+						<span class="commission">{{ validator.formattedCommissionRate }}</span>
+						<span class="stake">{{ validator.formattedConsensusStake }} MON</span>
+						<span class="status" :class="{ active: validator.isActive }">
+							{{ validator.isActive ? 'Active' : 'Inactive' }}
+						</span>
+					</div>
 				</div>
 			</div>
 		</div>

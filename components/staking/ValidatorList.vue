@@ -99,7 +99,7 @@ const handleManage = (validator) => {
 						<td :class="$style.col_validator">
 							<Flex align="center" gap="12" :class="$style.validator_info">
 								<ValidatorLogo 
-									:address="validator.authAddress"
+									:address="validator.secpPubkey?.replace('0x', '') || validator.authAddress"
 									size="small"
 								/>
 								<Flex direction="column" gap="2">
@@ -107,7 +107,7 @@ const handleManage = (validator) => {
 										Validator #{{ validator.valId }}
 									</Text>
 									<Text size="11" color="tertiary" mono>
-										{{ shortHex(validator.authAddress || validator.valId) }}
+										{{ shortHex(validator.secpPubkey?.replace('0x', '') || validator.authAddress || validator.valId) }}
 									</Text>
 								</Flex>
 							</Flex>

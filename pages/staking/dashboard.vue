@@ -74,6 +74,7 @@ const enrichedDelegations = computed(() => {
 			validator: validatorDetails || {
 				valId: delegation.valId,
 				authAddress: `0x${delegation.valId.toString().padStart(40, '0')}`,
+				secpPubkey: delegation.valId.toString().padStart(64, '0'),
 				formattedCommissionRate: 'Loading...',
 				formattedConsensusStake: 'Loading...',
 				isActive: true, // Default to true instead of false
@@ -100,6 +101,7 @@ async function loadValidatorDetails() {
 				validatorMap.set(delegation.valId, {
 					valId: delegation.valId,
 					authAddress: `0x${delegation.valId.toString().padStart(40, '0')}`,
+					secpPubkey: delegation.valId.toString().padStart(64, '0'),
 					formattedCommissionRate: 'Error loading',
 					formattedConsensusStake: 'Error loading',
 					isActive: false,
