@@ -221,6 +221,12 @@ async function copyAddress() {
 onMounted(() => {
 	initializeWatchers()
 })
+
+// Close modals when clicking outside
+function closeModals() {
+	showAccountModal.value = false
+	showConnectModal.value = false
+}
 </script>
 
 <template>
@@ -247,54 +253,56 @@ onMounted(() => {
 
 		<!-- Connected State -->
 		<div v-if="isConnected" class="connected-state">
-			<Dropdown v-model="showAccountModal" :right="true">
-				<div class="account-button">
-					<!-- Chain Status -->
-					<div 
-						v-if="getResponsiveValue(chainStatus) !== 'none'" 
-						class="chain-info"
-						:class="{
-							'show-icon': getResponsiveValue(chainStatus).includes('icon'),
-							'show-name': getResponsiveValue(chainStatus).includes('name') || getResponsiveValue(chainStatus) === 'full'
-						}"
-					>
-						<div class="chain-icon">🔗</div>
-						<span v-if="getResponsiveValue(chainStatus) === 'name' || getResponsiveValue(chainStatus) === 'full'" class="chain-name">
-							{{ isCorrectNetwork ? 'Monad' : 'Wrong Network' }}
-						</span>
-					</div>
-
-					<!-- Account Info -->
-					<div class="account-info">
-						<!-- Balance -->
+			<Dropdown :forceOpen="showAccountModal" position="end">
+				<template #trigger>
+					<div class="account-button" @click="showAccountModal = !showAccountModal">
+						<!-- Chain Status -->
 						<div 
-							v-if="getResponsiveValue(showBalance)" 
-							class="balance"
+							v-if="getResponsiveValue(chainStatus) !== 'none'" 
+							class="chain-info"
+							:class="{
+								'show-icon': getResponsiveValue(chainStatus).includes('icon'),
+								'show-name': getResponsiveValue(chainStatus).includes('name') || getResponsiveValue(chainStatus) === 'full'
+							}"
 						>
-							{{ formattedBalance }} MON
-						</div>
-
-						<!-- Account Status -->
-						<div class="account-status">
-							<div 
-								v-if="getResponsiveValue(accountStatus) === 'avatar' || getResponsiveValue(accountStatus) === 'full'"
-								class="avatar"
-							>
-								<div class="avatar-circle">{{ account.address?.slice(2, 4).toUpperCase() }}</div>
-							</div>
-							<span 
-								v-if="getResponsiveValue(accountStatus) === 'address' || getResponsiveValue(accountStatus) === 'full'"
-								class="address"
-							>
-								{{ formattedAddress }}
+							<div class="chain-icon">🔗</div>
+							<span v-if="getResponsiveValue(chainStatus) === 'name' || getResponsiveValue(chainStatus) === 'full'" class="chain-name">
+								{{ isCorrectNetwork ? 'Monad' : 'Wrong Network' }}
 							</span>
 						</div>
+
+						<!-- Account Info -->
+						<div class="account-info">
+							<!-- Balance -->
+							<div 
+								v-if="getResponsiveValue(showBalance)" 
+								class="balance"
+							>
+								{{ formattedBalance }} MON
+							</div>
+
+							<!-- Account Status -->
+							<div class="account-status">
+								<div 
+									v-if="getResponsiveValue(accountStatus) === 'avatar' || getResponsiveValue(accountStatus) === 'full'"
+									class="avatar"
+								>
+									<div class="avatar-circle">{{ account?.address?.slice(2, 4).toUpperCase() }}</div>
+								</div>
+								<span 
+									v-if="getResponsiveValue(accountStatus) === 'address' || getResponsiveValue(accountStatus) === 'full'"
+									class="address"
+								>
+									{{ formattedAddress }}
+								</span>
+							</div>
+						</div>
+
+						<div class="dropdown-arrow">▼</div>
 					</div>
+				</template>
 
-					<div class="dropdown-arrow">▼</div>
-				</div>
-
-				<template #body>
+				<template #default>
 					<div class="account-modal">
 						<div class="modal-header">
 							<div class="account-details">
@@ -330,17 +338,20 @@ onMounted(() => {
 
 		<!-- Disconnected State -->
 		<div v-else class="disconnected-state">
-			<Dropdown v-model="showConnectModal" :right="true">
-				<Button 
-					:loading="isConnecting" 
-					:disabled="isConnecting"
-					size="medium"
-					type="primary"
-				>
-					{{ isConnecting ? 'Connecting...' : label }}
-				</Button>
+			<Dropdown :forceOpen="showConnectModal" position="end">
+				<template #trigger>
+					<Button 
+						:loading="isConnecting" 
+						:disabled="isConnecting"
+						size="medium"
+						type="primary"
+						@click="showConnectModal = !showConnectModal"
+					>
+						{{ isConnecting ? 'Connecting...' : label }}
+					</Button>
+				</template>
 
-				<template #body>
+				<template #default>
 					<div class="connect-modal">
 						<div class="modal-header">
 							<h3>Connect Wallet</h3>

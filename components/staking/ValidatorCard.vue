@@ -63,7 +63,7 @@ const statusText = computed(() => {
 			<div class="validator-info">
 				<ValidatorLogo 
 					:address="validator.authAddress" 
-					:size="40"
+					size="large"
 					class="validator-avatar"
 				/>
 				<div class="validator-details">
