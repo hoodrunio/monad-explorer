@@ -2,12 +2,11 @@
 import { useStakingStore } from '~/store/staking.store'
 import { getExecutionValidators, getConsensusValidators, getStakingStats } from '~/services/api/staking'
 
-// Components
-import WalletConnect from '@/components/WalletConnect.vue'
-import ValidatorCard from '@/components/staking/ValidatorCard.vue'
-import StakingCard from '@/components/staking/StakingCard.vue'
+// Components  
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
+import Icon from "@/components/Icon.vue"
+import ValidatorList from '@/components/staking/ValidatorList.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -372,18 +371,16 @@ watch(() => stakingStore.isConnected, (connected) => {
 					</div>
 				</div>
 
-				<!-- Validators Grid -->
-				<div v-else-if="filteredValidators.length > 0" :class="$style.validators_grid">
-					<ValidatorCard
-						v-for="validator in filteredValidators"
-						:key="validator.valId"
-						:validator="validator"
-						:user-delegation="getUserDelegation(validator.valId)"
-						:total-network-stake="stats?.totalStaked || '0'"
-						@stake="handleStake"
-						@manage="handleManage"
-					/>
-				</div>
+				<!-- Validators Table -->
+				<ValidatorList
+					v-if="filteredValidators.length > 0"
+					:validators="filteredValidators"
+					:user-delegations="userDelegations"
+					:total-network-stake="stats?.totalStaked || '0'"
+					:loading="loading"
+					@stake="handleStake"
+					@manage="handleManage"
+				/>
 
 				<!-- Empty State -->
 				<div v-else :class="$style.empty_section">
