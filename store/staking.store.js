@@ -91,40 +91,10 @@ export const useStakingStore = defineStore('staking', {
 	},
 
 	actions: {
-		// Initialize wallet watchers
+		// Initialize wallet watchers (now handled by RainbowConnectButton)
 		async initializeWallet() {
-			const { $web3Config } = useNuxtApp()
-			
-			// Watch account changes
-			watchAccount($web3Config, {
-				onChange: (account) => {
-					this.address = account.address
-					this.isConnected = account.isConnected
-					if (account.isConnected && account.address) {
-						this.fetchBalance()
-						this.fetchUserStakingData()
-					} else {
-						this.resetUserData()
-					}
-				}
-			})
-			
-			// Watch chain changes
-			watchChainId($web3Config, {
-				onChange: (chainId) => {
-					this.chainId = chainId
-					this.isCorrectNetwork = chainId === monadTestnet.id
-				}
-			})
-			
-			// Initial state
-			const account = getAccount($web3Config)
-			if (account.isConnected) {
-				this.address = account.address
-				this.isConnected = true
-				this.fetchBalance()
-				this.fetchUserStakingData()
-			}
+			// This is now handled by the RainbowConnectButton component
+			// State updates are managed directly by that component
 		},
 
 		// Fetch user balance
@@ -132,8 +102,8 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address) return
 			
 			try {
-				const { $web3Config } = useNuxtApp()
-				const balance = await getBalance($web3Config, {
+				const { $wagmiConfig } = useNuxtApp()
+				const balance = await getBalance($wagmiConfig, {
 					address: this.address,
 					chainId: monadTestnet.id,
 				})
@@ -146,8 +116,8 @@ export const useStakingStore = defineStore('staking', {
 		// Fetch current epoch info
 		async fetchEpochInfo() {
 			try {
-				const { $web3Config } = useNuxtApp()
-				const result = await readContract($web3Config, {
+				const { $wagmiConfig } = useNuxtApp()
+				const result = await readContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'getEpoch',
@@ -174,13 +144,13 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address) return []
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				const delegations = []
 				let startValId = 0
 				let done = false
 				
 				while (!done) {
-					const result = await readContract($web3Config, {
+					const result = await readContract($wagmiConfig, {
 						address: STAKING_CONFIG.CONTRACT_ADDRESS,
 						abi: [{
 							name: 'getDelegations',
@@ -232,8 +202,8 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address) return null
 			
 			try {
-				const { $web3Config } = useNuxtApp()
-				const result = await readContract($web3Config, {
+				const { $wagmiConfig } = useNuxtApp()
+				const result = await readContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'getDelegator',
@@ -309,10 +279,10 @@ export const useStakingStore = defineStore('staking', {
 			this.loading.delegate = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				const amountWei = parseEther(amount.toString())
 				
-				const hash = await writeContract($web3Config, {
+				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'delegate',
@@ -335,7 +305,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($web3Config, { hash })
+				await waitForTransactionReceipt($wagmiConfig, { hash })
 				
 				// Refresh data
 				await this.fetchBalance()
@@ -366,10 +336,10 @@ export const useStakingStore = defineStore('staking', {
 			this.loading.undelegate = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				const amountWei = parseEther(amount.toString())
 				
-				const hash = await writeContract($web3Config, {
+				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'undelegate',
@@ -396,7 +366,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($web3Config, { hash })
+				await waitForTransactionReceipt($wagmiConfig, { hash })
 				
 				// Refresh data
 				await this.fetchUserStakingData()
@@ -426,9 +396,9 @@ export const useStakingStore = defineStore('staking', {
 			this.loading.compound = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				
-				const hash = await writeContract($web3Config, {
+				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'compound',
@@ -449,7 +419,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($web3Config, { hash })
+				await waitForTransactionReceipt($wagmiConfig, { hash })
 				
 				// Refresh data
 				await this.fetchUserStakingData()
@@ -479,9 +449,9 @@ export const useStakingStore = defineStore('staking', {
 			this.loading.claimRewards = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				
-				const hash = await writeContract($web3Config, {
+				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'claimRewards',
@@ -502,7 +472,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($web3Config, { hash })
+				await waitForTransactionReceipt($wagmiConfig, { hash })
 				
 				// Refresh data
 				await this.fetchBalance()
@@ -533,9 +503,9 @@ export const useStakingStore = defineStore('staking', {
 			this.loading.withdraw = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				
-				const hash = await writeContract($web3Config, {
+				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'withdraw',
@@ -560,7 +530,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($web3Config, { hash })
+				await waitForTransactionReceipt($wagmiConfig, { hash })
 				
 				// Refresh data
 				await this.fetchBalance()
@@ -594,14 +564,14 @@ export const useStakingStore = defineStore('staking', {
 			this.validatorsLoading = true
 			
 			try {
-				const { $web3Config } = useNuxtApp()
+				const { $wagmiConfig } = useNuxtApp()
 				const validators = []
 				let startIndex = 0
 				let done = false
 				
 				// Fetch execution validator set
 				while (!done) {
-					const result = await readContract($web3Config, {
+					const result = await readContract($wagmiConfig, {
 						address: STAKING_CONFIG.CONTRACT_ADDRESS,
 						abi: [{
 							name: 'getExecutionValidatorSet',
@@ -648,8 +618,8 @@ export const useStakingStore = defineStore('staking', {
 		// Fetch validator info
 		async fetchValidatorInfo(valId) {
 			try {
-				const { $web3Config } = useNuxtApp()
-				const result = await readContract($web3Config, {
+				const { $wagmiConfig } = useNuxtApp()
+				const result = await readContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
 						name: 'getValidator',

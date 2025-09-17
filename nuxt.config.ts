@@ -80,6 +80,7 @@ export default defineNuxtConfig({
 		public: {
 			AMP: process.env.AMP,
 			SENTRY_DSN: process.env.SENTRY_DSN,
+			WALLET_CONNECT_PROJECT_ID: process.env.WALLET_CONNECT_PROJECT_ID || '',
 			version: "1.16.0",
 		},
 	},
