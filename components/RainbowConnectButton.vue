@@ -76,7 +76,14 @@ const connectors = [
 
 // Computed values
 const isConnected = computed(() => account.value?.isConnected || false)
-const isCorrectNetwork = computed(() => chainId.value === monadTestnet.id)
+const isCorrectNetwork = computed(() => {
+	if (!chainId.value) return false
+	// MetaMask returns chainId as hex string, convert to number for comparison
+	const currentChainIdNum = typeof chainId.value === 'string' 
+		? parseInt(chainId.value, 16) 
+		: chainId.value
+	return currentChainIdNum === monadTestnet.id
+})
 const formattedAddress = computed(() => {
 	if (!account.value?.address) return ''
 	const addr = account.value.address
@@ -122,7 +129,11 @@ function initializeWatchers() {
 		onChange: (newChainId) => {
 			chainId.value = newChainId
 			stakingStore.chainId = newChainId
-			stakingStore.isCorrectNetwork = newChainId === monadTestnet.id
+			// Convert hex chainId to number for comparison
+			const chainIdNum = typeof newChainId === 'string' 
+				? parseInt(newChainId, 16) 
+				: newChainId
+			stakingStore.isCorrectNetwork = chainIdNum === monadTestnet.id
 		}
 	})
 	
@@ -133,6 +144,15 @@ function initializeWatchers() {
 	// Get initial chain ID
 	const currentChainId = $wagmiConfig.state.chainId
 	chainId.value = currentChainId
+	
+	// Set initial staking store chain state
+	if (currentChainId) {
+		stakingStore.chainId = currentChainId
+		const chainIdNum = typeof currentChainId === 'string' 
+			? parseInt(currentChainId, 16) 
+			: currentChainId
+		stakingStore.isCorrectNetwork = chainIdNum === monadTestnet.id
+	}
 	
 	if (initialAccount.isConnected) {
 		fetchBalance()
