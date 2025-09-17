@@ -5,7 +5,9 @@ import { formatEther } from 'viem'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
-import StakingCard from '@/components/staking/StakingCard.vue'
+import ValidatorList from '@/components/staking/ValidatorList.vue'
+import StakeModal from '@/components/staking/StakeModal.vue'
+import ManageModal from '@/components/staking/ManageModal.vue'
 import Button from '@/components/ui/Button.vue'
 
 const route = useRoute()
@@ -33,20 +35,19 @@ useHead({
 	],
 })
 
-// State
-const withdrawals = ref([])
-const loadingWithdrawals = ref(false)
+// Reactive data
 const refreshing = ref(false)
-const selectedValidator = ref(route.query.validator || null)
-
-// Computed values
+const loadingWithdrawals = ref(false)
+const withdrawals = ref([])
+const userDelegations = computed(() => stakingStore.userDelegations)
 const isConnected = computed(() => stakingStore.isConnected)
 const address = computed(() => stakingStore.address)
-const balance = computed(() => stakingStore.formattedBalance)
-const userDelegations = computed(() => stakingStore.userDelegations)
-const totalStaked = computed(() => stakingStore.formattedTotalStaked)
-const totalRewards = computed(() => stakingStore.formattedRewards)
-const hasPendingWithdrawals = computed(() => stakingStore.hasPendingWithdrawals)
+
+// Modal states
+const showStakeModal = ref(false)
+const showManageModal = ref(false)
+const selectedValidator = ref(null)
+const selectedDelegation = ref(null)
 
 // Portfolio summary
 const portfolioSummary = computed(() => {
@@ -141,6 +142,7 @@ async function refreshData() {
 	try {
 		refreshing.value = true
 		await Promise.all([
+			stakingStore.fetchBalance(),
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
@@ -197,10 +199,42 @@ async function compoundAllRewards() {
 	await refreshData()
 }
 
+// Handle stake action from table
+function handleStake(validator) {
+	selectedValidator.value = validator
+	showStakeModal.value = true
+}
+
+// Handle manage action from table  
+function handleManage(validator) {
+	selectedValidator.value = validator
+	// Find the delegation for this validator
+	selectedDelegation.value = enrichedDelegations.value.find(d => d.valId === validator.valId)
+	showManageModal.value = true
+}
+
+// Modal handlers
+function handleModalSuccess() {
+	// Refresh data after successful action
+	refreshData()
+}
+
+function handleStakeModalClose() {
+	showStakeModal.value = false
+	selectedValidator.value = null
+}
+
+function handleManageModalClose() {
+	showManageModal.value = false
+	selectedValidator.value = null
+	selectedDelegation.value = null
+}
+
 // Initialize
 onMounted(async () => {
 	if (isConnected.value) {
 		await Promise.all([
+			stakingStore.fetchBalance(),
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
@@ -213,6 +247,7 @@ onMounted(async () => {
 watch(() => stakingStore.isConnected, async (connected) => {
 	if (connected) {
 		await Promise.all([
+			stakingStore.fetchBalance(),
 			stakingStore.fetchUserStakingData(),
 			loadWithdrawals(),
 		])
@@ -319,7 +354,7 @@ watch(userDelegations, async (newDelegations) => {
 									<span :class="$style.card_title">Available Balance</span>
 								</div>
 								<div :class="$style.card_content">
-									<div :class="$style.card_value">{{ balance }} MON</div>
+									<div :class="$style.card_value">{{ stakingStore.formattedBalance }} MON</div>
 								</div>
 							</div>
 
@@ -329,7 +364,7 @@ watch(userDelegations, async (newDelegations) => {
 									<span :class="$style.card_title">Pending Rewards</span>
 								</div>
 								<div :class="$style.card_content">
-									<div :class="[$style.card_value, $style.rewards]">{{ totalRewards }} MON</div>
+									<div :class="[$style.card_value, $style.rewards]">{{ portfolioSummary.totalRewards }} MON</div>
 									<div v-if="BigInt(stakingStore.userRewards || '0') > 0" :class="$style.card_actions">
 										<Button 
 											size="small" 
@@ -430,18 +465,35 @@ watch(userDelegations, async (newDelegations) => {
 							</div>
 						</div>
 
-						<!-- Delegations Grid -->
-						<div v-else :class="$style.delegations_grid">
-							<StakingCard
-								v-for="delegation in enrichedDelegations"
-								:key="delegation.valId"
-								:validator="delegation.validator"
-								:delegation="delegation"
-							/>
-						</div>
+						<!-- Delegations Table -->
+						<ValidatorList
+							v-else
+							:validators="enrichedDelegations.map(d => d.validator)"
+							:user-delegations="enrichedDelegations.map(d => ({ validatorId: d.valId, ...d }))"
+							:total-network-stake="'0'"
+							:loading="false"
+							@stake="handleStake"
+							@manage="handleManage"
+						/>
 					</Flex>
 				</template>
 		</Flex>
+
+		<!-- Modals -->
+		<StakeModal
+			:show="showStakeModal"
+			:validator="selectedValidator"
+			@close="handleStakeModalClose"
+			@success="handleModalSuccess"
+		/>
+
+		<ManageModal
+			:show="showManageModal"
+			:validator="selectedValidator"
+			:delegation="selectedDelegation"
+			@close="handleManageModalClose"
+			@success="handleModalSuccess"
+		/>
 	</Flex>
 </template>
 
@@ -698,15 +750,6 @@ watch(userDelegations, async (newDelegations) => {
 	}
 }
 
-.delegations_grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-	gap: 24px;
-	
-	@media (max-width: 480px) {
-		grid-template-columns: 1fr;
-	}
-}
 
 .no_delegations {
 	text-align: center;
