@@ -494,15 +494,15 @@ onMounted(() => {
 		align-items: center;
 		gap: 8px;
 		padding: 8px 12px;
-		background: var(--card-background, #ffffff);
-		border: 1px solid var(--border-color, #e1e5e9);
+		background: var(--card-background);
+		border: 1px solid var(--op-5);
 		border-radius: 12px;
 		cursor: pointer;
 		transition: all 0.2s ease;
 		min-height: 40px;
 		
 		&:hover {
-			border-color: var(--primary-color, #007bff);
+			border-color: var(--brand);
 		}
 	}
 	
@@ -520,7 +520,7 @@ onMounted(() => {
 		.chain-name {
 			font-size: 12px;
 			font-weight: 500;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 	}
 	
@@ -532,7 +532,7 @@ onMounted(() => {
 		.balance {
 			font-size: 12px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 		}
 		
 		.account-status {
@@ -559,14 +559,14 @@ onMounted(() => {
 				font-family: 'Source Code Pro', monospace;
 				font-size: 13px;
 				font-weight: 500;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 			}
 		}
 	}
 	
 	.dropdown-arrow {
 		font-size: 10px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 		transition: transform 0.2s ease;
 	}
 }
@@ -577,13 +577,13 @@ onMounted(() => {
 	
 	.modal-header {
 		padding: 16px;
-		border-bottom: 1px solid var(--border-color, #e1e5e9);
+		border-bottom: 1px solid var(--op-5);
 		
 		.account-details {
 			.full-address {
 				font-family: 'Source Code Pro', monospace;
 				font-size: 12px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				word-break: break-all;
 				margin-bottom: 8px;
 			}
@@ -594,7 +594,7 @@ onMounted(() => {
 				gap: 6px;
 				background: none;
 				border: none;
-				color: var(--primary-color, #007bff);
+				color: var(--brand);
 				cursor: pointer;
 				font-size: 12px;
 				padding: 4px 0;
@@ -609,19 +609,19 @@ onMounted(() => {
 			margin: 0 0 4px 0;
 			font-size: 16px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 		}
 		
 		p {
 			margin: 0;
 			font-size: 13px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 	}
 	
 	.modal-section {
 		padding: 12px 16px;
-		border-bottom: 1px solid var(--border-color, #e1e5e9);
+		border-bottom: 1px solid var(--op-5);
 		
 		.balance-detail,
 		.network-detail {
@@ -636,7 +636,7 @@ onMounted(() => {
 			
 			.label {
 				font-size: 13px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 			}
 			
 			.value {
@@ -644,11 +644,11 @@ onMounted(() => {
 				font-weight: 500;
 				
 				&.correct {
-					color: var(--success-color, #28a745);
+					color: var(--green);
 				}
 				
 				&.incorrect {
-					color: var(--error-color, #dc3545);
+					color: var(--red);
 				}
 			}
 		}
@@ -660,8 +660,8 @@ onMounted(() => {
 		.disconnect-button {
 			width: 100%;
 			padding: 8px 16px;
-			background: var(--error-color, #dc3545);
-			color: white;
+			background: var(--red);
+			color: var(--txt-white);
 			border: none;
 			border-radius: 8px;
 			font-size: 13px;
@@ -670,7 +670,7 @@ onMounted(() => {
 			transition: background-color 0.2s ease;
 			
 			&:hover {
-				background: var(--error-color-dark, #c82333);
+				background: var(--dark-red);
 			}
 		}
 	}
@@ -691,7 +691,7 @@ onMounted(() => {
 			transition: background-color 0.2s ease;
 			
 			&:hover:not(:disabled) {
-				background: var(--hover-color, #f8f9fa);
+				background: var(--op-5);
 			}
 			
 			&:disabled {
@@ -706,19 +706,19 @@ onMounted(() => {
 			.connector-name {
 				font-size: 14px;
 				font-weight: 500;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 			}
 		}
 	}
 	
 	.modal-footer {
 		padding: 12px 16px;
-		border-top: 1px solid var(--border-color, #e1e5e9);
+		border-top: 1px solid var(--op-5);
 		
 		.network-info {
 			margin: 0;
 			font-size: 12px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			text-align: center;
 		}
 	}

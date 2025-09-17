@@ -162,20 +162,20 @@ const statusText = computed(() => {
 
 <style scoped lang="scss">
 .validator-card {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 24px;
 	transition: all 0.2s ease;
 	position: relative;
 	
 	&:hover {
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px var(--op-10);
 		transform: translateY(-2px);
 	}
 	
 	&.has-delegation {
-		border-color: var(--primary-color, #007bff);
+		border-color: var(--brand);
 		
 		&::before {
 			content: '';
@@ -184,7 +184,7 @@ const statusText = computed(() => {
 			left: 0;
 			right: 0;
 			height: 3px;
-			background: linear-gradient(90deg, var(--primary-color, #007bff), var(--primary-light, #4dabf7));
+			background: linear-gradient(90deg, var(--brand), var(--blue));
 			border-radius: 16px 16px 0 0;
 		}
 	}
@@ -210,14 +210,14 @@ const statusText = computed(() => {
 			.validator-name {
 				font-size: 16px;
 				font-weight: 600;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 				margin-bottom: 4px;
 			}
 			
 			.validator-address {
 				font-size: 12px;
 				font-family: 'Source Code Pro', monospace;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 			}
 		}
 	}
@@ -231,18 +231,18 @@ const statusText = computed(() => {
 			text-transform: uppercase;
 			
 			&.success {
-				background: var(--success-background, #d4edda);
-				color: var(--success-color, #155724);
+				background: var(--op-5);
+				color: var(--green);
 			}
 			
 			&.warning {
-				background: var(--warning-background, #fff3cd);
-				color: var(--warning-color, #856404);
+				background: var(--op-5);
+				color: var(--orange);
 			}
 			
 			&.error {
-				background: var(--error-background, #f8d7da);
-				color: var(--error-color, #721c24);
+				background: var(--op-5);
+				color: var(--red);
 			}
 		}
 	}
@@ -267,7 +267,7 @@ const statusText = computed(() => {
 			.stat-label {
 				display: block;
 				font-size: 12px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				margin-bottom: 4px;
 			}
 			
@@ -275,14 +275,14 @@ const statusText = computed(() => {
 				display: block;
 				font-size: 14px;
 				font-weight: 600;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 				
 				&.commission {
-					color: var(--warning-color, #f59e0b);
+					color: var(--orange);
 				}
 				
 				&.apy {
-					color: var(--success-color, #10b981);
+					color: var(--green);
 				}
 			}
 		}
@@ -290,7 +290,7 @@ const statusText = computed(() => {
 }
 
 .user-delegation {
-	background: var(--primary-background, #f0f8ff);
+	background: var(--op-5);
 	border-radius: 12px;
 	padding: 16px;
 	margin-bottom: 20px;
@@ -301,7 +301,7 @@ const statusText = computed(() => {
 		.delegation-title {
 			font-size: 14px;
 			font-weight: 600;
-			color: var(--primary-color, #007bff);
+			color: var(--brand);
 		}
 	}
 	
@@ -314,7 +314,7 @@ const statusText = computed(() => {
 			.delegation-label {
 				display: block;
 				font-size: 12px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				margin-bottom: 4px;
 			}
 			
@@ -322,10 +322,10 @@ const statusText = computed(() => {
 				display: block;
 				font-size: 14px;
 				font-weight: 600;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 				
 				&.rewards {
-					color: var(--success-color, #10b981);
+					color: var(--green);
 				}
 			}
 		}
@@ -354,18 +354,18 @@ const statusText = computed(() => {
 			border-radius: 50%;
 			
 			&.active {
-				background: var(--success-color, #10b981);
-				box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+				background: var(--green);
+				box-shadow: 0 0 0 2px var(--op-10);
 			}
 			
 			&.inactive {
-				background: var(--text-tertiary, #d1d5db);
+				background: var(--txt-tertiary);
 			}
 		}
 		
 		.indicator-text {
 			font-size: 12px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 	}
 }

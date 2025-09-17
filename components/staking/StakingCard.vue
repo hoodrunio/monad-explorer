@@ -317,14 +317,14 @@ function setMaxUnstake() {
 
 <style scoped lang="scss">
 .staking-card {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 20px;
 	transition: all 0.2s ease;
 	
 	&:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px var(--op-10);
 	}
 }
 
@@ -335,7 +335,7 @@ function setMaxUnstake() {
 		.validator-name {
 			font-size: 18px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin-bottom: 8px;
 		}
 		
@@ -345,7 +345,7 @@ function setMaxUnstake() {
 			font-size: 13px;
 			
 			.commission {
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				
 				&::before {
 					content: 'Commission: ';
@@ -353,7 +353,7 @@ function setMaxUnstake() {
 			}
 			
 			.stake {
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				
 				&::before {
 					content: 'Stake: ';
@@ -366,12 +366,12 @@ function setMaxUnstake() {
 				font-weight: 500;
 				font-size: 11px;
 				text-transform: uppercase;
-				background: var(--error-background, #fee);
-				color: var(--error-color, #dc3545);
+				background: var(--op-5);
+				color: var(--red);
 				
 				&.active {
-					background: var(--success-background, #efe);
-					color: var(--success-color, #28a745);
+					background: var(--op-5);
+					color: var(--green);
 				}
 			}
 		}
@@ -379,7 +379,7 @@ function setMaxUnstake() {
 }
 
 .delegation-info {
-	background: var(--secondary-background, #f8f9fa);
+	background: var(--op-5);
 	border-radius: 12px;
 	padding: 16px;
 	margin-bottom: 16px;
@@ -394,7 +394,7 @@ function setMaxUnstake() {
 			.stat-label {
 				display: block;
 				font-size: 12px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				margin-bottom: 4px;
 			}
 			
@@ -402,10 +402,10 @@ function setMaxUnstake() {
 				display: block;
 				font-size: 16px;
 				font-weight: 600;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 				
 				&.rewards {
-					color: var(--success-color, #28a745);
+					color: var(--green);
 				}
 			}
 		}
@@ -429,8 +429,8 @@ function setMaxUnstake() {
 .error-message {
 	margin-top: 12px;
 	padding: 8px 12px;
-	background: var(--error-background, #fee);
-	color: var(--error-color, #dc3545);
+	background: var(--op-5);
+	color: var(--red);
 	border-radius: 8px;
 	font-size: 13px;
 }
@@ -450,7 +450,7 @@ function setMaxUnstake() {
 }
 
 .modal {
-	background: var(--card-background, #ffffff);
+	background: var(--card-background);
 	border-radius: 16px;
 	max-width: 480px;
 	width: 100%;
@@ -462,20 +462,20 @@ function setMaxUnstake() {
 		align-items: center;
 		justify-content: space-between;
 		padding: 20px 24px;
-		border-bottom: 1px solid var(--border-color, #e1e5e9);
+		border-bottom: 1px solid var(--op-5);
 		
 		h3 {
 			margin: 0;
 			font-size: 18px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 		}
 		
 		.close-button {
 			background: none;
 			border: none;
 			font-size: 24px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			cursor: pointer;
 			padding: 0;
 			width: 32px;
@@ -486,7 +486,7 @@ function setMaxUnstake() {
 			border-radius: 50%;
 			
 			&:hover {
-				background: var(--hover-color, #f8f9fa);
+				background: var(--op-5);
 			}
 		}
 	}
@@ -500,11 +500,11 @@ function setMaxUnstake() {
 			justify-content: space-between;
 			margin-bottom: 16px;
 			font-size: 14px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			
 			.max-button {
-				background: var(--primary-color, #007bff);
-				color: white;
+				background: var(--brand);
+				color: var(--txt-white);
 				border: none;
 				padding: 4px 8px;
 				border-radius: 4px;
@@ -521,14 +521,14 @@ function setMaxUnstake() {
 		.modal-info {
 			margin-top: 16px;
 			padding: 12px;
-			background: var(--info-background, #e3f2fd);
+			background: var(--op-5);
 			border-radius: 8px;
 			font-size: 13px;
 			line-height: 1.5;
 			
 			&.warning {
-				background: var(--warning-background, #fff3cd);
-				border-left: 3px solid var(--warning-color, #ffc107);
+				background: var(--op-5);
+				border-left: 3px solid var(--orange);
 			}
 			
 			p {
@@ -545,7 +545,7 @@ function setMaxUnstake() {
 		display: flex;
 		gap: 12px;
 		padding: 20px 24px;
-		border-top: 1px solid var(--border-color, #e1e5e9);
+		border-top: 1px solid var(--op-5);
 		
 		> * {
 			flex: 1;

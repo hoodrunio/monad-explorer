@@ -302,13 +302,13 @@ async function refresh() {
 	.page_title {
 		font-size: 32px;
 		font-weight: 700;
-		color: var(--text-primary, #000);
+		color: var(--txt-primary);
 		margin: 0 0 8px 0;
 	}
 	
 	.page_description {
 		font-size: 16px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 		margin: 0;
 		max-width: 600px;
 	}
@@ -322,14 +322,14 @@ async function refresh() {
 }
 
 .stat_card {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 24px;
 	transition: all 0.2s ease;
 	
 	&:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px var(--op-10);
 	}
 }
 
@@ -347,7 +347,7 @@ async function refresh() {
 .stat_title {
 	font-size: 14px;
 	font-weight: 600;
-	color: var(--text-secondary, #666);
+	color: var(--txt-secondary);
 }
 
 .stat_content {
@@ -361,17 +361,17 @@ async function refresh() {
 	.stat_value {
 		font-size: 28px;
 		font-weight: 700;
-		color: var(--text-primary, #000);
+		color: var(--txt-primary);
 	}
 	
 	.stat_label {
 		font-size: 14px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 	}
 	
 	.stat_detail {
 		font-size: 13px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 	}
 }
 
@@ -379,12 +379,12 @@ async function refresh() {
 	padding: 2px 8px;
 	border-radius: 12px;
 	font-weight: 500;
-	background: var(--info-background, #e3f2fd);
-	color: var(--info-color, #1976d2);
+	background: var(--op-5);
+	color: var(--blue);
 	
 	&.active {
-		background: var(--warning-background, #fff3cd);
-		color: var(--warning-color, #856404);
+		background: var(--op-5);
+		color: var(--orange);
 	}
 }
 
@@ -398,7 +398,7 @@ async function refresh() {
 	h2 {
 		font-size: 24px;
 		font-weight: 600;
-		color: var(--text-primary, #000);
+		color: var(--txt-primary);
 		margin: 0;
 	}
 }
@@ -490,7 +490,7 @@ async function refresh() {
 	h2 {
 		font-size: 24px;
 		font-weight: 600;
-		color: var(--text-primary, #000);
+		color: var(--txt-primary);
 		margin: 0;
 	}
 }
@@ -505,8 +505,8 @@ async function refresh() {
 	display: flex;
 	align-items: flex-start;
 	gap: 16px;
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 24px;
 	text-decoration: none;
@@ -514,16 +514,16 @@ async function refresh() {
 	transition: all 0.2s ease;
 	
 	&:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px var(--op-10);
 		transform: translateY(-2px);
 	}
 	
 	&.info {
-		background: var(--info-background, #e3f2fd);
-		border-color: var(--info-color, #1976d2);
+		background: var(--op-5);
+		border-color: var(--blue);
 		
 		&:hover {
-			background: var(--info-background-hover, #d1ecf1);
+			background: var(--op-8);
 		}
 	}
 }
@@ -539,13 +539,13 @@ async function refresh() {
 	h3 {
 		font-size: 18px;
 		font-weight: 600;
-		color: var(--text-primary, #000);
+		color: var(--txt-primary);
 		margin: 0 0 8px 0;
 	}
 	
 	p {
 		font-size: 14px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 		margin: 0 0 12px 0;
 		line-height: 1.5;
 	}
@@ -554,7 +554,7 @@ async function refresh() {
 .info_list {
 	.info_item {
 		font-size: 12px;
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 		margin-bottom: 4px;
 		
 		&:last-child {
@@ -567,8 +567,8 @@ async function refresh() {
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	background: var(--error-background, #fee);
-	color: var(--error-color, #dc3545);
+	background: var(--op-5);
+	color: var(--red);
 	padding: 16px;
 	border-radius: 12px;
 	margin-top: 20px;
