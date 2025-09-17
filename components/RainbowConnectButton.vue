@@ -222,11 +222,8 @@ onMounted(() => {
 	initializeWatchers()
 })
 
-// Close modals when clicking outside
-function closeModals() {
-	showAccountModal.value = false
-	showConnectModal.value = false
-}
+// State tracking for UI purposes only
+// Actual dropdown state is managed by DropdownContainer
 </script>
 
 <template>
@@ -253,9 +250,9 @@ function closeModals() {
 
 		<!-- Connected State -->
 		<div v-if="isConnected" class="connected-state">
-			<Dropdown :forceOpen="showAccountModal" position="end">
+			<Dropdown position="end" @onClose="showAccountModal = false" @onOpen="showAccountModal = true">
 				<template #trigger>
-					<div class="account-button" @click="showAccountModal = !showAccountModal">
+					<div class="account-button">
 						<!-- Chain Status -->
 						<div 
 							v-if="getResponsiveValue(chainStatus) !== 'none'" 
@@ -302,12 +299,12 @@ function closeModals() {
 					</div>
 				</template>
 
-				<template #default>
+				<template #popup>
 					<div class="account-modal">
 						<div class="modal-header">
 							<div class="account-details">
 								<div class="full-address">{{ account.address }}</div>
-								<button @click="copyAddress" class="copy-button">
+								<button @click="copyAddress" class="copy-button" tabindex="1">
 									📋 Copy Address
 								</button>
 							</div>
@@ -327,7 +324,7 @@ function closeModals() {
 						</div>
 
 						<div class="modal-actions">
-							<button @click="disconnectWallet" class="disconnect-button">
+							<button @click="disconnectWallet" class="disconnect-button" tabindex="1">
 								Disconnect
 							</button>
 						</div>
@@ -338,20 +335,19 @@ function closeModals() {
 
 		<!-- Disconnected State -->
 		<div v-else class="disconnected-state">
-			<Dropdown :forceOpen="showConnectModal" position="end">
+			<Dropdown position="end" @onClose="showConnectModal = false" @onOpen="showConnectModal = true">
 				<template #trigger>
 					<Button 
 						:loading="isConnecting" 
 						:disabled="isConnecting"
 						size="medium"
 						type="primary"
-						@click="showConnectModal = !showConnectModal"
 					>
 						{{ isConnecting ? 'Connecting...' : label }}
 					</Button>
 				</template>
 
-				<template #default>
+				<template #popup>
 					<div class="connect-modal">
 						<div class="modal-header">
 							<h3>Connect Wallet</h3>
@@ -365,6 +361,7 @@ function closeModals() {
 								@click="connectWallet(connector)"
 								:disabled="isConnecting"
 								class="connector-item"
+								tabindex="1"
 							>
 								<span class="connector-icon">{{ connector.icon }}</span>
 								<span class="connector-name">{{ connector.name }}</span>
