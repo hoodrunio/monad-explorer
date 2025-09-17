@@ -380,7 +380,7 @@ onMounted(() => {
 	</div>
 </template>
 
-<style module lang="scss">
+<style scoped lang="scss">
 .rainbow-connect-button {
 	position: relative;
 }
@@ -397,32 +397,32 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+.error-icon {
+	font-size: 16px;
+}
+
+.error-text {
+	flex: 1;
+	font-weight: 500;
+}
+
+.error-close {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 20px;
+	cursor: pointer;
+	padding: 0;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	
-	.error-icon {
-		font-size: 16px;
-	}
-	
-	.error-text {
-		flex: 1;
-		font-weight: 500;
-	}
-	
-	.error-close {
-		background: none;
-		border: none;
-		color: white;
-		font-size: 20px;
-		cursor: pointer;
-		padding: 0;
-		width: 24px;
-		height: 24px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		
-		&:hover {
-			opacity: 0.8;
-		}
+	&:hover {
+		opacity: 0.8;
 	}
 }
 
