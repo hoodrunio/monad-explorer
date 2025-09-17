@@ -5,6 +5,8 @@ import { useStakingStore } from '~/store/staking.store'
 import WalletConnect from '@/components/WalletConnect.vue'
 import StakingOverview from '@/components/staking/StakingOverview.vue'
 
+const route = useRoute()
+const router = useRouter()
 const stakingStore = useStakingStore()
 
 // SEO
@@ -40,99 +42,191 @@ useHead({
 	],
 })
 
+// Tab system similar to stats page
+const tabs = ref([
+	{
+		name: "overview",
+		visible: true,
+	},
+	{
+		name: "validators", 
+		visible: true,
+	},
+	{
+		name: "dashboard",
+		visible: true,
+	},
+])
+
+const activeTab = ref(
+	route.query.tab &&
+		tabs.value
+			.filter((t) => t.visible)
+			.map((t) => t.name)
+			.includes(route.query.tab)
+		? route.query.tab
+		: tabs.value[0].name,
+)
+
+const updateRouteQuery = () => {
+	router.replace({
+		query: {
+			tab: activeTab.value,
+		},
+	})
+}
+
+// Navigation functions
+const navigateToValidators = () => {
+	router.push('/staking/validators')
+}
+
+const navigateToDashboard = () => {
+	router.push('/staking/dashboard')
+}
+
+// Handle tab clicks manually
+const handleTabClick = (tabName) => {
+	if (tabName === 'validators') {
+		navigateToValidators()
+	} else if (tabName === 'dashboard') {
+		navigateToDashboard()
+	} else {
+		activeTab.value = tabName
+	}
+}
+
+// Watch for tab changes
+watch(
+	() => activeTab.value,
+	(newTab) => {
+		if (newTab === 'validators') {
+			navigateToValidators()
+		} else if (newTab === 'dashboard') {
+			navigateToDashboard()
+		} else {
+			updateRouteQuery()
+		}
+	},
+	{ immediate: false } // Prevent initial trigger
+)
+
 // Initialize staking data on mount
 onMounted(() => {
 	if (stakingStore.isConnected) {
 		stakingStore.fetchUserStakingData()
 	}
+	updateRouteQuery()
 })
 </script>
 
 <template>
-	<div :class="$style.staking_page">
-		<!-- Navigation Header -->
-		<div :class="$style.page_header">
-			<div :class="$style.header_content">
-				<div :class="$style.header_nav">
-					<NuxtLink to="/" :class="$style.home_link">
-						← Explorer
-					</NuxtLink>
-					<div :class="$style.nav_divider">/</div>
-					<span :class="$style.current_page">Staking</span>
-				</div>
-				<div :class="$style.header_actions">
-					<WalletConnect />
-				</div>
-			</div>
-		</div>
+	<Flex direction="column" gap="12" wide :class="$style.wrapper">
+		<Breadcrumbs
+			:items="[
+				{ link: '/', name: 'Dashboard' },
+				{ link: '/staking', name: 'Staking' },
+			]"
+			:class="$style.breadcrumbs"
+		/>
 
-		<!-- Main Content -->
-		<div :class="$style.page_content">
+		<Flex align="center" gap="8" :class="$style.header">
+			<Icon name="validator" size="16" color="secondary" />
+			<Text size="16" weight="600" color="primary">Monad Staking</Text>
+		</Flex>
+
+		<Flex align="center" justify="between" wide :class="$style.tabs_wrapper">
+			<Flex align="center" gap="16">
+				<Text
+					v-for="t in tabs.filter((t) => t.visible)"
+					:key="t.name"
+					@click="handleTabClick(t.name)"
+					size="14"
+					color="tertiary"
+					:class="[$style.tab, activeTab === t.name && $style.tab_active]"
+				>
+					{{ t.name.charAt(0).toUpperCase() + t.name.slice(1) }}
+				</Text>
+			</Flex>
+
+			<Flex align="start" :class="$style.actions">
+				<WalletConnect />
+			</Flex>
+		</Flex>
+
+		<!-- Overview Tab Content -->
+		<Flex v-if="activeTab === 'overview'" direction="column" gap="20">
 			<StakingOverview />
-		</div>
-	</div>
+		</Flex>
+	</Flex>
 </template>
 
-<style module lang="scss">
-.staking_page {
-	min-height: 100vh;
-	background: var(--page-background, #f8f9fa);
+<style module>
+.wrapper {
+	max-width: calc(var(--base-width) + 48px);
+	padding: 20px 24px 60px 24px;
 }
 
-.page_header {
-	background: var(--card-background, #ffffff);
-	border-bottom: 1px solid var(--border-color, #e1e5e9);
-	padding: 16px 0;
-	position: sticky;
-	top: 0;
-	z-index: 100;
-	
+.breadcrumbs {
+	margin-bottom: 16px;
 }
 
-.header_content {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 0 24px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	
-	@media (max-width: 768px) {
-		padding: 0 16px;
+.header {
+	margin-bottom: 16px;
+}
+
+.tabs_wrapper {
+	position: relative;
+}
+
+.tabs_wrapper::after {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 2px;
+	background-color: var(--op-5);
+}
+
+.tab {
+	padding-bottom: 12px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.tab:hover {
+	color: var(--txt-secondary);
+}
+
+.tab_active {
+	color: var(--txt-primary);
+	border-bottom: solid 3px var(--txt-primary);
+}
+
+.actions {
+	transform: translateY(-8px);
+}
+
+@media (max-width: 768px) {
+	.wrapper {
+		padding: 32px 12px;
 	}
-}
 
-.header_nav {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.home_link {
-	color: var(--primary-color, #007bff);
-	text-decoration: none;
-	font-weight: 500;
-	transition: opacity 0.2s ease;
-	
-	&:hover {
-		opacity: 0.8;
+	.header {
+		gap: 16px;
+		height: initial;
+		padding: 16px;
 	}
-}
-
-.nav_divider {
-	color: var(--text-tertiary, #d1d5db);
-}
-
-.current_page {
-	color: var(--text-primary, #000);
-	font-weight: 600;
-}
-
-.page_content {
-	padding: 24px 0;
 	
-	@media (max-width: 768px) {
-		padding: 16px 0;
+	.tabs_wrapper {
+		flex-direction: column;
+		gap: 16px;
+	}
+	
+	.actions {
+		transform: none;
+		align-self: flex-start;
 	}
 }
 </style>

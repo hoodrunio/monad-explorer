@@ -249,47 +249,49 @@ watch(() => stakingStore.isConnected, (connected) => {
 </script>
 
 <template>
-	<div :class="$style.validators_page">
-		<!-- Header -->
-		<div :class="$style.page_header">
-			<div :class="$style.header_content">
-				<div :class="$style.header_nav">
-					<NuxtLink to="/staking" :class="$style.back_link">
-						← Staking
-					</NuxtLink>
-					<div :class="$style.nav_divider">/</div>
-					<span :class="$style.current_page">Validators</span>
-				</div>
-				<div :class="$style.header_actions">
-					<WalletConnect />
-				</div>
-			</div>
-		</div>
+	<Flex direction="column" gap="12" wide :class="$style.wrapper">
+		<Breadcrumbs
+			:items="[
+				{ link: '/', name: 'Dashboard' },
+				{ link: '/staking', name: 'Staking' },
+				{ link: '/staking/validators', name: 'Validators' },
+			]"
+			:class="$style.breadcrumbs"
+		/>
 
-		<!-- Page Content -->
-		<div :class="$style.page_content">
-			<div :class="$style.content_container">
-				<!-- Title Section -->
-				<div :class="$style.title_section">
-					<div :class="$style.title_content">
-						<h1>Validators</h1>
-						<p>Choose validators to stake your MON tokens and earn rewards</p>
-					</div>
-					<div :class="$style.stats_summary">
-						<div :class="$style.stat_item">
-							<span :class="$style.stat_value">{{ validatorStats.total }}</span>
-							<span :class="$style.stat_label">Total</span>
-						</div>
-						<div :class="$style.stat_item">
-							<span :class="$style.stat_value">{{ validatorStats.active }}</span>
-							<span :class="$style.stat_label">Active</span>
-						</div>
-						<div v-if="isConnected" :class="$style.stat_item">
-							<span :class="$style.stat_value">{{ validatorStats.userDelegated }}</span>
-							<span :class="$style.stat_label">Your Delegations</span>
-						</div>
-					</div>
-				</div>
+		<Flex align="center" justify="between" wide :class="$style.header">
+			<Flex align="center" gap="8">
+				<Icon name="validator" size="16" color="secondary" />
+				<Text size="16" weight="600" color="primary">Validator Network</Text>
+			</Flex>
+			<Flex align="center" gap="12" :class="$style.header_actions">
+				<WalletConnect />
+			</Flex>
+		</Flex>
+
+		<!-- Content -->
+		<Flex direction="column" gap="20" wide :class="$style.content_container">
+				<!-- Stats Overview -->
+			<Flex align="center" justify="between" wide :class="$style.stats_section">
+				<Flex direction="column" gap="4">
+					<Text size="14" weight="600" color="primary">Network Overview</Text>
+					<Text size="12" color="tertiary">Choose validators to stake your MON tokens and earn rewards</Text>
+				</Flex>
+				<Flex align="center" gap="24">
+					<Flex direction="column" align="center" gap="4">
+						<Text size="18" weight="700" color="primary">{{ validatorStats.total }}</Text>
+						<Text size="10" color="tertiary" transform="uppercase">Total</Text>
+					</Flex>
+					<Flex direction="column" align="center" gap="4">
+						<Text size="18" weight="700" color="success">{{ validatorStats.active }}</Text>
+						<Text size="10" color="tertiary" transform="uppercase">Active</Text>
+					</Flex>
+					<Flex v-if="isConnected" direction="column" align="center" gap="4">
+						<Text size="18" weight="700" color="brand">{{ validatorStats.userDelegated }}</Text>
+						<Text size="10" color="tertiary" transform="uppercase">Your Delegations</Text>
+					</Flex>
+				</Flex>
+			</Flex>
 
 				<!-- Filters and Search -->
 				<div :class="$style.filters_section">
@@ -392,8 +394,6 @@ watch(() => stakingStore.isConnected, (connected) => {
 						</Button>
 					</div>
 				</div>
-			</div>
-		</div>
 
 		<!-- Stake Modal -->
 		<div v-if="showStakeModal && selectedValidator" :class="$style.modal_overlay" @click.self="showStakeModal = false">
@@ -412,78 +412,45 @@ watch(() => stakingStore.isConnected, (connected) => {
 				</div>
 			</div>
 		</div>
-	</div>
+		</Flex>
+	</Flex>
 </template>
 
-<style module lang="scss">
-.validators_page {
-	min-height: 100vh;
-	background: var(--page-background, #f8f9fa);
+<style module>
+.wrapper {
+	max-width: calc(var(--base-width) + 48px);
+	padding: 20px 24px 60px 24px;
 }
 
-.page_header {
-	background: var(--card-background, #ffffff);
-	border-bottom: 1px solid var(--border-color, #e1e5e9);
-	padding: 16px 0;
-	position: sticky;
-	top: 0;
-	z-index: 100;
-	
-	.header_content {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 24px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		
-		@media (max-width: 768px) {
-			padding: 0 16px;
-		}
-	}
-	
-	.header_nav {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		
-		.back_link {
-			color: var(--primary-color, #007bff);
-			text-decoration: none;
-			font-weight: 500;
-			transition: opacity 0.2s ease;
-			
-			&:hover {
-				opacity: 0.8;
-			}
-		}
-		
-		.nav_divider {
-			color: var(--text-tertiary, #d1d5db);
-		}
-		
-		.current_page {
-			color: var(--text-primary, #000);
-			font-weight: 600;
-		}
-	}
+.breadcrumbs {
+	margin-bottom: 16px;
 }
 
-.page_content {
-	padding: 32px 0;
-	
+.header {
+	margin-bottom: 24px;
+}
+
+.header_actions {
 	@media (max-width: 768px) {
-		padding: 24px 0;
+		flex-direction: column;
+		gap: 8px;
 	}
 }
 
 .content_container {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 0 24px;
+	width: 100%;
+}
+
+.stats_section {
+	background: var(--card-background, #fff);
+	border: 1px solid var(--op-5);
+	border-radius: 12px;
+	padding: 20px;
 	
 	@media (max-width: 768px) {
-		padding: 0 16px;
+		flex-direction: column;
+		gap: 16px;
+		align-items: flex-start !important;
 	}
 }
 

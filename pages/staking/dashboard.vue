@@ -181,35 +181,33 @@ watch(() => stakingStore.isConnected, async (connected) => {
 	}
 })
 
-// Redirect if not connected
-watchEffect(() => {
-	if (!isConnected.value && process.client) {
-		router.push('/staking')
-	}
-})
+// Redirect if not connected - but allow user to see the connect wallet UI
+// Remove the automatic redirect to let users connect their wallet on dashboard page
 </script>
 
 <template>
-	<div :class="$style.dashboard_page">
-		<!-- Header -->
-		<div :class="$style.page_header">
-			<div :class="$style.header_content">
-				<div :class="$style.header_nav">
-					<NuxtLink to="/staking" :class="$style.back_link">
-						← Staking
-					</NuxtLink>
-					<div :class="$style.nav_divider">/</div>
-					<span :class="$style.current_page">Dashboard</span>
-				</div>
-				<div :class="$style.header_actions">
-					<WalletConnect />
-				</div>
-			</div>
-		</div>
+	<Flex direction="column" gap="12" wide :class="$style.wrapper">
+		<Breadcrumbs
+			:items="[
+				{ link: '/', name: 'Dashboard' },
+				{ link: '/staking', name: 'Staking' },
+				{ link: '/staking/dashboard', name: 'My Dashboard' },
+			]"
+			:class="$style.breadcrumbs"
+		/>
+
+		<Flex align="center" justify="between" wide :class="$style.header">
+			<Flex align="center" gap="8">
+				<Icon name="user" size="16" color="secondary" />
+				<Text size="16" weight="600" color="primary">My Staking Dashboard</Text>
+			</Flex>
+			<Flex align="center" gap="12" :class="$style.header_actions">
+				<WalletConnect />
+			</Flex>
+		</Flex>
 
 		<!-- Content -->
-		<div :class="$style.page_content">
-			<div :class="$style.content_container">
+		<Flex direction="column" gap="20" wide :class="$style.content_container">
 				<!-- Not Connected State -->
 				<div v-if="!isConnected" :class="$style.not_connected">
 					<div :class="$style.not_connected_content">
@@ -222,32 +220,35 @@ watchEffect(() => {
 
 				<!-- Connected State -->
 				<template v-else>
-					<!-- Dashboard Header -->
-					<div :class="$style.dashboard_header">
-						<div :class="$style.user_info">
-							<h1>My Staking Dashboard</h1>
-							<p :class="$style.user_address">{{ address }}</p>
-						</div>
-						<div :class="$style.header_actions">
-							<Button 
-								size="medium" 
-								type="secondary"
-								:loading="refreshing"
-								@click="refreshData"
-							>
-								Refresh
-							</Button>
-							<NuxtLink to="/staking/validators">
-								<Button size="medium" type="primary">
-									Stake More
+					<!-- User Info Section -->
+					<Flex direction="column" gap="16">
+						<Flex align="center" justify="between" wide :class="$style.user_section">
+							<Flex direction="column" gap="4">
+								<Text size="12" weight="600" color="tertiary">Connected Wallet</Text>
+								<Text size="14" weight="600" color="primary" :class="$style.user_address">{{ address }}</Text>
+							</Flex>
+							<Flex align="center" gap="12">
+								<Button 
+									size="medium" 
+									type="secondary"
+									:loading="refreshing"
+									@click="refreshData"
+								>
+									Refresh
 								</Button>
-							</NuxtLink>
-						</div>
-					</div>
+								<NuxtLink to="/staking/validators">
+									<Button size="medium" type="primary">
+										Stake More
+									</Button>
+								</NuxtLink>
+							</Flex>
+						</Flex>
+					</Flex>
 
 					<!-- Portfolio Overview -->
-					<div :class="$style.portfolio_overview">
-						<div :class="$style.overview_cards">
+					<Flex direction="column" gap="16">
+						<Text size="14" weight="600" color="primary">Portfolio Overview</Text>
+						<Flex gap="16" :class="$style.grid_2">
 							<div :class="[$style.overview_card, $style.primary]">
 								<div :class="$style.card_header">
 									<span :class="$style.card_icon">💰</span>
@@ -309,18 +310,18 @@ watchEffect(() => {
 									<div :class="$style.card_detail">Validator{{ portfolioSummary.delegationCount !== 1 ? 's' : '' }}</div>
 								</div>
 							</div>
-						</div>
-					</div>
+						</Flex>
+					</Flex>
 
 					<!-- Pending Withdrawals -->
-					<div v-if="withdrawals.length > 0" :class="$style.withdrawals_section">
-						<div :class="$style.section_header">
-							<h2>Pending Withdrawals</h2>
-							<div :class="$style.withdrawable_total">
-								<span :class="$style.total_label">Withdrawable:</span>
-								<span :class="$style.total_value">{{ formatEther(withdrawableTotal) }} MON</span>
-							</div>
-						</div>
+					<Flex v-if="withdrawals.length > 0" direction="column" gap="16">
+						<Flex align="center" justify="between" wide>
+							<Text size="14" weight="600" color="primary">Pending Withdrawals</Text>
+							<Flex align="center" gap="8" :class="$style.withdrawable_total">
+								<Text size="12" color="success">Withdrawable:</Text>
+								<Text size="12" weight="600" color="success">{{ formatEther(withdrawableTotal) }} MON</Text>
+							</Flex>
+						</Flex>
 						
 						<div :class="$style.withdrawals_grid">
 							<div 
@@ -355,16 +356,14 @@ watchEffect(() => {
 								</div>
 							</div>
 						</div>
-					</div>
+					</Flex>
 
 					<!-- My Delegations -->
-					<div :class="$style.delegations_section">
-						<div :class="$style.section_header">
-							<h2>My Delegations</h2>
-							<p :class="$style.section_description">
-								Manage your active delegations and rewards
-							</p>
-						</div>
+					<Flex direction="column" gap="16">
+						<Flex direction="column" gap="4">
+							<Text size="14" weight="600" color="primary">My Delegations</Text>
+							<Text size="12" color="tertiary">Manage your active delegations and rewards</Text>
+						</Flex>
 
 						<!-- No Delegations -->
 						<div v-if="enrichedDelegations.length === 0" :class="$style.no_delegations">
@@ -389,83 +388,35 @@ watchEffect(() => {
 								:delegation="delegation"
 							/>
 						</div>
-					</div>
+					</Flex>
 				</template>
-			</div>
-		</div>
-	</div>
+		</Flex>
+	</Flex>
 </template>
 
-<style module lang="scss">
-.dashboard_page {
-	min-height: 100vh;
-	background: var(--page-background, #f8f9fa);
+<style module>
+.wrapper {
+	max-width: calc(var(--base-width) + 48px);
+	padding: 20px 24px 60px 24px;
 }
 
-.page_header {
-	background: var(--card-background, #ffffff);
-	border-bottom: 1px solid var(--border-color, #e1e5e9);
-	padding: 16px 0;
-	position: sticky;
-	top: 0;
-	z-index: 100;
-	
-	.header_content {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 24px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		
-		@media (max-width: 768px) {
-			padding: 0 16px;
-		}
-	}
-	
-	.header_nav {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		
-		.back_link {
-			color: var(--primary-color, #007bff);
-			text-decoration: none;
-			font-weight: 500;
-			transition: opacity 0.2s ease;
-			
-			&:hover {
-				opacity: 0.8;
-			}
-		}
-		
-		.nav_divider {
-			color: var(--text-tertiary, #d1d5db);
-		}
-		
-		.current_page {
-			color: var(--text-primary, #000);
-			font-weight: 600;
-		}
-	}
+.breadcrumbs {
+	margin-bottom: 16px;
 }
 
-.page_content {
-	padding: 32px 0;
-	
+.header {
+	margin-bottom: 24px;
+}
+
+.header_actions {
 	@media (max-width: 768px) {
-		padding: 24px 0;
+		flex-direction: column;
+		gap: 8px;
 	}
 }
 
 .content_container {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 0 24px;
-	
-	@media (max-width: 768px) {
-		padding: 0 16px;
-	}
+	width: 100%;
 }
 
 .not_connected {
@@ -486,52 +437,42 @@ watchEffect(() => {
 		h2 {
 			font-size: 24px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin: 0 0 12px 0;
 		}
 		
 		p {
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			margin: 0 0 24px 0;
 			line-height: 1.5;
 		}
 	}
 }
 
-.dashboard_header {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	margin-bottom: 32px;
+.user_section {
+	background: var(--card-background, #fff);
+	border: 1px solid var(--op-5);
+	border-radius: 12px;
+	padding: 20px;
+	
+	.user_address {
+		font-family: 'Source Code Pro', monospace;
+	}
 	
 	@media (max-width: 768px) {
 		flex-direction: column;
-		gap: 20px;
+		gap: 16px;
+		align-items: flex-start !important;
 	}
-	
-	.user_info {
-		h1 {
-			font-size: 32px;
-			font-weight: 700;
-			color: var(--text-primary, #000);
-			margin: 0 0 8px 0;
-		}
-		
-		.user_address {
-			font-family: 'Source Code Pro', monospace;
-			font-size: 14px;
-			color: var(--text-secondary, #666);
-			margin: 0;
-		}
-	}
-	
-	.header_actions {
-		display: flex;
-		gap: 12px;
-		
-		@media (max-width: 640px) {
-			flex-direction: column;
-		}
+}
+
+.grid_2 {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+
+	@media (max-width: 768px) {
+		grid-template-columns: 1fr;
 	}
 }
 
