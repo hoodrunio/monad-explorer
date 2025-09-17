@@ -90,6 +90,31 @@ const mainLinks = reactive([
 		],
 	},
 	{
+		icon: "coins",
+		name: "Staking",
+		path: "/staking",
+		children: [
+			{
+				name: "Overview",
+				path: "/staking",
+				icon: "bar-chart",
+				show: true,
+			},
+			{
+				name: "Validators",
+				path: "/staking/validators",
+				icon: "validator",
+				show: true,
+			},
+			{
+				name: "My Dashboard",
+				path: "/staking/dashboard",
+				icon: "user",
+				show: true,
+			},
+		],
+	},
+	{
 		icon: "bar-chart",
 		name: "Analytics",
 		path: "/stats",

@@ -28,34 +28,46 @@ export default defineNuxtConfig({
 				priority: 0.9,
 			},
 		},
-		"/namespaces": {
+		"/staking": {
 			sitemap: {
 				changefreq: "daily",
 				priority: 0.8,
 			},
 		},
-		"/txs": {
+		"/staking/validators": {
 			sitemap: {
 				changefreq: "daily",
 				priority: 0.7,
 			},
 		},
-		"/addresses": {
+		"/namespaces": {
 			sitemap: {
 				changefreq: "daily",
 				priority: 0.6,
 			},
 		},
-		"/gas": {
+		"/txs": {
 			sitemap: {
 				changefreq: "daily",
 				priority: 0.5,
 			},
 		},
+		"/addresses": {
+			sitemap: {
+				changefreq: "daily",
+				priority: 0.4,
+			},
+		},
+		"/gas": {
+			sitemap: {
+				changefreq: "daily",
+				priority: 0.3,
+			},
+		},
 		"/namespaces/treemap": {
 			sitemap: {
 				changefreq: "weekly",
-				priority: 0.4,
+				priority: 0.2,
 			},
 		},
 	},
