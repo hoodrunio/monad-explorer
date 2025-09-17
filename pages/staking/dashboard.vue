@@ -67,9 +67,8 @@ const validators = ref(new Map())
 
 // Get validator info for delegations
 const enrichedDelegations = computed(() => {
-	const result = userDelegations.value.map(delegation => {
+	return userDelegations.value.map(delegation => {
 		const validatorDetails = validators.value.get(delegation.valId)
-		console.log(`Mapping delegation ${delegation.valId}:`, { delegation, validatorDetails })
 		return {
 			...delegation,
 			validator: validatorDetails || {
@@ -81,15 +80,11 @@ const enrichedDelegations = computed(() => {
 			}
 		}
 	})
-	console.log('Enriched delegations result:', result)
-	return result
 })
 
 // Load validator details for delegations
 async function loadValidatorDetails() {
 	if (userDelegations.value.length === 0) return
-	
-	console.log('Loading validator details for delegations:', userDelegations.value)
 	
 	try {
 		// Get validator details for each delegation individually
@@ -98,7 +93,6 @@ async function loadValidatorDetails() {
 		for (const delegation of userDelegations.value) {
 			try {
 				const validatorInfo = await getValidatorById(delegation.valId)
-				console.log(`Validator ${delegation.valId} details:`, validatorInfo)
 				validatorMap.set(delegation.valId, validatorInfo)
 			} catch (error) {
 				console.error(`Failed to load validator ${delegation.valId}:`, error)
