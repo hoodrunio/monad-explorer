@@ -450,7 +450,7 @@ watch(() => stakingStore.isConnected, async (connected) => {
 }
 
 .user_section {
-	background: var(--card-background, #fff);
+	background: var(--card-background);
 	border: 1px solid var(--op-5);
 	border-radius: 12px;
 	padding: 20px;
@@ -476,30 +476,22 @@ watch(() => stakingStore.isConnected, async (connected) => {
 	}
 }
 
-.portfolio_overview {
-	margin-bottom: 40px;
-}
-
-.overview_cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	gap: 24px;
-}
+/* Card styles are now handled by individual components */
 
 .overview_card {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 24px;
 	transition: all 0.2s ease;
 	
 	&:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px var(--op-10);
 	}
 	
 	&.primary {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
+		background: var(--brand);
+		color: var(--txt-white);
 		border: none;
 		
 		.card_title,
@@ -521,7 +513,7 @@ watch(() => stakingStore.isConnected, async (connected) => {
 		.card_title {
 			font-size: 14px;
 			font-weight: 600;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 	}
 	
@@ -529,18 +521,18 @@ watch(() => stakingStore.isConnected, async (connected) => {
 		.card_value {
 			font-size: 24px;
 			font-weight: 700;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin-bottom: 8px;
 			
 			&.rewards {
-				color: var(--success-color, #10b981);
+				color: var(--green);
 			}
 		}
 		
 		.card_breakdown,
 		.card_detail {
 			font-size: 12px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 		
 		.card_actions {
@@ -583,19 +575,19 @@ watch(() => stakingStore.isConnected, async (connected) => {
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			background: var(--success-background, #d4edda);
+			background: var(--op-5);
 			padding: 8px 16px;
 			border-radius: 8px;
 			
 			.total_label {
 				font-size: 14px;
-				color: var(--success-color, #155724);
+				color: var(--green);
 			}
 			
 			.total_value {
 				font-size: 14px;
 				font-weight: 600;
-				color: var(--success-color, #155724);
+				color: var(--green);
 			}
 		}
 	}
@@ -609,8 +601,8 @@ watch(() => stakingStore.isConnected, async (connected) => {
 }
 
 .withdrawal_card {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 12px;
 	padding: 20px;
 	display: flex;
@@ -618,8 +610,8 @@ watch(() => stakingStore.isConnected, async (connected) => {
 	justify-content: space-between;
 	
 	&.withdrawable {
-		border-color: var(--success-color, #10b981);
-		background: var(--success-background, #f0fdf4);
+		border-color: var(--green);
+		background: var(--op-5);
 	}
 	
 	.withdrawal_info {
@@ -627,27 +619,27 @@ watch(() => stakingStore.isConnected, async (connected) => {
 		
 		.withdrawal_validator {
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin-bottom: 4px;
 		}
 		
 		.withdrawal_amount {
 			font-size: 18px;
 			font-weight: 700;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin-bottom: 4px;
 		}
 		
 		.withdrawal_status {
 			font-size: 12px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 		}
 	}
 	
 	.withdrawal_action {
 		.waiting_label {
 			font-size: 12px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			display: flex;
 			align-items: center;
 			gap: 4px;
@@ -681,12 +673,12 @@ watch(() => stakingStore.isConnected, async (connected) => {
 		h3 {
 			font-size: 24px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin: 0 0 12px 0;
 		}
 		
 		p {
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			margin: 0 0 24px 0;
 			line-height: 1.5;
 		}

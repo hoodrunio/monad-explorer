@@ -454,7 +454,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 }
 
 .stats_section {
-	background: var(--card-background, #fff);
+	background: var(--card-background);
 	border: 1px solid var(--op-5);
 	border-radius: 12px;
 	padding: 20px;
@@ -481,13 +481,13 @@ watch(() => stakingStore.isConnected, (connected) => {
 		h1 {
 			font-size: 32px;
 			font-weight: 700;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin: 0 0 8px 0;
 		}
 		
 		p {
 			font-size: 16px;
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			margin: 0;
 		}
 	}
@@ -507,14 +507,14 @@ watch(() => stakingStore.isConnected, (connected) => {
 				display: block;
 				font-size: 24px;
 				font-weight: 700;
-				color: var(--text-primary, #000);
+				color: var(--txt-primary);
 				margin-bottom: 4px;
 			}
 			
 			.stat_label {
 				display: block;
 				font-size: 12px;
-				color: var(--text-secondary, #666);
+				color: var(--txt-secondary);
 				text-transform: uppercase;
 				font-weight: 600;
 			}
@@ -523,8 +523,8 @@ watch(() => stakingStore.isConnected, (connected) => {
 }
 
 .filters_section {
-	background: var(--card-background, #ffffff);
-	border: 1px solid var(--border-color, #e1e5e9);
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
 	border-radius: 16px;
 	padding: 24px;
 	margin-bottom: 32px;
@@ -590,15 +590,15 @@ watch(() => stakingStore.isConnected, (connected) => {
 	.loading_spinner {
 		width: 40px;
 		height: 40px;
-		border: 4px solid var(--border-color, #e1e5e9);
-		border-top: 4px solid var(--primary-color, #007bff);
+		border: 4px solid var(--op-5);
+		border-top: 4px solid var(--brand);
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
 		margin: 0 auto 16px;
 	}
 	
 	p {
-		color: var(--text-secondary, #666);
+		color: var(--txt-secondary);
 		margin: 0;
 	}
 }
@@ -614,7 +614,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
-		background: var(--error-background, #fee);
+		background: var(--op-5);
 		border-radius: 12px;
 		padding: 20px;
 		max-width: 400px;
@@ -626,7 +626,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 		
 		.error_text {
 			flex: 1;
-			color: var(--error-color, #dc3545);
+			color: var(--red);
 			font-weight: 500;
 		}
 	}
@@ -645,12 +645,12 @@ watch(() => stakingStore.isConnected, (connected) => {
 		h3 {
 			font-size: 24px;
 			font-weight: 600;
-			color: var(--text-primary, #000);
+			color: var(--txt-primary);
 			margin: 0 0 12px 0;
 		}
 		
 		p {
-			color: var(--text-secondary, #666);
+			color: var(--txt-secondary);
 			margin: 0 0 20px 0;
 			line-height: 1.5;
 		}
@@ -682,7 +682,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 }
 
 .modal_container {
-	background: var(--card-background, #ffffff);
+	background: var(--card-background);
 	border-radius: 16px;
 	max-width: 500px;
 	width: 100%;
@@ -691,7 +691,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	
 	.modal_actions {
 		padding: 20px;
-		border-top: 1px solid var(--border-color, #e1e5e9);
+		border-top: 1px solid var(--op-5);
 		text-align: right;
 	}
 }
