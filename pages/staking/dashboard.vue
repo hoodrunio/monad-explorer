@@ -190,30 +190,30 @@ watchEffect(() => {
 </script>
 
 <template>
-	<div class="dashboard-page">
+	<div :class="$style.dashboard_page">
 		<!-- Header -->
-		<div class="page-header">
-			<div class="header-content">
-				<div class="header-nav">
-					<NuxtLink to="/staking" class="back-link">
+		<div :class="$style.page_header">
+			<div :class="$style.header_content">
+				<div :class="$style.header_nav">
+					<NuxtLink to="/staking" :class="$style.back_link">
 						← Staking
 					</NuxtLink>
-					<div class="nav-divider">/</div>
-					<span class="current-page">Dashboard</span>
+					<div :class="$style.nav_divider">/</div>
+					<span :class="$style.current_page">Dashboard</span>
 				</div>
-				<div class="header-actions">
+				<div :class="$style.header_actions">
 					<WalletConnect />
 				</div>
 			</div>
 		</div>
 
 		<!-- Content -->
-		<div class="page-content">
-			<div class="content-container">
+		<div :class="$style.page_content">
+			<div :class="$style.content_container">
 				<!-- Not Connected State -->
-				<div v-if="!isConnected" class="not-connected">
-					<div class="not-connected-content">
-						<div class="icon">🔒</div>
+				<div v-if="!isConnected" :class="$style.not_connected">
+					<div :class="$style.not_connected_content">
+						<div :class="$style.icon">🔒</div>
 						<h2>Connect Your Wallet</h2>
 						<p>Please connect your wallet to view your staking dashboard</p>
 						<WalletConnect />
@@ -223,12 +223,12 @@ watchEffect(() => {
 				<!-- Connected State -->
 				<template v-else>
 					<!-- Dashboard Header -->
-					<div class="dashboard-header">
-						<div class="user-info">
+					<div :class="$style.dashboard_header">
+						<div :class="$style.user_info">
 							<h1>My Staking Dashboard</h1>
-							<p class="user-address">{{ address }}</p>
+							<p :class="$style.user_address">{{ address }}</p>
 						</div>
-						<div class="header-actions">
+						<div :class="$style.header_actions">
 							<Button 
 								size="medium" 
 								type="secondary"
@@ -246,39 +246,39 @@ watchEffect(() => {
 					</div>
 
 					<!-- Portfolio Overview -->
-					<div class="portfolio-overview">
-						<div class="overview-cards">
-							<div class="overview-card primary">
-								<div class="card-header">
-									<span class="card-icon">💰</span>
-									<span class="card-title">Total Portfolio Value</span>
+					<div :class="$style.portfolio_overview">
+						<div :class="$style.overview_cards">
+							<div :class="[$style.overview_card, $style.primary]">
+								<div :class="$style.card_header">
+									<span :class="$style.card_icon">💰</span>
+									<span :class="$style.card_title">Total Portfolio Value</span>
 								</div>
-								<div class="card-content">
-									<div class="card-value">{{ portfolioSummary.totalValue }} MON</div>
-									<div class="card-breakdown">
+								<div :class="$style.card_content">
+									<div :class="$style.card_value">{{ portfolioSummary.totalValue }} MON</div>
+									<div :class="$style.card_breakdown">
 										{{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards
 									</div>
 								</div>
 							</div>
 
-							<div class="overview-card">
-								<div class="card-header">
-									<span class="card-icon">💳</span>
-									<span class="card-title">Available Balance</span>
+							<div :class="$style.overview_card">
+								<div :class="$style.card_header">
+									<span :class="$style.card_icon">💳</span>
+									<span :class="$style.card_title">Available Balance</span>
 								</div>
-								<div class="card-content">
-									<div class="card-value">{{ balance }} MON</div>
+								<div :class="$style.card_content">
+									<div :class="$style.card_value">{{ balance }} MON</div>
 								</div>
 							</div>
 
-							<div class="overview-card">
-								<div class="card-header">
-									<span class="card-icon">🎁</span>
-									<span class="card-title">Pending Rewards</span>
+							<div :class="$style.overview_card">
+								<div :class="$style.card_header">
+									<span :class="$style.card_icon">🎁</span>
+									<span :class="$style.card_title">Pending Rewards</span>
 								</div>
-								<div class="card-content">
-									<div class="card-value rewards">{{ totalRewards }} MON</div>
-									<div class="card-actions" v-if="BigInt(stakingStore.userRewards || '0') > 0">
+								<div :class="$style.card_content">
+									<div :class="[$style.card_value, $style.rewards]">{{ totalRewards }} MON</div>
+									<div v-if="BigInt(stakingStore.userRewards || '0') > 0" :class="$style.card_actions">
 										<Button 
 											size="small" 
 											type="secondary"
@@ -299,48 +299,47 @@ watchEffect(() => {
 								</div>
 							</div>
 
-							<div class="overview-card">
-								<div class="card-header">
-									<span class="card-icon">📊</span>
-									<span class="card-title">Active Delegations</span>
+							<div :class="$style.overview_card">
+								<div :class="$style.card_header">
+									<span :class="$style.card_icon">📊</span>
+									<span :class="$style.card_title">Active Delegations</span>
 								</div>
-								<div class="card-content">
-									<div class="card-value">{{ portfolioSummary.delegationCount }}</div>
-									<div class="card-detail">Validator{{ portfolioSummary.delegationCount !== 1 ? 's' : '' }}</div>
+								<div :class="$style.card_content">
+									<div :class="$style.card_value">{{ portfolioSummary.delegationCount }}</div>
+									<div :class="$style.card_detail">Validator{{ portfolioSummary.delegationCount !== 1 ? 's' : '' }}</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
 					<!-- Pending Withdrawals -->
-					<div v-if="withdrawals.length > 0" class="withdrawals-section">
-						<div class="section-header">
+					<div v-if="withdrawals.length > 0" :class="$style.withdrawals_section">
+						<div :class="$style.section_header">
 							<h2>Pending Withdrawals</h2>
-							<div class="withdrawable-total">
-								<span class="total-label">Withdrawable:</span>
-								<span class="total-value">{{ formatEther(withdrawableTotal) }} MON</span>
+							<div :class="$style.withdrawable_total">
+								<span :class="$style.total_label">Withdrawable:</span>
+								<span :class="$style.total_value">{{ formatEther(withdrawableTotal) }} MON</span>
 							</div>
 						</div>
 						
-						<div class="withdrawals-grid">
+						<div :class="$style.withdrawals_grid">
 							<div 
 								v-for="withdrawal in withdrawals" 
 								:key="`${withdrawal.valId}-${withdrawal.withdrawId}`"
-								class="withdrawal-card"
-								:class="{ 'withdrawable': withdrawal.isWithdrawable }"
+								:class="[$style.withdrawal_card, { [$style.withdrawable]: withdrawal.isWithdrawable }]"
 							>
-								<div class="withdrawal-info">
-									<div class="withdrawal-validator">
+								<div :class="$style.withdrawal_info">
+									<div :class="$style.withdrawal_validator">
 										Validator #{{ withdrawal.valId }}
 									</div>
-									<div class="withdrawal-amount">
+									<div :class="$style.withdrawal_amount">
 										{{ withdrawal.formattedAmount }} MON
 									</div>
-									<div class="withdrawal-status">
+									<div :class="$style.withdrawal_status">
 										{{ withdrawal.isWithdrawable ? 'Ready to withdraw' : `Available in epoch ${withdrawal.withdrawableEpoch}` }}
 									</div>
 								</div>
-								<div class="withdrawal-action">
+								<div :class="$style.withdrawal_action">
 									<Button 
 										v-if="withdrawal.isWithdrawable"
 										size="small" 
@@ -350,7 +349,7 @@ watchEffect(() => {
 									>
 										Withdraw
 									</Button>
-									<span v-else class="waiting-label">
+									<span v-else :class="$style.waiting_label">
 										⏳ Waiting
 									</span>
 								</div>
@@ -359,18 +358,18 @@ watchEffect(() => {
 					</div>
 
 					<!-- My Delegations -->
-					<div class="delegations-section">
-						<div class="section-header">
+					<div :class="$style.delegations_section">
+						<div :class="$style.section_header">
 							<h2>My Delegations</h2>
-							<p class="section-description">
+							<p :class="$style.section_description">
 								Manage your active delegations and rewards
 							</p>
 						</div>
 
 						<!-- No Delegations -->
-						<div v-if="enrichedDelegations.length === 0" class="no-delegations">
-							<div class="no-delegations-content">
-								<div class="icon">🎯</div>
+						<div v-if="enrichedDelegations.length === 0" :class="$style.no_delegations">
+							<div :class="$style.no_delegations_content">
+								<div :class="$style.icon">🎯</div>
 								<h3>No Active Delegations</h3>
 								<p>You haven't staked any MON tokens yet. Start earning rewards by delegating to validators.</p>
 								<NuxtLink to="/staking/validators">
@@ -382,7 +381,7 @@ watchEffect(() => {
 						</div>
 
 						<!-- Delegations Grid -->
-						<div v-else class="delegations-grid">
+						<div v-else :class="$style.delegations_grid">
 							<StakingCard
 								v-for="delegation in enrichedDelegations"
 								:key="delegation.valId"
@@ -398,12 +397,12 @@ watchEffect(() => {
 </template>
 
 <style module lang="scss">
-.dashboard-page {
+.dashboard_page {
 	min-height: 100vh;
 	background: var(--page-background, #f8f9fa);
 }
 
-.page-header {
+.page_header {
 	background: var(--card-background, #ffffff);
 	border-bottom: 1px solid var(--border-color, #e1e5e9);
 	padding: 16px 0;
@@ -411,7 +410,7 @@ watchEffect(() => {
 	top: 0;
 	z-index: 100;
 	
-	.header-content {
+	.header_content {
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 0 24px;
@@ -424,12 +423,12 @@ watchEffect(() => {
 		}
 	}
 	
-	.header-nav {
+	.header_nav {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		
-		.back-link {
+		.back_link {
 			color: var(--primary-color, #007bff);
 			text-decoration: none;
 			font-weight: 500;
@@ -440,18 +439,18 @@ watchEffect(() => {
 			}
 		}
 		
-		.nav-divider {
+		.nav_divider {
 			color: var(--text-tertiary, #d1d5db);
 		}
 		
-		.current-page {
+		.current_page {
 			color: var(--text-primary, #000);
 			font-weight: 600;
 		}
 	}
 }
 
-.page-content {
+.page_content {
 	padding: 32px 0;
 	
 	@media (max-width: 768px) {
@@ -459,7 +458,7 @@ watchEffect(() => {
 	}
 }
 
-.content-container {
+.content_container {
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 0 24px;
@@ -469,13 +468,13 @@ watchEffect(() => {
 	}
 }
 
-.not-connected {
+.not_connected {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	min-height: 400px;
 	
-	.not-connected-content {
+	.not_connected_content {
 		text-align: center;
 		max-width: 400px;
 		
@@ -499,7 +498,7 @@ watchEffect(() => {
 	}
 }
 
-.dashboard-header {
+.dashboard_header {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -510,7 +509,7 @@ watchEffect(() => {
 		gap: 20px;
 	}
 	
-	.user-info {
+	.user_info {
 		h1 {
 			font-size: 32px;
 			font-weight: 700;
@@ -518,7 +517,7 @@ watchEffect(() => {
 			margin: 0 0 8px 0;
 		}
 		
-		.user-address {
+		.user_address {
 			font-family: 'Source Code Pro', monospace;
 			font-size: 14px;
 			color: var(--text-secondary, #666);
@@ -526,7 +525,7 @@ watchEffect(() => {
 		}
 	}
 	
-	.header-actions {
+	.header_actions {
 		display: flex;
 		gap: 12px;
 		
@@ -536,17 +535,17 @@ watchEffect(() => {
 	}
 }
 
-.portfolio-overview {
+.portfolio_overview {
 	margin-bottom: 40px;
 }
 
-.overview-cards {
+.overview_cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: 24px;
 }
 
-.overview-card {
+.overview_card {
 	background: var(--card-background, #ffffff);
 	border: 1px solid var(--border-color, #e1e5e9);
 	border-radius: 16px;
@@ -562,31 +561,31 @@ watchEffect(() => {
 		color: white;
 		border: none;
 		
-		.card-title,
-		.card-breakdown {
+		.card_title,
+		.card_breakdown {
 			opacity: 0.9;
 		}
 	}
 	
-	.card-header {
+	.card_header {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 16px;
 		
-		.card-icon {
+		.card_icon {
 			font-size: 20px;
 		}
 		
-		.card-title {
+		.card_title {
 			font-size: 14px;
 			font-weight: 600;
 			color: var(--text-secondary, #666);
 		}
 	}
 	
-	.card-content {
-		.card-value {
+	.card_content {
+		.card_value {
 			font-size: 24px;
 			font-weight: 700;
 			color: var(--text-primary, #000);
@@ -597,13 +596,13 @@ watchEffect(() => {
 			}
 		}
 		
-		.card-breakdown,
-		.card-detail {
+		.card_breakdown,
+		.card_detail {
 			font-size: 12px;
 			color: var(--text-secondary, #666);
 		}
 		
-		.card-actions {
+		.card_actions {
 			display: flex;
 			gap: 8px;
 			margin-top: 12px;
@@ -611,11 +610,11 @@ watchEffect(() => {
 	}
 }
 
-.withdrawals-section,
-.delegations-section {
+.withdrawals_section,
+.delegations_section {
 	margin-bottom: 40px;
 	
-	.section-header {
+	.section_header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -634,12 +633,12 @@ watchEffect(() => {
 			margin: 0;
 		}
 		
-		.section-description {
+		.section_description {
 			color: var(--text-secondary, #666);
 			margin: 4px 0 0 0;
 		}
 		
-		.withdrawable-total {
+		.withdrawable_total {
 			display: flex;
 			align-items: center;
 			gap: 8px;
@@ -647,12 +646,12 @@ watchEffect(() => {
 			padding: 8px 16px;
 			border-radius: 8px;
 			
-			.total-label {
+			.total_label {
 				font-size: 14px;
 				color: var(--success-color, #155724);
 			}
 			
-			.total-value {
+			.total_value {
 				font-size: 14px;
 				font-weight: 600;
 				color: var(--success-color, #155724);
@@ -661,14 +660,14 @@ watchEffect(() => {
 	}
 }
 
-.withdrawals-grid {
+.withdrawals_grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 	gap: 20px;
 	margin-bottom: 32px;
 }
 
-.withdrawal-card {
+.withdrawal_card {
 	background: var(--card-background, #ffffff);
 	border: 1px solid var(--border-color, #e1e5e9);
 	border-radius: 12px;
@@ -682,30 +681,30 @@ watchEffect(() => {
 		background: var(--success-background, #f0fdf4);
 	}
 	
-	.withdrawal-info {
+	.withdrawal_info {
 		flex: 1;
 		
-		.withdrawal-validator {
+		.withdrawal_validator {
 			font-weight: 600;
 			color: var(--text-primary, #000);
 			margin-bottom: 4px;
 		}
 		
-		.withdrawal-amount {
+		.withdrawal_amount {
 			font-size: 18px;
 			font-weight: 700;
 			color: var(--text-primary, #000);
 			margin-bottom: 4px;
 		}
 		
-		.withdrawal-status {
+		.withdrawal_status {
 			font-size: 12px;
 			color: var(--text-secondary, #666);
 		}
 	}
 	
-	.withdrawal-action {
-		.waiting-label {
+	.withdrawal_action {
+		.waiting_label {
 			font-size: 12px;
 			color: var(--text-secondary, #666);
 			display: flex;
@@ -715,7 +714,7 @@ watchEffect(() => {
 	}
 }
 
-.delegations-grid {
+.delegations_grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
 	gap: 24px;
@@ -725,11 +724,11 @@ watchEffect(() => {
 	}
 }
 
-.no-delegations {
+.no_delegations {
 	text-align: center;
 	padding: 80px 20px;
 	
-	.no-delegations-content {
+	.no_delegations_content {
 		max-width: 400px;
 		margin: 0 auto;
 		

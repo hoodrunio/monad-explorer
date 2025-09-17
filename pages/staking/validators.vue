@@ -249,63 +249,63 @@ watch(() => stakingStore.isConnected, (connected) => {
 </script>
 
 <template>
-	<div class="validators-page">
+	<div :class="$style.validators_page">
 		<!-- Header -->
-		<div class="page-header">
-			<div class="header-content">
-				<div class="header-nav">
-					<NuxtLink to="/staking" class="back-link">
+		<div :class="$style.page_header">
+			<div :class="$style.header_content">
+				<div :class="$style.header_nav">
+					<NuxtLink to="/staking" :class="$style.back_link">
 						← Staking
 					</NuxtLink>
-					<div class="nav-divider">/</div>
-					<span class="current-page">Validators</span>
+					<div :class="$style.nav_divider">/</div>
+					<span :class="$style.current_page">Validators</span>
 				</div>
-				<div class="header-actions">
+				<div :class="$style.header_actions">
 					<WalletConnect />
 				</div>
 			</div>
 		</div>
 
 		<!-- Page Content -->
-		<div class="page-content">
-			<div class="content-container">
+		<div :class="$style.page_content">
+			<div :class="$style.content_container">
 				<!-- Title Section -->
-				<div class="title-section">
-					<div class="title-content">
+				<div :class="$style.title_section">
+					<div :class="$style.title_content">
 						<h1>Validators</h1>
 						<p>Choose validators to stake your MON tokens and earn rewards</p>
 					</div>
-					<div class="stats-summary">
-						<div class="stat-item">
-							<span class="stat-value">{{ validatorStats.total }}</span>
-							<span class="stat-label">Total</span>
+					<div :class="$style.stats_summary">
+						<div :class="$style.stat_item">
+							<span :class="$style.stat_value">{{ validatorStats.total }}</span>
+							<span :class="$style.stat_label">Total</span>
 						</div>
-						<div class="stat-item">
-							<span class="stat-value">{{ validatorStats.active }}</span>
-							<span class="stat-label">Active</span>
+						<div :class="$style.stat_item">
+							<span :class="$style.stat_value">{{ validatorStats.active }}</span>
+							<span :class="$style.stat_label">Active</span>
 						</div>
-						<div v-if="isConnected" class="stat-item">
-							<span class="stat-value">{{ validatorStats.userDelegated }}</span>
-							<span class="stat-label">Your Delegations</span>
+						<div v-if="isConnected" :class="$style.stat_item">
+							<span :class="$style.stat_value">{{ validatorStats.userDelegated }}</span>
+							<span :class="$style.stat_label">Your Delegations</span>
 						</div>
 					</div>
 				</div>
 
 				<!-- Filters and Search -->
-				<div class="filters-section">
-					<div class="search-section">
+				<div :class="$style.filters_section">
+					<div :class="$style.search_section">
 						<Input 
 							v-model="searchTerm"
 							placeholder="Search by validator ID or address..."
-							class="search-input"
+							:class="$style.search_input"
 						/>
 					</div>
 					
-					<div class="filter-controls">
-						<Dropdown class="filter-dropdown">
+					<div :class="$style.filter_controls">
+						<Dropdown :class="$style.filter_dropdown">
 							<Button size="medium" type="secondary">
 								{{ filterOptions.find(f => f.value === filterType)?.label || 'Filter' }}
-								<span class="dropdown-icon">▼</span>
+								<span :class="$style.dropdown_icon">▼</span>
 							</Button>
 							<template #body>
 								<DropdownItem 
@@ -319,10 +319,10 @@ watch(() => stakingStore.isConnected, (connected) => {
 							</template>
 						</Dropdown>
 						
-						<Dropdown class="sort-dropdown">
+						<Dropdown :class="$style.sort_dropdown">
 							<Button size="medium" type="secondary">
 								Sort: {{ sortOptions.find(s => s.value === selectedSort)?.label }}
-								<span class="sort-direction">{{ sortDirection === 'desc' ? '↓' : '↑' }}</span>
+								<span :class="$style.sort_direction">{{ sortDirection === 'desc' ? '↓' : '↑' }}</span>
 							</Button>
 							<template #body>
 								<DropdownItem 
@@ -332,7 +332,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 									:class="{ active: selectedSort === option.value }"
 								>
 									{{ option.label }}
-									<span v-if="selectedSort === option.value" class="sort-indicator">
+									<span v-if="selectedSort === option.value" :class="$style.sort_indicator">
 										{{ sortDirection === 'desc' ? '↓' : '↑' }}
 									</span>
 								</DropdownItem>
@@ -342,16 +342,16 @@ watch(() => stakingStore.isConnected, (connected) => {
 				</div>
 
 				<!-- Loading State -->
-				<div v-if="loading" class="loading-section">
-					<div class="loading-spinner"></div>
+				<div v-if="loading" :class="$style.loading_section">
+					<div :class="$style.loading_spinner"></div>
 					<p>Loading validators...</p>
 				</div>
 
 				<!-- Error State -->
-				<div v-else-if="error" class="error-section">
-					<div class="error-content">
-						<span class="error-icon">⚠️</span>
-						<span class="error-text">{{ error }}</span>
+				<div v-else-if="error" :class="$style.error_section">
+					<div :class="$style.error_content">
+						<span :class="$style.error_icon">⚠️</span>
+						<span :class="$style.error_text">{{ error }}</span>
 						<Button size="small" type="secondary" @click="loadValidators">
 							Retry
 						</Button>
@@ -359,7 +359,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 				</div>
 
 				<!-- Validators Grid -->
-				<div v-else-if="filteredValidators.length > 0" class="validators-grid">
+				<div v-else-if="filteredValidators.length > 0" :class="$style.validators_grid">
 					<ValidatorCard
 						v-for="validator in filteredValidators"
 						:key="validator.valId"
@@ -372,9 +372,9 @@ watch(() => stakingStore.isConnected, (connected) => {
 				</div>
 
 				<!-- Empty State -->
-				<div v-else class="empty-section">
-					<div class="empty-content">
-						<div class="empty-icon">🔍</div>
+				<div v-else :class="$style.empty_section">
+					<div :class="$style.empty_content">
+						<div :class="$style.empty_icon">🔍</div>
 						<h3>No validators found</h3>
 						<p>
 							{{ searchTerm ? 
@@ -396,13 +396,13 @@ watch(() => stakingStore.isConnected, (connected) => {
 		</div>
 
 		<!-- Stake Modal -->
-		<div v-if="showStakeModal && selectedValidator" class="modal-overlay" @click.self="showStakeModal = false">
-			<div class="modal-container">
+		<div v-if="showStakeModal && selectedValidator" :class="$style.modal_overlay" @click.self="showStakeModal = false">
+			<div :class="$style.modal_container">
 				<StakingCard 
 					:validator="selectedValidator"
 					:delegation="getUserDelegation(selectedValidator.valId)"
 				/>
-				<div class="modal-actions">
+				<div :class="$style.modal_actions">
 					<Button 
 						type="secondary" 
 						@click="showStakeModal = false"
@@ -416,12 +416,12 @@ watch(() => stakingStore.isConnected, (connected) => {
 </template>
 
 <style module lang="scss">
-.validators-page {
+.validators_page {
 	min-height: 100vh;
 	background: var(--page-background, #f8f9fa);
 }
 
-.page-header {
+.page_header {
 	background: var(--card-background, #ffffff);
 	border-bottom: 1px solid var(--border-color, #e1e5e9);
 	padding: 16px 0;
@@ -429,7 +429,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	top: 0;
 	z-index: 100;
 	
-	.header-content {
+	.header_content {
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 0 24px;
@@ -442,12 +442,12 @@ watch(() => stakingStore.isConnected, (connected) => {
 		}
 	}
 	
-	.header-nav {
+	.header_nav {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		
-		.back-link {
+		.back_link {
 			color: var(--primary-color, #007bff);
 			text-decoration: none;
 			font-weight: 500;
@@ -458,18 +458,18 @@ watch(() => stakingStore.isConnected, (connected) => {
 			}
 		}
 		
-		.nav-divider {
+		.nav_divider {
 			color: var(--text-tertiary, #d1d5db);
 		}
 		
-		.current-page {
+		.current_page {
 			color: var(--text-primary, #000);
 			font-weight: 600;
 		}
 	}
 }
 
-.page-content {
+.page_content {
 	padding: 32px 0;
 	
 	@media (max-width: 768px) {
@@ -477,7 +477,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.content-container {
+.content_container {
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 0 24px;
@@ -487,7 +487,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.title-section {
+.title_section {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -498,7 +498,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 		gap: 20px;
 	}
 	
-	.title-content {
+	.title_content {
 		h1 {
 			font-size: 32px;
 			font-weight: 700;
@@ -513,7 +513,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 		}
 	}
 	
-	.stats-summary {
+	.stats_summary {
 		display: flex;
 		gap: 24px;
 		
@@ -521,10 +521,10 @@ watch(() => stakingStore.isConnected, (connected) => {
 			gap: 16px;
 		}
 		
-		.stat-item {
+		.stat_item {
 			text-align: center;
 			
-			.stat-value {
+			.stat_value {
 				display: block;
 				font-size: 24px;
 				font-weight: 700;
@@ -532,7 +532,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 				margin-bottom: 4px;
 			}
 			
-			.stat-label {
+			.stat_label {
 				display: block;
 				font-size: 12px;
 				color: var(--text-secondary, #666);
@@ -543,7 +543,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.filters-section {
+.filters_section {
 	background: var(--card-background, #ffffff);
 	border: 1px solid var(--border-color, #e1e5e9);
 	border-radius: 16px;
@@ -559,15 +559,15 @@ watch(() => stakingStore.isConnected, (connected) => {
 		gap: 16px;
 	}
 	
-	.search-section {
+	.search_section {
 		flex: 1;
 		
-		.search-input {
+		.search_input {
 			width: 100%;
 		}
 	}
 	
-	.filter-controls {
+	.filter_controls {
 		display: flex;
 		gap: 12px;
 		
@@ -575,27 +575,27 @@ watch(() => stakingStore.isConnected, (connected) => {
 			flex-direction: column;
 		}
 		
-		.dropdown-icon,
-		.sort-direction {
+		.dropdown_icon,
+		.sort_direction {
 			margin-left: 8px;
 			font-size: 12px;
 		}
 		
-		.sort-indicator {
+		.sort_indicator {
 			margin-left: auto;
 		}
 	}
 }
 
-.loading-section,
-.error-section,
-.empty-section {
+.loading_section,
+.error_section,
+.empty_section {
 	text-align: center;
 	padding: 80px 20px;
 }
 
-.loading-section {
-	.loading-spinner {
+.loading_section {
+	.loading_spinner {
 		width: 40px;
 		height: 40px;
 		border: 4px solid var(--border-color, #e1e5e9);
@@ -616,8 +616,8 @@ watch(() => stakingStore.isConnected, (connected) => {
 	100% { transform: rotate(360deg); }
 }
 
-.error-section {
-	.error-content {
+.error_section {
+	.error_content {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -628,11 +628,11 @@ watch(() => stakingStore.isConnected, (connected) => {
 		max-width: 400px;
 		margin: 0 auto;
 		
-		.error-icon {
+		.error_icon {
 			font-size: 20px;
 		}
 		
-		.error-text {
+		.error_text {
 			flex: 1;
 			color: var(--error-color, #dc3545);
 			font-weight: 500;
@@ -640,12 +640,12 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.empty-section {
-	.empty-content {
+.empty_section {
+	.empty_content {
 		max-width: 400px;
 		margin: 0 auto;
 		
-		.empty-icon {
+		.empty_icon {
 			font-size: 48px;
 			margin-bottom: 16px;
 		}
@@ -665,7 +665,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.validators-grid {
+.validators_grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
 	gap: 24px;
@@ -675,7 +675,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 }
 
-.modal-overlay {
+.modal_overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -689,7 +689,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	padding: 20px;
 }
 
-.modal-container {
+.modal_container {
 	background: var(--card-background, #ffffff);
 	border-radius: 16px;
 	max-width: 500px;
@@ -697,7 +697,7 @@ watch(() => stakingStore.isConnected, (connected) => {
 	max-height: 90vh;
 	overflow-y: auto;
 	
-	.modal-actions {
+	.modal_actions {
 		padding: 20px;
 		border-top: 1px solid var(--border-color, #e1e5e9);
 		text-align: right;

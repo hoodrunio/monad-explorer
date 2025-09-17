@@ -49,37 +49,37 @@ onMounted(() => {
 </script>
 
 <template>
-	<div class="staking-page">
+	<div :class="$style.staking_page">
 		<!-- Navigation Header -->
-		<div class="page-header">
-			<div class="header-content">
-				<div class="header-nav">
-					<NuxtLink to="/" class="home-link">
+		<div :class="$style.page_header">
+			<div :class="$style.header_content">
+				<div :class="$style.header_nav">
+					<NuxtLink to="/" :class="$style.home_link">
 						← Explorer
 					</NuxtLink>
-					<div class="nav-divider">/</div>
-					<span class="current-page">Staking</span>
+					<div :class="$style.nav_divider">/</div>
+					<span :class="$style.current_page">Staking</span>
 				</div>
-				<div class="header-actions">
+				<div :class="$style.header_actions">
 					<WalletConnect />
 				</div>
 			</div>
 		</div>
 
 		<!-- Main Content -->
-		<div class="page-content">
+		<div :class="$style.page_content">
 			<StakingOverview />
 		</div>
 	</div>
 </template>
 
 <style module lang="scss">
-.staking-page {
+.staking_page {
 	min-height: 100vh;
 	background: var(--page-background, #f8f9fa);
 }
 
-.page-header {
+.page_header {
 	background: var(--card-background, #ffffff);
 	border-bottom: 1px solid var(--border-color, #e1e5e9);
 	padding: 16px 0;
@@ -87,47 +87,48 @@ onMounted(() => {
 	top: 0;
 	z-index: 100;
 	
-	.header-content {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 24px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		
-		@media (max-width: 768px) {
-			padding: 0 16px;
-		}
-	}
+}
+
+.header_content {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 24px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 	
-	.header-nav {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		
-		.home-link {
-			color: var(--primary-color, #007bff);
-			text-decoration: none;
-			font-weight: 500;
-			transition: opacity 0.2s ease;
-			
-			&:hover {
-				opacity: 0.8;
-			}
-		}
-		
-		.nav-divider {
-			color: var(--text-tertiary, #d1d5db);
-		}
-		
-		.current-page {
-			color: var(--text-primary, #000);
-			font-weight: 600;
-		}
+	@media (max-width: 768px) {
+		padding: 0 16px;
 	}
 }
 
-.page-content {
+.header_nav {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.home_link {
+	color: var(--primary-color, #007bff);
+	text-decoration: none;
+	font-weight: 500;
+	transition: opacity 0.2s ease;
+	
+	&:hover {
+		opacity: 0.8;
+	}
+}
+
+.nav_divider {
+	color: var(--text-tertiary, #d1d5db);
+}
+
+.current_page {
+	color: var(--text-primary, #000);
+	font-weight: 600;
+}
+
+.page_content {
 	padding: 24px 0;
 	
 	@media (max-width: 768px) {

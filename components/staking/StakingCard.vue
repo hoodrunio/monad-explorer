@@ -315,7 +315,7 @@ function setMaxUnstake() {
 	</div>
 </template>
 
-<style module lang="scss">
+<style scoped lang="scss">
 .staking-card {
 	background: var(--card-background, #ffffff);
 	border: 1px solid var(--border-color, #e1e5e9);
