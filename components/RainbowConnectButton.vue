@@ -129,6 +129,11 @@ function initializeWatchers() {
 	// Get initial state
 	const initialAccount = getAccount($wagmiConfig)
 	account.value = initialAccount
+	
+	// Get initial chain ID
+	const currentChainId = $wagmiConfig.state.chainId
+	chainId.value = currentChainId
+	
 	if (initialAccount.isConnected) {
 		fetchBalance()
 		stakingStore.address = initialAccount.address
@@ -196,12 +201,46 @@ async function switchToMonadNetwork() {
 	if (!$wagmiConfig) return
 	
 	try {
+		// First try to switch to the chain
 		await switchChain($wagmiConfig, {
 			chainId: monadTestnet.id
 		})
-	} catch (err) {
-		console.error('Failed to switch network:', err)
-		error.value = 'Please switch to Monad Testnet manually'
+	} catch (switchError) {
+		// If switching fails, try to add the chain first
+		if (switchError.code === 4902 || switchError.message.includes('Unrecognized chain ID')) {
+			try {
+				const chainParams = {
+					chainId: `0x${monadTestnet.id.toString(16)}`, // Convert to hex
+					chainName: monadTestnet.name,
+					nativeCurrency: monadTestnet.nativeCurrency,
+					rpcUrls: [monadTestnet.rpcUrls.default.http[0]],
+					blockExplorerUrls: [monadTestnet.blockExplorers.default.url],
+				}
+				
+				// Check if MetaMask is available
+				if (!window.ethereum) {
+					error.value = 'MetaMask not found. Please install MetaMask.'
+					return
+				}
+				
+				// Add the chain to MetaMask
+				await window.ethereum.request({
+					method: 'wallet_addEthereumChain',
+					params: [chainParams]
+				})
+				
+				// After adding, try to switch again
+				await switchChain($wagmiConfig, {
+					chainId: monadTestnet.id
+				})
+			} catch (addError) {
+				console.error('Failed to add/switch network:', addError)
+				error.value = 'Failed to add Monad Testnet. Please add it manually in your wallet.'
+			}
+		} else {
+			console.error('Failed to switch network:', switchError)
+			error.value = 'Please switch to Monad Testnet manually'
+		}
 	}
 }
 
