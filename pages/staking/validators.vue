@@ -8,7 +8,6 @@ import ValidatorCard from '@/components/staking/ValidatorCard.vue'
 import StakingCard from '@/components/staking/StakingCard.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
-import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 
 const route = useRoute()
 const router = useRouter()
@@ -303,44 +302,57 @@ watch(() => stakingStore.isConnected, (connected) => {
 						/>
 					</div>
 					
-					<div :class="$style.filter_controls">
-						<Dropdown :class="$style.filter_dropdown">
-							<Button size="medium" type="secondary">
-								{{ filterOptions.find(f => f.value === filterType)?.label || 'Filter' }}
-								<span :class="$style.dropdown_icon">▼</span>
-							</Button>
-							<template #body>
-								<DropdownItem 
+					<Flex align="center" gap="12" :class="$style.filter_controls">
+						<!-- Filter Select -->
+						<Flex direction="column" gap="4">
+							<Text size="12" weight="600" color="tertiary">Filter</Text>
+							<select 
+								v-model="filterType" 
+								@change="handleFilterChange(filterType)"
+								:class="$style.select_input"
+							>
+								<option 
 									v-for="option in filterOptions"
 									:key="option.value"
-									@click="handleFilterChange(option.value)"
-									:class="{ active: filterType === option.value }"
+									:value="option.value"
 								>
 									{{ option.label }}
-								</DropdownItem>
-							</template>
-						</Dropdown>
+								</option>
+							</select>
+						</Flex>
 						
-						<Dropdown :class="$style.sort_dropdown">
-							<Button size="medium" type="secondary">
-								Sort: {{ sortOptions.find(s => s.value === selectedSort)?.label }}
-								<span :class="$style.sort_direction">{{ sortDirection === 'desc' ? '↓' : '↑' }}</span>
-							</Button>
-							<template #body>
-								<DropdownItem 
+						<!-- Sort Select -->
+						<Flex direction="column" gap="4">
+							<Text size="12" weight="600" color="tertiary">Sort By</Text>
+							<select 
+								v-model="selectedSort" 
+								@change="handleSortChange(selectedSort)"
+								:class="$style.select_input"
+							>
+								<option 
 									v-for="option in sortOptions"
 									:key="option.value"
-									@click="handleSortChange(option.value)"
-									:class="{ active: selectedSort === option.value }"
+									:value="option.value"
 								>
 									{{ option.label }}
-									<span v-if="selectedSort === option.value" :class="$style.sort_indicator">
-										{{ sortDirection === 'desc' ? '↓' : '↑' }}
-									</span>
-								</DropdownItem>
-							</template>
-						</Dropdown>
-					</div>
+									{{ selectedSort === option.value ? (sortDirection === 'desc' ? ' ↓' : ' ↑') : '' }}
+								</option>
+							</select>
+						</Flex>
+						
+						<!-- Sort Direction Toggle -->
+						<Flex direction="column" gap="4">
+							<Text size="12" weight="600" color="tertiary">Order</Text>
+							<Button 
+								size="medium" 
+								type="secondary"
+								@click="sortDirection = sortDirection === 'desc' ? 'asc' : 'desc'"
+								:class="$style.direction_button"
+							>
+								{{ sortDirection === 'desc' ? '↓ Desc' : '↑ Asc' }}
+							</Button>
+						</Flex>
+					</Flex>
 				</div>
 
 				<!-- Loading State -->
@@ -535,23 +547,36 @@ watch(() => stakingStore.isConnected, (connected) => {
 	}
 	
 	.filter_controls {
-		display: flex;
-		gap: 12px;
-		
 		@media (max-width: 640px) {
 			flex-direction: column;
-		}
-		
-		.dropdown_icon,
-		.sort_direction {
-			margin-left: 8px;
-			font-size: 12px;
-		}
-		
-		.sort_indicator {
-			margin-left: auto;
+			align-items: flex-start !important;
 		}
 	}
+}
+
+.select_input {
+	height: 32px;
+	padding: 0 8px;
+	border: 1px solid var(--op-5);
+	border-radius: 6px;
+	background: var(--op-3);
+	color: var(--txt-primary);
+	font-size: 13px;
+	font-weight: 600;
+	min-width: 120px;
+	
+	&:hover {
+		border-color: var(--op-10);
+	}
+	
+	&:focus {
+		outline: none;
+		border-color: var(--op-20);
+	}
+}
+
+.direction_button {
+	min-width: 80px;
 }
 
 .loading_section,
