@@ -99,12 +99,13 @@ const handleManage = (validator) => {
 						<td :class="$style.col_validator">
 							<Flex align="center" gap="12" :class="$style.validator_info">
 								<ValidatorLogo 
-									:address="validator.secpPubkey?.replace('0x', '') || validator.authAddress"
+									:logo-url="validator.logoUrl"
+									:validator-name="validator.name"
 									size="small"
 								/>
 								<Flex direction="column" gap="2">
 									<Text size="13" weight="600" color="primary">
-										Validator #{{ validator.valId }}
+										{{ validator.name !== 'unknown' ? validator.name : `Validator #${validator.valId || validator.staking?.precompile_validator_id}` }}
 									</Text>
 									<Text size="11" color="tertiary" mono>
 										{{ shortHex(validator.secpPubkey?.replace('0x', '') || validator.authAddress || validator.valId) }}

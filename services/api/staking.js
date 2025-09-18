@@ -170,10 +170,25 @@ const STAKING_ABI = [
 ]
 
 /**
- * Get current epoch information
+ * Get current epoch information using API instead of RPC
  */
 export async function getCurrentEpoch() {
 	try {
+		const { fetchEpochInfo } = await import('@/services/api/epoch')
+		const { data } = await fetchEpochInfo()
+		
+		const epochData = data.value?.data || data.value
+		
+		if (epochData) {
+			return {
+				epoch: epochData.currentEpoch,
+				inBoundary: epochData.inBoundary || false,
+				// Calculate estimated time until next epoch
+				estimatedNextEpoch: new Date(Date.now() + (5.5 * 60 * 60 * 1000))
+			}
+		}
+		
+		// Fallback to RPC if API fails
 		const result = await publicClient.readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
@@ -183,8 +198,6 @@ export async function getCurrentEpoch() {
 		return {
 			epoch: Number(result[0]),
 			inBoundary: result[1],
-			// Calculate estimated time until next epoch
-			// This is approximate based on 5.5 hour epochs
 			estimatedNextEpoch: new Date(Date.now() + (5.5 * 60 * 60 * 1000))
 		}
 	} catch (error) {
@@ -551,42 +564,61 @@ export function calculateValidatorAPY(validator, totalNetworkStake, blockReward 
 }
 
 /**
- * Get staking statistics
+ * Get staking statistics using fetchValidatorRankings instead of RPC
  */
 export async function getStakingStats() {
 	try {
-		const [consensusValidators, executionValidators, epochInfo] = await Promise.all([
-			getConsensusValidators(),
-			getExecutionValidators(),
+		const { fetchValidatorRankings } = await import('@/services/api/validator')
+		
+		const [activeValidators, allValidators, epochInfo] = await Promise.all([
+			fetchValidatorRankings({
+				limit: 1000,
+				active_only: true,
+				sortBy: 'stake',
+				window: '7d'
+			}),
+			fetchValidatorRankings({
+				limit: 1000,
+				active_only: false,
+				sortBy: 'stake',
+				window: '7d'
+			}),
 			getCurrentEpoch(),
 		])
 		
-		const totalStaked = consensusValidators.reduce((sum, validator) => {
-			return sum + BigInt(validator.consensusStake)
+		const activeValidatorsData = activeValidators.data.value?.data || []
+		const allValidatorsData = allValidators.data.value?.data || []
+		
+		const totalStaked = activeValidatorsData.reduce((sum, validator) => {
+			const stake = validator.staking?.real_time_stake_mon ? 
+				parseEther(validator.staking.real_time_stake_mon.toString()) : BigInt('0')
+			return sum + stake
 		}, BigInt('0'))
 		
-		const totalExecutionStake = executionValidators.reduce((sum, validator) => {
-			return sum + BigInt(validator.stake)
+		const totalExecutionStake = allValidatorsData.reduce((sum, validator) => {
+			const stake = validator.staking?.real_time_stake_mon ? 
+				parseEther(validator.staking.real_time_stake_mon.toString()) : BigInt('0')
+			return sum + stake
 		}, BigInt('0'))
 		
-		const averageCommission = consensusValidators.reduce((sum, validator) => {
-			return sum + validator.commissionRate
-		}, 0) / Math.max(consensusValidators.length, 1)
+		const averageCommission = activeValidatorsData.reduce((sum, validator) => {
+			return sum + (validator.staking?.commission_rate || 0)
+		}, 0) / Math.max(activeValidatorsData.length, 1)
 		
 		return {
 			currentEpoch: epochInfo.epoch,
 			inBoundary: epochInfo.inBoundary,
-			activeValidators: consensusValidators.length,
-			totalValidators: executionValidators.length,
+			activeValidators: activeValidatorsData.length,
+			totalValidators: allValidatorsData.length,
 			totalStaked: totalStaked.toString(),
 			formattedTotalStaked: formatEther(totalStaked),
 			totalExecutionStake: totalExecutionStake.toString(),
 			formattedTotalExecutionStake: formatEther(totalExecutionStake),
 			averageCommission: averageCommission.toFixed(2),
 			// Calculate estimated APY for the network
-			estimatedAPY: consensusValidators.length > 0 
+			estimatedAPY: activeValidatorsData.length > 0 
 				? calculateValidatorAPY(
-					{ consensusStake: (totalStaked / BigInt(consensusValidators.length)).toString(), commissionRate: averageCommission },
+					{ consensusStake: (totalStaked / BigInt(activeValidatorsData.length)).toString(), commissionRate: averageCommission },
 					totalStaked.toString()
 				).toFixed(2)
 				: '0.00'

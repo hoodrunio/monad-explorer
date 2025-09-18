@@ -1,6 +1,7 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
-import { getExecutionValidators, getConsensusValidators, getStakingStats } from '~/services/api/staking'
+import { getStakingStats } from '~/services/api/staking'
+import { fetchValidatorRankings } from '@/services/api/validator'
 
 // Components  
 import Button from '@/components/ui/Button.vue'
@@ -104,8 +105,20 @@ const filteredValidators = computed(() => {
 		
 		switch (selectedSort.value) {
 			case 'stake':
-				aValue = BigInt(a.consensusStake || a.stake || '0')
-				bValue = BigInt(b.consensusStake || b.stake || '0')
+				// Safely convert stake values to BigInt, handling scientific notation
+				const aStake = a.consensusStake || a.stake || '0'
+				const bStake = b.consensusStake || b.stake || '0'
+				
+				// Convert to number first, then to string without scientific notation
+				const aStakeNum = Number(aStake)
+				const bStakeNum = Number(bStake)
+				
+				// Use toLocaleString to avoid scientific notation, then remove commas
+				const aStakeStr = aStakeNum.toLocaleString('en-US', { maximumFractionDigits: 0, useGrouping: false })
+				const bStakeStr = bStakeNum.toLocaleString('en-US', { maximumFractionDigits: 0, useGrouping: false })
+				
+				aValue = BigInt(aStakeStr)
+				bValue = BigInt(bStakeStr)
 				break
 			case 'commission':
 				aValue = a.commissionRate || 0
@@ -148,33 +161,46 @@ async function loadValidators() {
 		loading.value = true
 		error.value = ''
 		
-		const [executionVals, consensusVals, networkStats] = await Promise.all([
-			getExecutionValidators(),
-			getConsensusValidators(),
+		const [validatorRankings, networkStats] = await Promise.all([
+			fetchValidatorRankings({
+				limit: 1000, // Get all validators
+				active_only: filterType.value === 'active', // Use active_only based on filter
+				sortBy: 'stake',
+				window: '7d'
+			}),
 			getStakingStats().catch(() => null),
 		])
 		
-		// Merge execution and consensus validators
-		const validatorMap = new Map()
+		// Transform validator rankings data to match staking component expectations
+		if (validatorRankings.data.value?.data) {
+			const validatorsList = validatorRankings.data.value.data.map(validator => {
+				return {
+					valId: validator.staking?.precompile_validator_id || validator.validator_id || '',
+					authAddress: validator.validator_id || '', // Using validator_id as address fallback
+					name: validator.infrastructure?.validator_name || `Validator ${validator.validator_id}`,
+					stake: validator.staking?.real_time_stake_mon ? 
+						parseFloat(validator.staking.real_time_stake_mon * 1e18).toFixed(0) : '0', // Convert to wei
+					consensusStake: validator.staking?.real_time_stake_mon ? 
+						parseFloat(validator.staking.real_time_stake_mon * 1e18).toFixed(0) : '0', // Convert to wei
+					commissionRate: validator.staking?.commission_rate || 0,
+					formattedStake: validator.staking?.real_time_stake_mon || '0',
+					formattedConsensusStake: validator.staking?.real_time_stake_mon || '0',
+					formattedCommissionRate: `${(validator.staking?.commission_rate || 0).toFixed(2)}%`,
+					isActive: validator.staking?.is_staking_active || false,
+					// Include staking object for ValidatorList component
+					staking: validator.staking,
+					// Additional fields from rankings
+					uptimeScore: validator.metrics?.block_proposal_ratio || 0,
+					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+					provider: validator.infrastructure?.provider || 'Unknown',
+					location: validator.infrastructure?.location || 'Unknown',
+					logoUrl: validator.keybase?.logo_url || null
+				}
+			})
+			
+			allValidators.value = validatorsList
+		}
 		
-		// Add execution validators
-		executionVals.forEach(validator => {
-			validatorMap.set(validator.valId, validator)
-		})
-		
-		// Update with consensus info
-		consensusVals.forEach(validator => {
-			if (validatorMap.has(validator.valId)) {
-				const existing = validatorMap.get(validator.valId)
-				validatorMap.set(validator.valId, {
-					...existing,
-					...validator,
-					isActive: true
-				})
-			}
-		})
-		
-		allValidators.value = Array.from(validatorMap.values())
 		stats.value = networkStats
 		
 	} catch (err) {
@@ -243,6 +269,11 @@ watch(() => stakingStore.isConnected, (connected) => {
 	if (connected) {
 		stakingStore.fetchUserStakingData()
 	}
+})
+
+// Watch filter type changes to reload validators
+watch(filterType, () => {
+	loadValidators()
 })
 </script>
 
