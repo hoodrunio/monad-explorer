@@ -7,7 +7,7 @@ import BookmarkButton from "@/components/BookmarkButton.vue"
 import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Services */
-import { capitilize, comma, shortHex } from "@/services/utils"
+import { comma, shortHex } from "@/services/utils"
 
 /** API */
 import { fetchValidatorRankings } from "@/services/api/validator"
@@ -127,7 +127,7 @@ const getValidators = async () => {
 				return {
 					rank: validator.rank || 0,
 					validatorId: validator.validator_id || '',
-					name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
+					name: validator.infrastructure?.validator_name || 'unknown',
 					stake: validator.staking?.real_time_stake_mon ? parseFloat(validator.staking.real_time_stake_mon) : '0',
 					isActive: validator.staking?.is_staking_active || false,
 					uptimeScore,
@@ -139,7 +139,10 @@ const getValidators = async () => {
 					totalBlockOpportunities,
 					qcParticipations: validator.details?.qc_participations || 0,
 					totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-					logoUrl: validator.keybase?.logo_url || validator.logoUrl || null
+					logoUrl: validator.keybase?.logo_url || validator.logoUrl || null,
+					// Include staking object for precompile_validator_id access
+					staking: validator.staking,
+					precompileValidatorId: validator.staking?.precompile_validator_id
 				}
 			})
 			
@@ -569,7 +572,7 @@ onMounted(() => {
 											/>
 											<Flex direction="column" gap="2">
 												<Text size="13" weight="600" color="primary" mono>
-													{{ validator.name }}
+													{{ validator.name !== 'unknown' ? validator.name : `Validator #${validator.precompileValidatorId || validator.staking?.precompile_validator_id || shortHex(validator.validatorId)}` }}
 												</Text>
 												<Text size="11" color="tertiary">
 													{{ shortHex(validator.validatorId) }}

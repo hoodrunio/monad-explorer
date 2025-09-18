@@ -223,8 +223,15 @@ const validatorLogoUrl = computed(() => {
 
 const validatorInfo = computed(() => {
 	const github = props.validator?.github
+	const validatorName = props.validator?.displayName || props.validator?.infrastructure?.validator_name || 'unknown'
+	
+	// If name is unknown, use precompile_validator_id or fallback to short hex
+	const displayName = validatorName !== 'unknown' 
+		? validatorName 
+		: `Validator #${props.validator?.staking?.precompile_validator_id || shortHex(props.validator?.validator_id || '')}`
+	
 	return {
-		name: props.validator?.displayName || props.validator?.infrastructure?.validator_name || shortHex(props.validator?.validator_id || ''),
+		name: displayName,
 		description: github?.description || null,
 		website: github?.website || null,
 		twitter: github?.x || null,
