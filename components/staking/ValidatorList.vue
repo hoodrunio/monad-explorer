@@ -97,17 +97,17 @@ const handleManage = (validator) => {
 					<tr v-for="validator in validators" :key="validator.valId" :class="$style.validator_row">
 						<!-- Validator Info -->
 						<td :class="$style.col_validator">
-							<Flex align="center" gap="12" :class="$style.validator_info">
+							<Flex align="center" gap="8" :class="$style.validator_info">
 								<ValidatorLogo 
 									:logo-url="validator.logoUrl"
 									:validator-name="validator.name"
-									size="small"
+									size="mini"
 								/>
-								<Flex direction="column" gap="2">
-									<Text size="13" weight="600" color="primary">
+								<Flex direction="column" gap="1">
+									<Text size="12" weight="600" color="primary" :class="$style.validator_name">
 										{{ validator.name !== 'unknown' ? validator.name : `Validator #${validator.valId || validator.staking?.precompile_validator_id}` }}
 									</Text>
-									<Text size="11" color="tertiary" mono>
+									<Text size="10" color="tertiary" mono :class="$style.validator_id">
 										{{ shortHex(validator.secpPubkey?.replace('0x', '') || validator.authAddress || validator.valId) }}
 									</Text>
 								</Flex>
@@ -251,43 +251,57 @@ const handleManage = (validator) => {
 
 // Column widths
 .col_validator {
-	min-width: 200px;
-	width: 25%;
+	min-width: 160px;
+	width: 20%;
 }
 
 .col_status {
-	min-width: 100px;
-	width: 10%;
+	min-width: 80px;
+	width: 8%;
 }
 
 .col_stake {
 	min-width: 120px;
-	width: 15%;
+	width: 18%;
 }
 
 .col_commission {
-	min-width: 100px;
-	width: 10%;
+	min-width: 90px;
+	width: 12%;
 }
 
 .col_apy {
-	min-width: 100px;
-	width: 10%;
+	min-width: 90px;
+	width: 12%;
 }
 
 .col_delegation {
-	min-width: 150px;
-	width: 15%;
+	min-width: 140px;
+	width: 18%;
 }
 
 .col_actions {
-	min-width: 140px;
-	width: 15%;
+	min-width: 120px;
+	width: 12%;
 }
 
 // Validator info styles
 .validator_info {
 	min-width: 0; // Allow flex shrinking
+}
+
+.validator_name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 140px;
+}
+
+.validator_id {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 140px;
 }
 
 // Status badge styles
@@ -356,7 +370,8 @@ const handleManage = (validator) => {
 	}
 	
 	.col_validator {
-		width: 40%;
+		width: 35%;
+		min-width: 140px;
 	}
 	
 	.col_status {
@@ -364,11 +379,19 @@ const handleManage = (validator) => {
 	}
 	
 	.col_stake {
-		width: 25%;
+		width: 30%;
 	}
 	
 	.col_actions {
 		width: 20%;
+	}
+	
+	.validator_name {
+		max-width: 120px;
+	}
+	
+	.validator_id {
+		max-width: 120px;
 	}
 }
 
