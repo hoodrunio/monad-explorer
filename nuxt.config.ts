@@ -1,6 +1,5 @@
 import { nodePolyfills } from "vite-plugin-node-polyfills"
 import wasm from "vite-plugin-wasm"
-import topLevelAwait from "vite-plugin-top-level-await"
 
 import path from "path"
 
@@ -155,12 +154,11 @@ export default defineNuxtConfig({
 				"unenv/runtime/node/buffer/index/": path.resolve(__dirname, "./node_modules/buffer/index"),
 			},
 		},
-		plugins: [wasm(), topLevelAwait(), nodePolyfills()],
+		plugins: [wasm(), nodePolyfills()],
 		worker: {
 			format: "es",
-			plugins: () => [wasm(), topLevelAwait()],
+			plugins: () => [wasm()],
 		},
 	},
-
 	compatibilityDate: "2025-04-02",
 })

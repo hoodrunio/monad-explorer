@@ -25,7 +25,6 @@
 		"sass-loader": "13.3.2",
 		"unenv": "^1.9.0",
 		"unstorage": "^1.0.0",
-		"vite-plugin-top-level-await": "^1.4.4",
 		"vite-plugin-wasm": "^3.3.0"
 	},
 	"dependencies": {
@@ -59,6 +58,7 @@
 		"pinia": "3.0.2",
 		"protobufjs": "^7.2.6",
 		"qrcode": "^1.5.3",
+		"serve": "14.2.5",
 		"uuid": "9.0.1",
 		"viem": "^2.21.0",
 		"vite-plugin-node-polyfills": "^0.21.0",
