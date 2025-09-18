@@ -56,6 +56,9 @@ const sortOptions = ref([
 const selectedSort = ref(route.query.sortBy || "block_proposal_ratio")
 const sortDirection = ref(route.query.sortDir || "desc") // "asc" or "desc"
 
+// Tab state for Active/All validators
+const activeTab = ref(route.query.tab || "active")
+
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
 const limit = ref(50)
@@ -65,7 +68,7 @@ const hasNextPage = ref(false)
 const hasPrevPage = ref(false)
 const pages = computed(() => totalPages.value || 1)
 
-// Filtered validators based on search term
+// Filtered validators based on search term only (tab filtering handled by API)
 const filteredValidators = computed(() => {
 	let filtered = allValidators.value
 	
@@ -108,7 +111,8 @@ const getValidators = async () => {
 			limit: 1000, // Fetch more validators to enable client-side search
 			sortBy: selectedSort.value,
 			window: selectedTimeWindow.value,
-			page: 1 // Always fetch from page 1 to get all validators
+			page: 1, // Always fetch from page 1 to get all validators
+			active_only: activeTab.value === "active" // Use active_only based on current tab
 		})
 
 		if (data.value?.data) {
@@ -124,7 +128,8 @@ const getValidators = async () => {
 					rank: validator.rank || 0,
 					validatorId: validator.validator_id || '',
 					name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
-					stake: validator.stake || 0,
+					stake: validator.staking?.real_time_stake_mon ? parseFloat(validator.staking.real_time_stake_mon) : (validator.stake || 0),
+					isActive: validator.staking?.is_staking_active || false,
 					uptimeScore,
 					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
 					blockProposalRatio,
@@ -190,6 +195,14 @@ const handleColumnSort = (sortKey) => {
 	}
 }
 
+// Handle tab change
+const handleTabChange = (tab) => {
+	activeTab.value = tab
+	// Reset to first page when changing tabs
+	page.value = 1
+	// API request will be triggered by the watcher
+}
+
 // Get sort field mapping for column headers
 const getSortKeyForColumn = (column) => {
 	switch (column) {
@@ -235,16 +248,57 @@ const sortValidators = (validators) => {
 	return sorted
 }
 
+// Computed for tab counts - we need to fetch both active and all counts
+const allValidatorsCount = ref(0)
+const activeValidatorsCount = ref(0)
+
+// Function to get validator counts for tabs
+const getValidatorCounts = async () => {
+	try {
+		// Fetch all validators to get accurate counts
+		const allResponse = await fetchValidatorRankings({
+			limit: 1000, // Get all to count properly
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value,
+			page: 1,
+			active_only: false
+		})
+		
+		if (allResponse.data.value?.data) {
+			const allValidatorsData = allResponse.data.value.data
+			allValidatorsCount.value = allValidatorsData.length
+			
+			// Count active validators from the all validators data
+			activeValidatorsCount.value = allValidatorsData.filter(validator => 
+				validator.staking?.is_staking_active || false
+			).length
+		}
+	} catch (error) {
+		console.error('Failed to get validator counts:', error)
+		// Fallback to current data if available
+		if (activeTab.value === "all") {
+			allValidatorsCount.value = allValidators.value.length
+			activeValidatorsCount.value = allValidators.value.filter(v => v.isActive).length
+		} else {
+			// If we're on active tab, we need to fetch all to get proper counts
+			allValidatorsCount.value = 0
+			activeValidatorsCount.value = allValidators.value.length
+		}
+	}
+}
+
 // Initialize data
 await getValidators()
+await getValidatorCounts()
 
 // Preload GitHub validator data to prevent multiple API calls
 preloadGithubValidatorData().catch(error => {
 })
 
-// Update URL and refetch when parameters change (excluding search)
-watch([selectedSort, sortDirection, selectedTimeWindow], async () => {
+// Update URL and refetch when parameters change (including activeTab)
+watch([selectedSort, sortDirection, selectedTimeWindow, activeTab], async () => {
 	await getValidators()
+	await getValidatorCounts() // Update counts when tab changes
 	
 	router.replace({ 
 		query: { 
@@ -252,7 +306,8 @@ watch([selectedSort, sortDirection, selectedTimeWindow], async () => {
 			sortBy: selectedSort.value,
 			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
-			search: searchTerm.value || undefined
+			search: searchTerm.value || undefined,
+			tab: activeTab.value !== "active" ? activeTab.value : undefined
 		} 
 	})
 })
@@ -265,7 +320,8 @@ watch([page, searchTerm], () => {
 			sortBy: selectedSort.value,
 			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
-			search: searchTerm.value || undefined
+			search: searchTerm.value || undefined,
+			tab: activeTab.value !== "active" ? activeTab.value : undefined
 		} 
 	})
 })
@@ -279,6 +335,7 @@ watch(
 		if (route.query.sortDir) sortDirection.value = route.query.sortDir
 		if (route.query.window) selectedTimeWindow.value = route.query.window
 		if (route.query.search !== undefined) searchTerm.value = route.query.search || ""
+		if (route.query.tab) activeTab.value = route.query.tab
 	},
 )
 
@@ -289,7 +346,8 @@ onMounted(() => {
 			sortBy: selectedSort.value,
 			sortDir: sortDirection.value,
 			window: selectedTimeWindow.value,
-			search: searchTerm.value || undefined
+			search: searchTerm.value || undefined,
+			tab: activeTab.value !== "active" ? activeTab.value : undefined
 		} 
 	})
 })
@@ -414,6 +472,32 @@ onMounted(() => {
 						</Button>
 					</Flex>
 				</Flex>
+			</Flex>
+
+			<!-- Active/All Tabs -->
+			<Flex align="center" gap="2" :class="$style.tabs_container">
+				<Button 
+					:type="activeTab === 'all' ? 'primary' : 'secondary'" 
+					size="mini"
+					@click="handleTabChange('all')"
+					:class="$style.tab_button"
+				>
+					All
+					<Text v-if="allValidatorsCount" size="11" :color="activeTab === 'all' ? 'white' : 'tertiary'">
+						({{ allValidatorsCount }})
+					</Text>
+				</Button>
+				<Button 
+					:type="activeTab === 'active' ? 'primary' : 'secondary'" 
+					size="mini"
+					@click="handleTabChange('active')"
+					:class="$style.tab_button"
+				>
+					Active
+					<Text v-if="activeValidatorsCount" size="11" :color="activeTab === 'active' ? 'white' : 'tertiary'">
+						({{ activeValidatorsCount }})
+					</Text>
+				</Button>
 			</Flex>
 
 			<Flex direction="column" gap="16" wide :class="[$style.table, isLoading && $style.disabled]">
@@ -833,5 +917,18 @@ onMounted(() => {
 
 .empty {
 	padding: 16px 0;
+}
+
+.tabs_container {
+	margin-bottom: 8px;
+}
+
+.tab_button {
+	position: relative;
+	gap: 6px;
+	
+	&:hover {
+		transform: none;
+	}
 }
 </style>

@@ -34,16 +34,22 @@
 		"@keplr-wallet/cosmos": "^0.12.70",
 		"@openzeppelin/merkle-tree": "^1.0.6",
 		"@pinia/nuxt": "0.11.0",
+		"@rainbow-me/rainbowkit": "^2.1.0",
 		"@sentry/vue": "^8.50.0",
+		"@tanstack/vue-query": "^5.0.0",
 		"@upstash/redis": "^1.35.1",
 		"@vercel/analytics": "^1.5.0",
+		"@vue/shared": "^3.4.0",
 		"@vueuse/core": "^10.9.0",
+		"@wagmi/core": "^2.13.0",
+		"@wagmi/vue": "^0.0.34",
 		"buffer": "^6.0.3",
 		"codemirror": "^6.0.1",
 		"crypto-js": "^4.2.0",
 		"d3": "^7.8.5",
 		"d3-geo": "^3.1.1",
 		"d3-hierarchy": "^3.1.2",
+		"ethers": "^6.13.0",
 		"focus-trap": "7.5.2",
 		"js-sha256": "^0.11.0",
 		"lean-qr": "^2.3.2",
@@ -54,6 +60,8 @@
 		"protobufjs": "^7.2.6",
 		"qrcode": "^1.5.3",
 		"uuid": "9.0.1",
-		"vite-plugin-node-polyfills": "^0.21.0"
+		"viem": "^2.21.0",
+		"vite-plugin-node-polyfills": "^0.21.0",
+		"wagmi": "^2.12.0"
 	}
 }
