@@ -88,9 +88,11 @@ const props = defineProps({
 					<td>
 						<NuxtLink :to="`/tx/${tx.hash}`">
 							<Flex justify="center" direction="column" gap="4">
-								<Text size="12" weight="600" color="primary">
-									{{ DateTime.fromISO(tx.time).toRelative({ locale: "en", style: "short" }) }}
-								</Text>
+								<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+									<Text size="12" weight="600" color="primary">
+										{{ DateTime.fromISO(tx.time).toRelative({ locale: "en", style: "short" }) }}
+									</Text>
+								</ClientOnlyTime>
 								<Text size="12" weight="500" color="tertiary">
 									{{ DateTime.fromISO(tx.time).setLocale("en").toFormat("LLL d, t") }}
 								</Text>

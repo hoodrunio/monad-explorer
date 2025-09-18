@@ -192,9 +192,11 @@ useHead({
 										<NuxtLink :to="`/block/${block.number}`">
 											<Flex direction="column" gap="4">
 												<Tooltip position="start" delay="500">
-													<Text size="11" weight="600" color="primary">
-														{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
-													</Text>
+													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
+														<Text size="11" weight="600" color="primary">
+															{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+														</Text>
+													</ClientOnlyTime>
 
 													<template #content>
 														{{ DateTime.fromISO(block.timestamp).setLocale("en").toFormat("LLL d, t") }}
@@ -269,9 +271,11 @@ useHead({
 												Block {{ comma(block.number) }}
 											</Text>
 										</Flex>
-										<Text size="12" weight="600" color="tertiary">
-											{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
-										</Text>
+										<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="tertiary">
+											<Text size="12" weight="600" color="tertiary">
+												{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+											</Text>
+										</ClientOnlyTime>
 									</Flex>
 
 									<!-- Block details -->

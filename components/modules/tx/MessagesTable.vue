@@ -73,9 +73,11 @@ const handlePrev = () => {
 						</td>
 						<td>
 							<Flex align="center">
-								<Text size="13" weight="600" color="primary">
-									{{ DateTime.fromISO(message.time).toRelative({ locale: "en", style: "short" }) }}
-								</Text>
+								<ClientOnlyTime fallback-text="..." fallback-size="13" fallback-color="primary">
+									<Text size="13" weight="600" color="primary">
+										{{ DateTime.fromISO(message.time).toRelative({ locale: "en", style: "short" }) }}
+									</Text>
+								</ClientOnlyTime>
 							</Flex>
 						</td>
 						<td>

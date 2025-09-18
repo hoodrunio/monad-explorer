@@ -349,9 +349,11 @@ onMounted(() => {
 							
 							<td :class="$style.time_cell">
 								<Tooltip>
-									<Text size="12" weight="500" color="primary">
-										{{ formatTime(event.timestamp).relative }}
-									</Text>
+									<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+										<Text size="12" weight="500" color="primary">
+											{{ formatTime(event.timestamp).relative }}
+										</Text>
+									</ClientOnlyTime>
 									
 									<template #content>
 										<Text size="12" color="primary">

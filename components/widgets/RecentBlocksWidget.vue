@@ -148,9 +148,11 @@ onUnmounted(() => {
 								<td v-if="block?.timestamp">
 									<NuxtLink :to="`/block/${block.number}`">
 										<Tooltip position="start" delay="500">
-											<Text size="12" weight="600" color="primary">
-												{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
-											</Text>
+											<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+												<Text size="12" weight="600" color="primary">
+													{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+												</Text>
+											</ClientOnlyTime>
 
 											<template #content>
 												{{ DateTime.fromISO(block.timestamp).setLocale("en").toFormat("LLL d, t") }}

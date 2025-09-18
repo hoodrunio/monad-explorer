@@ -55,9 +55,11 @@ const props = defineProps({
 						<NuxtLink :to="`/block/${block.height}`">
 							<Flex justify="center" direction="column" gap="6">
 								<Tooltip position="start" delay="500">
-									<Text size="12" weight="600" color="primary">
-										{{ DateTime.fromISO(block.time).toRelative({ locale: "en", style: "short" }) }}
-									</Text>
+									<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+										<Text size="12" weight="600" color="primary">
+											{{ DateTime.fromISO(block.time).toRelative({ locale: "en", style: "short" }) }}
+										</Text>
+									</ClientOnlyTime>
 
 									<template #content>
 										{{ DateTime.fromISO(block.time).setLocale("en").toFormat("LLL d, t") }}

@@ -254,9 +254,11 @@ watch(
 								</td>
 								<td>
 									<Flex align="center">
-										<Text size="12" weight="600" color="primary">
-											{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
-										</Text>
+										<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+											<Text size="12" weight="600" color="primary">
+												{{ DateTime.fromISO(block.timestamp).toRelative({ locale: "en", style: "short" }) }}
+											</Text>
+										</ClientOnlyTime>
 									</Flex>
 								</td>
 								<td>

@@ -130,9 +130,11 @@ const truncateValidator = (name) => {
                 <Text size="12" weight="500" color="primary">
                   {{ getEventDescription(event) }}
                 </Text>
-                <Text size="11" color="tertiary">
-                  {{ formatTime(event.timestamp).relative }}
-                </Text>
+                <ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="tertiary">
+                  <Text size="11" color="tertiary">
+                    {{ formatTime(event.timestamp).relative }}
+                  </Text>
+                </ClientOnlyTime>
               </Flex>
               
               <Flex align="center" justify="between">

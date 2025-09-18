@@ -273,9 +273,11 @@ useHead({
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
 												<Tooltip position="start" delay="500">
-													<Text size="11" weight="600" color="primary">
-														{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
-													</Text>
+													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
+														<Text size="11" weight="600" color="primary">
+															{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
+														</Text>
+													</ClientOnlyTime>
 
 													<template #content>
 														{{ DateTime.fromISO(tx.timestamp).setLocale("en").toFormat("LLL d, t") }}
@@ -337,9 +339,11 @@ useHead({
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Time</Text>
-											<Text size="12" weight="600" color="primary">
-												{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
-											</Text>
+											<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
+												<Text size="12" weight="600" color="primary">
+													{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
+												</Text>
+											</ClientOnlyTime>
 										</Flex>
 									</Flex>
 								</Flex>
