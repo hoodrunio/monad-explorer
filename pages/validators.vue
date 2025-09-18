@@ -53,7 +53,7 @@ const sortOptions = ref([
 	{ label: "QC Participation", value: "qc_participation_rate" },
 	{ label: "Block Proposals", value: "block_proposal_ratio" },
 ])
-const selectedSort = ref(route.query.sortBy || "block_proposal_ratio")
+const selectedSort = ref(route.query.sortBy || "stake")
 const sortDirection = ref(route.query.sortDir || "desc") // "asc" or "desc"
 
 // Tab state for Active/All validators
@@ -128,7 +128,7 @@ const getValidators = async () => {
 					rank: validator.rank || 0,
 					validatorId: validator.validator_id || '',
 					name: validator.infrastructure?.validator_name || shortHex(validator.validator_id || ''),
-					stake: validator.staking?.real_time_stake_mon ? parseFloat(validator.staking.real_time_stake_mon) : (validator.stake || 0),
+					stake: validator.staking?.real_time_stake_mon ? parseFloat(validator.staking.real_time_stake_mon) : '0',
 					isActive: validator.staking?.is_staking_active || false,
 					uptimeScore,
 					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
