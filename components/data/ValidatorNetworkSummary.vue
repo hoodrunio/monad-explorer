@@ -11,7 +11,8 @@ import ValidatorLogo from "@/components/ValidatorLogo.vue"
 const { data: validatorsData, pending: isLoading, error } = await fetchValidatorRankings({ 
   limit: 10, 
   sortBy: 'uptime_score',
-  window: '7d'
+  window: '7d',
+  active_only: true // Show only active validators in summary
 })
 
 const topValidators = computed(() => {

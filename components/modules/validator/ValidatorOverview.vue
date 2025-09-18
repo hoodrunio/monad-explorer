@@ -327,7 +327,7 @@ const toggleDescription = () => {
 						</Flex>
 						<Flex align="center" gap="6">
 							<Text size="12" weight="600" color="secondary"> 
-								{{ comma(validator.stake) }} 
+								{{ comma(validator.staking?.real_time_stake_mon || 0) }} 
 							</Text>
 						</Flex>
 					</Flex>

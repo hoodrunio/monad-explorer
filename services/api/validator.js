@@ -3,7 +3,7 @@ import { useServerURL } from "@/services/config"
 import { getValidatorInfoBySecp, mergeValidatorData } from "@/services/api/github"
 
 // New Monad-specific endpoints
-export const fetchValidatorRankings = async ({ limit, sortBy, window, page } = {}) => {
+export const fetchValidatorRankings = async ({ limit, sortBy, window, page, active_only = true } = {}) => {
 	try {
 		const url = new URL(`${useServerURL()}/api/validators/rankings`)
 
@@ -11,6 +11,7 @@ export const fetchValidatorRankings = async ({ limit, sortBy, window, page } = {
 		if (sortBy) url.searchParams.append("sortBy", sortBy)
 		if (window) url.searchParams.append("window", window)
 		if (page) url.searchParams.append("page", page)
+		if (active_only !== undefined) url.searchParams.append("active_only", active_only)
 
 		const result = await useFetch(url.href, {
 			key: "validator_rankings",
