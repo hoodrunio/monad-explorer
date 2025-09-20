@@ -155,7 +155,7 @@ onMounted(() => {
 		</Flex>
 
 		<!-- Overview Tab Content -->
-		<Flex v-if="activeTab === 'overview'" direction="column" gap="20">
+		<Flex v-if="activeTab === 'overview'" direction="column" gap="0">
 			<StakingOverview />
 		</Flex>
 	</Flex>

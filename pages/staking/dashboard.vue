@@ -2,6 +2,7 @@
 import { useStakingStore } from '~/store/staking.store'
 import { getValidatorById, getStakingStats, getDelegatorWithdrawals } from '~/services/api/staking'
 import { formatEther } from 'viem'
+import { abbreviate } from '~/services/utils/amounts'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
@@ -56,9 +57,9 @@ const portfolioSummary = computed(() => {
 	const totalValue = totalStakedBigInt + totalRewardsBigInt
 	
 	return {
-		totalValue: formatEther(totalValue),
-		totalStaked: formatEther(totalStakedBigInt),
-		totalRewards: formatEther(totalRewardsBigInt),
+		totalValue: abbreviate(parseFloat(formatEther(totalValue)), 2) || '0',
+		totalStaked: abbreviate(parseFloat(formatEther(totalStakedBigInt)), 2) || '0',
+		totalRewards: abbreviate(parseFloat(formatEther(totalRewardsBigInt)), 2) || '0',
 		delegationCount: userDelegations.value.length,
 	}
 })
@@ -293,7 +294,7 @@ watch(userDelegations, async (newDelegations) => {
 		</Flex>
 
 		<!-- Content -->
-		<Flex direction="column" gap="20" wide :class="$style.content_container">
+		<Flex direction="column" gap="16" wide :class="$style.content_container">
 				<!-- Not Connected State -->
 				<div v-if="!isConnected" :class="$style.not_connected">
 					<div :class="$style.not_connected_content">
@@ -332,113 +333,195 @@ watch(userDelegations, async (newDelegations) => {
 					</Flex>
 
 					<!-- Portfolio Overview -->
-					<Flex direction="column" gap="16">
-						<Text size="14" weight="600" color="primary">Portfolio Overview</Text>
-						<Flex gap="16" :class="$style.grid_2">
-							<div :class="[$style.overview_card, $style.primary]">
-								<div :class="$style.card_header">
-									<span :class="$style.card_icon">💰</span>
-									<span :class="$style.card_title">Total Portfolio Value</span>
-								</div>
-								<div :class="$style.card_content">
-									<div :class="$style.card_value">{{ portfolioSummary.totalValue }} MON</div>
-									<div :class="$style.card_breakdown">
-										{{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards
+					<Flex direction="column" gap="12">
+						<div :class="$style.section_header">
+							<Icon name="chart" size="20" color="primary" />
+							<Text size="14" weight="600" color="primary">Portfolio Overview</Text>
+							<Button
+								size="small"
+								type="secondary"
+								:loading="refreshing"
+								@click="refreshData"
+							>
+								<Icon name="refresh" size="14" />
+								Refresh
+							</Button>
+						</div>
+
+						<div :class="$style.portfolio_table">
+							<div :class="$style.table_header">
+								<div :class="$style.table_cell">Metric</div>
+								<div :class="$style.table_cell">Value</div>
+								<div :class="$style.table_cell">Actions</div>
+							</div>
+
+							<div :class="$style.table_row">
+								<div :class="$style.table_cell">
+									<div :class="$style.metric_info">
+										<Icon name="chart" size="16" color="blue" />
+										<span>Total Portfolio Value</span>
 									</div>
 								</div>
+								<div :class="$style.table_cell">
+									<div :class="$style.value_info">
+										<span :class="$style.amount">{{ portfolioSummary.totalValue }}</span>
+										<span :class="$style.unit">MON</span>
+										<div :class="$style.detail">{{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards</div>
+									</div>
+								</div>
+								<div :class="$style.table_cell">
+									<NuxtLink to="/staking/dashboard">
+										<Button size="small" type="secondary">
+											<Icon name="eye" size="14" />
+											View Details
+										</Button>
+									</NuxtLink>
+								</div>
 							</div>
 
-							<div :class="$style.overview_card">
-								<div :class="$style.card_header">
-									<span :class="$style.card_icon">💳</span>
-									<span :class="$style.card_title">Available Balance</span>
+							<div :class="$style.table_row">
+								<div :class="$style.table_cell">
+									<div :class="$style.metric_info">
+										<Icon name="coin" size="16" color="green" />
+										<span>Available Balance</span>
+									</div>
 								</div>
-								<div :class="$style.card_content">
-									<div :class="$style.card_value">{{ stakingStore.formattedBalance }} MON</div>
+								<div :class="$style.table_cell">
+									<div :class="$style.value_info">
+										<span :class="$style.amount">{{ stakingStore.abbreviatedAvailableBalance }}</span>
+										<span :class="$style.unit">MON</span>
+										<div :class="$style.detail">Ready to delegate</div>
+									</div>
+								</div>
+								<div :class="$style.table_cell">
+									<NuxtLink to="/staking/validators">
+										<Button size="small" type="primary">
+											<Icon name="plus" size="14" />
+											Stake
+										</Button>
+									</NuxtLink>
 								</div>
 							</div>
 
-							<div :class="$style.overview_card">
-								<div :class="$style.card_header">
-									<span :class="$style.card_icon">🎁</span>
-									<span :class="$style.card_title">Pending Rewards</span>
+							<div :class="$style.table_row">
+								<div :class="$style.table_cell">
+									<div :class="$style.metric_info">
+										<Icon name="coins" size="16" color="yellow" />
+										<span>Pending Rewards</span>
+									</div>
 								</div>
-								<div :class="$style.card_content">
-									<div :class="[$style.card_value, $style.rewards]">{{ portfolioSummary.totalRewards }} MON</div>
-									<div v-if="BigInt(stakingStore.userRewards || '0') > 0" :class="$style.card_actions">
-										<Button 
-											size="small" 
+								<div :class="$style.table_cell">
+									<div :class="$style.value_info">
+										<span :class="$style.amount">{{ portfolioSummary.totalRewards }}</span>
+										<span :class="$style.unit">MON</span>
+										<div :class="$style.detail">Available to claim</div>
+									</div>
+								</div>
+								<div :class="$style.table_cell">
+									<div v-if="BigInt(stakingStore.userRewards || '0') > 0" :class="$style.action_buttons">
+										<Button
+											size="small"
 											type="secondary"
 											:loading="stakingStore.loading.compound"
 											@click="compoundAllRewards"
 										>
-											Compound All
+											<Icon name="refresh-cw" size="14" />
+											Compound
 										</Button>
-										<Button 
-											size="small" 
+										<Button
+											size="small"
 											type="primary"
 											:loading="stakingStore.loading.claimRewards"
 											@click="claimAllRewards"
 										>
-											Claim All
+											<Icon name="arrow-up" size="14" />
+											Claim
 										</Button>
 									</div>
+									<span v-else :class="$style.no_rewards">No rewards available</span>
 								</div>
 							</div>
 
-							<div :class="$style.overview_card">
-								<div :class="$style.card_header">
-									<span :class="$style.card_icon">📊</span>
-									<span :class="$style.card_title">Active Delegations</span>
+							<div :class="$style.table_row">
+								<div :class="$style.table_cell">
+									<div :class="$style.metric_info">
+										<Icon name="validator" size="16" color="purple" />
+										<span>Active Delegations</span>
+									</div>
 								</div>
-								<div :class="$style.card_content">
-									<div :class="$style.card_value">{{ portfolioSummary.delegationCount }}</div>
-									<div :class="$style.card_detail">Validator{{ portfolioSummary.delegationCount !== 1 ? 's' : '' }}</div>
+								<div :class="$style.table_cell">
+									<div :class="$style.value_info">
+										<span :class="$style.amount">{{ portfolioSummary.delegationCount }}</span>
+										<span :class="$style.unit">Validator{{ portfolioSummary.delegationCount !== 1 ? 's' : '' }}</span>
+										<div :class="$style.detail">Currently earning rewards</div>
+									</div>
+								</div>
+								<div :class="$style.table_cell">
+									<NuxtLink to="/staking/dashboard">
+										<Button size="small" type="secondary">
+											<Icon name="settings" size="14" />
+											Manage
+										</Button>
+									</NuxtLink>
 								</div>
 							</div>
-						</Flex>
+						</div>
 					</Flex>
 
 					<!-- Pending Withdrawals -->
 					<Flex v-if="withdrawals.length > 0" direction="column" gap="16">
-						<Flex align="center" justify="between" wide>
+						<div :class="$style.section_header">
+							<Icon name="clock" size="20" color="primary" />
 							<Text size="14" weight="600" color="primary">Pending Withdrawals</Text>
 							<Flex align="center" gap="8" :class="$style.withdrawable_total">
-								<Text size="12" color="success">Withdrawable:</Text>
-								<Text size="12" weight="600" color="success">{{ formatEther(withdrawableTotal) }} MON</Text>
+								<Text size="12" color="success">Total Withdrawable:</Text>
+								<Text size="12" weight="600" color="success">{{ abbreviate(parseFloat(formatEther(withdrawableTotal)), 2) || '0' }} MON</Text>
 							</Flex>
-						</Flex>
-						
-						<div :class="$style.withdrawals_grid">
-							<div 
-								v-for="withdrawal in withdrawals" 
+						</div>
+
+						<div :class="$style.withdrawals_table">
+							<div :class="$style.table_header">
+								<div :class="$style.table_cell">Validator</div>
+								<div :class="$style.table_cell">Amount</div>
+								<div :class="$style.table_cell">Status</div>
+								<div :class="$style.table_cell">Action</div>
+							</div>
+
+							<div
+								v-for="withdrawal in withdrawals"
 								:key="`${withdrawal.valId}-${withdrawal.withdrawId}`"
-								:class="[$style.withdrawal_card, { [$style.withdrawable]: withdrawal.isWithdrawable }]"
+								:class="$style.table_row"
 							>
-								<div :class="$style.withdrawal_info">
-									<div :class="$style.withdrawal_validator">
-										Validator #{{ withdrawal.valId }}
-									</div>
-									<div :class="$style.withdrawal_amount">
-										{{ withdrawal.formattedAmount }} MON
-									</div>
-									<div :class="$style.withdrawal_status">
-										{{ withdrawal.isWithdrawable ? 'Ready to withdraw' : `Available in epoch ${withdrawal.withdrawableEpoch}` }}
+								<div :class="$style.table_cell">
+									<div :class="$style.validator_info">
+										<Icon name="check-circle" size="16" color="blue" />
+										<span>Validator #{{ withdrawal.valId }}</span>
 									</div>
 								</div>
-								<div :class="$style.withdrawal_action">
-									<Button 
+								<div :class="$style.table_cell">
+									<span :class="$style.amount">{{ abbreviate(parseFloat(withdrawal.formattedAmount), 2) || '0' }}</span>
+									<span :class="$style.unit">MON</span>
+								</div>
+								<div :class="$style.table_cell">
+									<span :class="[$style.status, { [$style.ready]: withdrawal.isWithdrawable }]">
+										{{ withdrawal.isWithdrawable ? 'Ready to withdraw' : `Available in epoch ${withdrawal.withdrawableEpoch}` }}
+									</span>
+								</div>
+								<div :class="$style.table_cell">
+									<Button
 										v-if="withdrawal.isWithdrawable"
-										size="small" 
+										size="small"
 										type="primary"
 										:loading="stakingStore.loading.withdraw"
 										@click="handleWithdraw(withdrawal)"
 									>
+										<Icon name="arrow-down" size="14" />
 										Withdraw
 									</Button>
-									<span v-else :class="$style.waiting_label">
-										⏳ Waiting
-									</span>
+									<Flex v-else align="center" gap="4" :class="$style.waiting_status">
+										<Icon name="clock" size="14" color="secondary" />
+										<span>Waiting</span>
+									</Flex>
 								</div>
 							</div>
 						</div>
@@ -446,19 +529,23 @@ watch(userDelegations, async (newDelegations) => {
 
 					<!-- My Delegations -->
 					<Flex direction="column" gap="16">
-						<Flex direction="column" gap="4">
-							<Text size="14" weight="600" color="primary">My Delegations</Text>
-							<Text size="12" color="tertiary">Manage your active delegations and rewards</Text>
-						</Flex>
+						<div :class="$style.section_header">
+							<Icon name="validator" size="20" color="primary" />
+							<div>
+								<Text size="14" weight="600" color="primary">My Delegations</Text>
+								<Text size="12" color="tertiary">Manage your active delegations and rewards</Text>
+							</div>
+						</div>
 
 						<!-- No Delegations -->
 						<div v-if="enrichedDelegations.length === 0" :class="$style.no_delegations">
 							<div :class="$style.no_delegations_content">
-								<div :class="$style.icon">🎯</div>
+								<Icon name="chart" size="48" color="tertiary" />
 								<h3>No Active Delegations</h3>
 								<p>You haven't staked any MON tokens yet. Start earning rewards by delegating to validators.</p>
 								<NuxtLink to="/staking/validators">
 									<Button size="medium" type="primary">
+										<Icon name="search" size="16" />
 										Browse Validators
 									</Button>
 								</NuxtLink>
@@ -569,212 +656,296 @@ watch(userDelegations, async (newDelegations) => {
 	}
 }
 
-.grid_2 {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 16px;
+.section_header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: space-between;
+	margin-bottom: 12px;
 
 	@media (max-width: 768px) {
-		grid-template-columns: 1fr;
-	}
-}
-
-/* Card styles are now handled by individual components */
-
-.overview_card {
-	background: var(--card-background);
-	border: 1px solid var(--op-5);
-	border-radius: 16px;
-	padding: 24px;
-	transition: all 0.2s ease;
-	
-	&:hover {
-		box-shadow: 0 2px 8px var(--op-10);
-	}
-	
-	&.primary {
-		background: var(--brand);
-		color: var(--txt-white);
-		border: none;
-		
-		.card_title,
-		.card_breakdown {
-			opacity: 0.9;
-		}
-	}
-	
-	.card_header {
-		display: flex;
-		align-items: center;
+		flex-direction: column;
+		align-items: flex-start;
 		gap: 8px;
-		margin-bottom: 16px;
-		
-		.card_icon {
-			font-size: 20px;
-		}
-		
-		.card_title {
-			font-size: 14px;
-			font-weight: 600;
-			color: var(--txt-secondary);
-		}
-	}
-	
-	.card_content {
-		.card_value {
-			font-size: 24px;
-			font-weight: 700;
-			color: var(--txt-primary);
-			margin-bottom: 8px;
-			
-			&.rewards {
-				color: var(--green);
-			}
-		}
-		
-		.card_breakdown,
-		.card_detail {
-			font-size: 12px;
-			color: var(--txt-secondary);
-		}
-		
-		.card_actions {
-			display: flex;
-			gap: 8px;
-			margin-top: 12px;
-		}
+		margin-bottom: 10px;
 	}
 }
 
-.withdrawals_section,
-.delegations_section {
-	margin-bottom: 40px;
-	
-	.section_header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 24px;
-		
-		@media (max-width: 768px) {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 12px;
-		}
-		
-		h2 {
-			font-size: 24px;
-			font-weight: 600;
-			color: var(--text-primary, #000);
-			margin: 0;
-		}
-		
-		.section_description {
-			color: var(--text-secondary, #666);
-			margin: 4px 0 0 0;
-		}
-		
-		.withdrawable_total {
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			background: var(--op-5);
-			padding: 8px 16px;
-			border-radius: 8px;
-			
-			.total_label {
-				font-size: 14px;
-				color: var(--green);
-			}
-			
-			.total_value {
-				font-size: 14px;
-				font-weight: 600;
-				color: var(--green);
-			}
-		}
-	}
-}
-
-.withdrawals_grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: 20px;
-	margin-bottom: 32px;
-}
-
-.withdrawal_card {
+.portfolio_table {
 	background: var(--card-background);
 	border: 1px solid var(--op-5);
 	border-radius: 12px;
-	padding: 20px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	
-	&.withdrawable {
-		border-color: var(--green);
+	overflow: hidden;
+
+	.table_header {
+		display: grid;
+		grid-template-columns: 1.5fr 2fr 1fr;
+		gap: 12px;
+		padding: 12px 20px;
 		background: var(--op-5);
-	}
-	
-	.withdrawal_info {
-		flex: 1;
-		
-		.withdrawal_validator {
+		border-bottom: 1px solid var(--op-8);
+
+		@media (max-width: 768px) {
+			display: none;
+		}
+
+		.table_cell {
+			font-size: 11px;
 			font-weight: 600;
-			color: var(--txt-primary);
-			margin-bottom: 4px;
-		}
-		
-		.withdrawal_amount {
-			font-size: 18px;
-			font-weight: 700;
-			color: var(--txt-primary);
-			margin-bottom: 4px;
-		}
-		
-		.withdrawal_status {
-			font-size: 12px;
 			color: var(--txt-secondary);
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
 		}
 	}
-	
-	.withdrawal_action {
-		.waiting_label {
-			font-size: 12px;
-			color: var(--txt-secondary);
+
+	.table_row {
+		display: grid;
+		grid-template-columns: 1.2fr 1.8fr 0.8fr;
+		gap: 8px;
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--op-5);
+		transition: all 0.2s ease;
+
+		&:hover {
+			background: var(--op-5);
+		}
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		@media (max-width: 768px) {
+			grid-template-columns: 1fr;
+			gap: 6px;
+			padding: 10px;
+
+			&::before {
+				content: attr(data-label);
+				font-size: 10px;
+				font-weight: 600;
+				color: var(--txt-secondary);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				margin-bottom: 4px;
+				display: block;
+			}
+		}
+
+		.table_cell {
 			display: flex;
 			align-items: center;
 			gap: 4px;
+
+			@media (max-width: 768px) {
+				justify-content: space-between;
+			}
+
+			.metric_info {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-weight: 500;
+				color: var(--txt-primary);
+				min-width: 0;
+
+				span {
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+			}
+
+			.value_info {
+				display: flex;
+				flex-direction: column;
+				gap: 1px;
+				min-width: 0;
+
+				.amount {
+					font-size: 15px;
+					font-weight: 700;
+					color: var(--txt-primary);
+				}
+
+				.unit {
+					font-size: 10px;
+					color: var(--txt-secondary);
+					font-weight: 500;
+				}
+
+				.detail {
+					font-size: 10px;
+					color: var(--txt-secondary);
+					line-height: 1.2;
+				}
+			}
+
+			.action_buttons {
+				display: flex;
+				gap: 4px;
+
+				@media (max-width: 768px) {
+					flex-direction: column;
+					align-items: flex-end;
+					gap: 4px;
+				}
+			}
+
+			.no_rewards {
+				font-size: 10px;
+				color: var(--txt-tertiary);
+				font-style: italic;
+			}
 		}
 	}
 }
 
+.withdrawals_table {
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
+	border-radius: 12px;
+	overflow: hidden;
+
+	.table_header {
+		display: grid;
+		grid-template-columns: 2fr 1fr 1.5fr 1fr;
+		gap: 16px;
+		padding: 16px 24px;
+		background: var(--op-5);
+		border-bottom: 1px solid var(--op-8);
+
+		@media (max-width: 768px) {
+			display: none;
+		}
+
+		.table_cell {
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--txt-secondary);
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+	}
+
+	.table_row {
+		display: grid;
+		grid-template-columns: 2fr 1fr 1.5fr 1fr;
+		gap: 16px;
+		padding: 20px 24px;
+		border-bottom: 1px solid var(--op-5);
+		transition: all 0.2s ease;
+
+		&:hover {
+			background: var(--op-5);
+		}
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		@media (max-width: 768px) {
+			grid-template-columns: 1fr;
+			gap: 12px;
+			padding: 16px;
+
+			&::before {
+				content: attr(data-label);
+				font-size: 12px;
+				font-weight: 600;
+				color: var(--txt-secondary);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				margin-bottom: 8px;
+				display: block;
+			}
+		}
+
+		.table_cell {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+
+			@media (max-width: 768px) {
+				flex-direction: row;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			.validator_info {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				font-weight: 500;
+				color: var(--txt-primary);
+			}
+
+			.amount {
+				font-size: 16px;
+				font-weight: 700;
+				color: var(--txt-primary);
+			}
+
+			.unit {
+				font-size: 12px;
+				color: var(--txt-secondary);
+			}
+
+			.status {
+				font-size: 13px;
+				color: var(--txt-secondary);
+				padding: 4px 8px;
+				border-radius: 8px;
+				background: var(--op-5);
+				align-self: flex-start;
+
+				&.ready {
+					background: var(--op-5);
+					color: var(--green);
+				}
+
+				@media (max-width: 768px) {
+					align-self: auto;
+				}
+			}
+
+			.waiting_status {
+				font-size: 13px;
+				color: var(--txt-secondary);
+			}
+		}
+	}
+}
+
+.withdrawable_total {
+	background: var(--op-5);
+	padding: 6px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--op-10);
+}
 
 .no_delegations {
+	background: var(--card-background);
+	border: 1px solid var(--op-5);
+	border-radius: 12px;
+	padding: 60px 24px;
 	text-align: center;
-	padding: 80px 20px;
-	
+
 	.no_delegations_content {
 		max-width: 400px;
 		margin: 0 auto;
-		
-		.icon {
-			font-size: 48px;
-			margin-bottom: 20px;
-		}
-		
+
 		h3 {
-			font-size: 24px;
+			font-size: 20px;
 			font-weight: 600;
 			color: var(--txt-primary);
 			margin: 0 0 12px 0;
 		}
-		
+
 		p {
 			color: var(--txt-secondary);
 			margin: 0 0 24px 0;
 			line-height: 1.5;
+			font-size: 14px;
 		}
 	}
 }
