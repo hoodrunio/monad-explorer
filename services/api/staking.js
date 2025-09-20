@@ -546,7 +546,28 @@ export async function getValidatorDelegators(valId, limit = 100) {
  */
 export function calculateValidatorAPY(validator, totalNetworkStake, blockReward = 1) {
 	try {
-		const validatorStake = BigInt(validator.consensusStake || validator.stake)
+		// Handle scientific notation and string conversion safely
+		let stakeValue = validator.consensusStake || validator.stake
+		if (!stakeValue || stakeValue === '0') return 0
+		
+		// Convert to string first
+		let stakeStr = String(stakeValue)
+		
+		// Handle scientific notation by converting to fixed notation first
+		if (stakeStr.includes('e') || stakeStr.includes('E')) {
+			const num = Number(stakeStr)
+			if (isNaN(num) || !isFinite(num)) return 0
+			// Use toLocaleString to avoid scientific notation for very large numbers
+			stakeStr = num.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 0 })
+		}
+		
+		// Ensure it's a valid integer string for BigInt
+		if (!/^\d+$/.test(stakeStr)) {
+			console.warn('Invalid stake value for BigInt conversion:', stakeValue)
+			return 0
+		}
+		
+		const validatorStake = BigInt(stakeStr)
 		if (validatorStake === 0n) return 0
 		
 		// Simplified APY calculation

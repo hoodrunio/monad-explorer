@@ -9,6 +9,7 @@ import {
 	waitForTransactionReceipt,
 } from '@wagmi/core'
 import { parseEther, formatEther, parseUnits, formatUnits } from 'viem'
+import { abbreviate } from '~/services/utils/amounts'
 import { STAKING_CONFIG, STAKING_SELECTORS, monadTestnet } from '~/config/chains'
 
 export const useStakingStore = defineStore('staking', {
@@ -50,6 +51,10 @@ export const useStakingStore = defineStore('staking', {
 		// Formatted balances
 		formattedBalance: (state) => formatEther(BigInt(state.balance || '0')),
 		formattedRewards: (state) => formatEther(BigInt(state.userRewards || '0')),
+		abbreviatedRewards: (state) => {
+			const amount = parseFloat(formatEther(BigInt(state.userRewards || '0')))
+			return abbreviate(amount, 2) || '0'
+		},
 		
 		// Total staked amount
 		totalStaked: (state) => {
@@ -62,6 +67,12 @@ export const useStakingStore = defineStore('staking', {
 			return formatEther(this.totalStaked)
 		},
 		
+		// Abbreviated formatting for large amounts
+		abbreviatedTotalStaked() {
+			const amount = parseFloat(formatEther(this.totalStaked))
+			return abbreviate(amount, 2) || '0'
+		},
+		
 		// Available balance for staking (excluding gas reserve)
 		availableBalance: (state) => {
 			const balance = BigInt(state.balance || '0')
@@ -71,6 +82,11 @@ export const useStakingStore = defineStore('staking', {
 		
 		formattedAvailableBalance() {
 			return formatEther(this.availableBalance)
+		},
+		
+		abbreviatedAvailableBalance() {
+			const amount = parseFloat(formatEther(this.availableBalance))
+			return abbreviate(amount, 2) || '0'
 		},
 		
 		// Check if user has pending withdrawals
@@ -87,6 +103,11 @@ export const useStakingStore = defineStore('staking', {
 		
 		formattedWithdrawableAmount() {
 			return formatEther(this.withdrawableAmount)
+		},
+		
+		abbreviatedWithdrawableAmount() {
+			const amount = parseFloat(formatEther(this.withdrawableAmount))
+			return abbreviate(amount, 2) || '0'
 		},
 	},
 

@@ -101,7 +101,7 @@ const handleManage = (validator) => {
 								<ValidatorLogo 
 									:logo-url="validator.logoUrl"
 									:validator-name="validator.name"
-									size="mini"
+									size="small"
 								/>
 								<Flex direction="column" gap="1">
 									<Text size="12" weight="600" color="primary" :class="$style.validator_name">
