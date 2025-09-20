@@ -396,7 +396,7 @@ watch(userDelegations, async (newDelegations) => {
 								<div :class="$style.table_cell">
 									<NuxtLink to="/staking/validators">
 										<Button size="small" type="primary">
-											<Icon name="plus" size="14" />
+											<Icon name="plus-circle" size="14" />
 											Stake
 										</Button>
 									</NuxtLink>
@@ -425,7 +425,7 @@ watch(userDelegations, async (newDelegations) => {
 											:loading="stakingStore.loading.compound"
 											@click="compoundAllRewards"
 										>
-											<Icon name="refresh-cw" size="14" />
+											<Icon name="refresh" size="14" />
 											Compound
 										</Button>
 										<Button
@@ -434,7 +434,7 @@ watch(userDelegations, async (newDelegations) => {
 											:loading="stakingStore.loading.claimRewards"
 											@click="claimAllRewards"
 										>
-											<Icon name="arrow-up" size="14" />
+											<Icon name="arrow-narrow-up" size="14" />
 											Claim
 										</Button>
 									</div>
@@ -529,13 +529,13 @@ watch(userDelegations, async (newDelegations) => {
 
 					<!-- My Delegations -->
 					<Flex direction="column" gap="16">
-						<div :class="$style.section_header">
-							<Icon name="validator" size="20" color="primary" />
-							<div>
+						<Flex direction="column" align="center" gap="8">
+							<Flex align="center" gap="8">
+								<Icon name="validator" size="20" color="primary" />
 								<Text size="14" weight="600" color="primary">My Delegations</Text>
-								<Text size="12" color="tertiary">Manage your active delegations and rewards</Text>
-							</div>
-						</div>
+							</Flex>
+							<Text size="12" color="tertiary">Manage your active delegations and rewards</Text>
+						</Flex>
 
 						<!-- No Delegations -->
 						<div v-if="enrichedDelegations.length === 0" :class="$style.no_delegations">

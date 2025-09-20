@@ -1,6 +1,7 @@
 <script setup>
 import { formatEther } from 'viem'
 import { calculateValidatorAPY } from '~/services/api/staking'
+import { abbreviate } from '~/services/utils/amounts'
 
 // UI Components  
 import Button from '@/components/ui/Button.vue'
@@ -30,12 +31,14 @@ const hasUserDelegation = computed(() => {
 
 const userStakeFormatted = computed(() => {
 	if (!props.userDelegation) return '0'
-	return formatEther(BigInt(props.userDelegation.stake || '0'))
+	const amount = parseFloat(formatEther(BigInt(props.userDelegation.stake || '0')))
+	return abbreviate(amount, 2) || '0'
 })
 
 const userRewardsFormatted = computed(() => {
 	if (!props.userDelegation) return '0'
-	return formatEther(BigInt(props.userDelegation.rewards || '0'))
+	const amount = parseFloat(formatEther(BigInt(props.userDelegation.rewards || '0')))
+	return abbreviate(amount, 2) || '0'
 })
 
 const estimatedAPY = computed(() => {

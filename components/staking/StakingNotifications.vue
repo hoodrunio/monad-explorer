@@ -50,7 +50,7 @@ const notifications = computed(() => {
 		items.push({
 			type: 'info',
 			title: 'Rewards Available',
-			message: `${stakingStore.formattedRewards} MON in pending rewards`,
+			message: `${stakingStore.abbreviatedRewards} MON in pending rewards`,
 			action: 'claim-rewards',
 		})
 	}

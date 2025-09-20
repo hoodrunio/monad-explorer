@@ -8,6 +8,7 @@ import ValidatorLogo from "@/components/ValidatorLogo.vue"
 // Services
 import { shortHex, comma } from "@/services/utils"
 import { calculateValidatorAPY } from "@/services/api/staking"
+import { abbreviate } from '~/services/utils/amounts'
 
 // Props
 const props = defineProps({
@@ -149,10 +150,10 @@ const handleManage = (validator) => {
 						<td :class="$style.col_delegation">
 							<div v-if="getUserDelegation(validator.valId)" :class="$style.delegation_info">
 								<Text size="13" weight="600" color="primary">
-									{{ formatEther(BigInt(getUserDelegation(validator.valId).stake || '0')) }} MON
+									{{ abbreviate(parseFloat(formatEther(BigInt(getUserDelegation(validator.valId).stake || '0'))), 2) || '0' }} MON
 								</Text>
 								<Text size="11" color="tertiary">
-									Rewards: {{ formatEther(BigInt(getUserDelegation(validator.valId).rewards || '0')) }} MON
+									Rewards: {{ abbreviate(parseFloat(formatEther(BigInt(getUserDelegation(validator.valId).rewards || '0'))), 2) || '0' }} MON
 								</Text>
 							</div>
 							<Text v-else size="12" color="support">
