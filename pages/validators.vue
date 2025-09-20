@@ -11,7 +11,7 @@ import { comma, shortHex } from "@/services/utils"
 
 /** API */
 import { fetchValidatorRankings } from "@/services/api/validator"
-import { preloadGithubValidatorData } from "@/services/api/github"
+import { preloadGithubValidatorData, fetchGithubValidatorInfo } from "@/services/api/github"
 
 const route = useRoute()
 const router = useRouter()
@@ -116,33 +116,39 @@ const getValidators = async () => {
 		})
 
 		if (data.value?.data) {
-			const validatorsList = data.value.data.map(validator => {
-				const totalBlockOpportunities = validator.details?.total_block_opportunities || 0
-				const blockProposalRatio = validator.metrics?.block_proposal_ratio || 0
+			// Load GitHub validator info once and use it for mapping
+			const githubMap = await fetchGithubValidatorInfo()
+			const validatorsList = data.value.data.map(v => {
+				const totalBlockOpportunities = v.details?.total_block_opportunities || 0
+				const blockProposalRatio = v.metrics?.block_proposal_ratio || 0
 				
-				// NEW: Use block proposal ratio as uptime score (instead of combined uptime_score)
-				// If no block opportunities, uptime score is null
+				// Prefer GitHub name/logo when available
+				const githubData = githubMap instanceof Map ? githubMap.get(v.validator_id) : null
+				const preferredName = githubData?.name || v.infrastructure?.validator_name || 'unknown'
+				const preferredLogo = githubData?.logo || v.keybase?.logo_url || v.logoUrl || null
+				
+				// Use block proposal ratio as uptime score; if no opportunities, show null
 				const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
 				
 				return {
-					rank: validator.rank || 0,
-					validatorId: validator.validator_id || '',
-					name: validator.infrastructure?.validator_name || 'unknown',
-					stake: validator.staking?.real_time_stake_mon ? parseFloat(validator.staking.real_time_stake_mon) : '0',
-					isActive: validator.staking?.is_staking_active || false,
+					rank: v.rank || 0,
+					validatorId: v.validator_id || '',
+					name: preferredName,
+					stake: v.staking?.real_time_stake_mon ? parseFloat(v.staking.real_time_stake_mon) : '0',
+					isActive: v.staking?.is_staking_active || false,
 					uptimeScore,
-					qcParticipationRate: validator.metrics?.qc_participation_rate || 0,
+					qcParticipationRate: v.metrics?.qc_participation_rate || 0,
 					blockProposalRatio,
-					provider: validator.infrastructure?.provider || 'Unknown',
-					location: validator.infrastructure?.location || 'Unknown',
-					blocksProposed: validator.details?.blocks_proposed || 0,
+					provider: v.infrastructure?.provider || 'Unknown',
+					location: v.infrastructure?.location || 'Unknown',
+					blocksProposed: v.details?.blocks_proposed || 0,
 					totalBlockOpportunities,
-					qcParticipations: validator.details?.qc_participations || 0,
-					totalQcOpportunities: validator.details?.total_qc_opportunities || 0,
-					logoUrl: validator.keybase?.logo_url || validator.logoUrl || null,
+					qcParticipations: v.details?.qc_participations || 0,
+					totalQcOpportunities: v.details?.total_qc_opportunities || 0,
+					logoUrl: preferredLogo,
 					// Include staking object for precompile_validator_id access
-					staking: validator.staking,
-					precompileValidatorId: validator.staking?.precompile_validator_id
+					staking: v.staking,
+					precompileValidatorId: v.staking?.precompile_validator_id
 				}
 			})
 			
