@@ -342,6 +342,22 @@ const toggleDescription = () => {
 							/>
 						</Flex>
 					</Flex>
+
+					<!-- Author Address (from staking.auth_address) -->
+					<Flex direction="column" gap="8" :class="$style.key_value">
+						<Flex align="center" justify="between">
+							<Text size="13" weight="600" color="primary">Author Address</Text>
+						</Flex>
+						<Flex align="center" gap="6">
+							<Text size="12" weight="600" color="tertiary" mono selectable>
+								{{ validator.staking?.auth_address ? shortHex(validator.staking.auth_address) : 'N/A' }}
+							</Text>
+							<CopyButton 
+								v-if="validator.staking?.auth_address" 
+								:text="validator.staking.auth_address" 
+							/>
+						</Flex>
+					</Flex>
 					
 					<!-- Stake Information -->
 					<Flex v-if="validator.stake" direction="column" gap="8" :class="$style.key_value">
