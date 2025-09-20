@@ -82,7 +82,8 @@ const filteredValidators = computed(() => {
 		const search = searchTerm.value.toLowerCase().trim()
 		filtered = filtered.filter(validator => 
 			validator.valId.toString().includes(search) ||
-			validator.authAddress.toLowerCase().includes(search)
+			validator.authAddress.toLowerCase().includes(search) ||
+			(validator.name && validator.name.toLowerCase().includes(search))
 		)
 	}
 	
@@ -327,7 +328,7 @@ watch(filterType, () => {
 					<div :class="$style.search_section">
 						<Input 
 							v-model="searchTerm"
-							placeholder="Search by validator ID or address..."
+							placeholder="Search by validator ID, address, or name..."
 							:class="$style.search_input"
 						/>
 					</div>
