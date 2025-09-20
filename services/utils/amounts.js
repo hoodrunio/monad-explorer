@@ -101,7 +101,14 @@ export const roundTo = (num, decimal = 2, method = "round") => {
 
 export const abbreviate = (n, h = 1) => {
 	if (n < 1e3) return n
-	if (n >= 1e3 && n < 1e6) return +(n / 1e3).toFixed(h) + "K"
+	if (n >= 1e3 && n < 1e6) {
+		const kValue = +(n / 1e3).toFixed(h)
+		// If the K value would be >= 999.5, show as M instead for better UX
+		if (kValue >= 999.5) {
+			return +(n / 1e6).toFixed(h) + "M"
+		}
+		return kValue + "K"
+	}
 	if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(h) + "M"
 	if (n >= 1e9 && n < 1e12) return +(n / 1e9).toFixed(h) + "B"
 	if (n >= 1e12) return +(n / 1e12).toFixed(h) + "T"

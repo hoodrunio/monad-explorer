@@ -1,5 +1,6 @@
 <script setup>
 import { formatEther, parseEther } from 'viem'
+import { abbreviate } from '~/services/utils/amounts'
 import { useStakingStore } from '~/store/staking.store'
 
 // Components
@@ -33,8 +34,8 @@ const loading = ref(false)
 const error = ref('')
 
 // Computed
-const stakedAmount = computed(() => formatEther(BigInt(props.delegation.stake || '0')))
-const rewardsAmount = computed(() => formatEther(BigInt(props.delegation.rewards || '0')))
+const stakedAmount = computed(() => abbreviate(parseFloat(formatEther(BigInt(props.delegation.stake || '0'))), 2) || '0')
+const rewardsAmount = computed(() => abbreviate(parseFloat(formatEther(BigInt(props.delegation.rewards || '0'))), 2) || '0')
 const hasRewards = computed(() => BigInt(props.delegation.rewards || '0') > 0)
 
 // Validation for unstake

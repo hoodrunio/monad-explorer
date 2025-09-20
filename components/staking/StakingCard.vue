@@ -1,6 +1,7 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
 import { formatEther, parseEther } from 'viem'
+import { abbreviate } from '~/services/utils/amounts'
 
 // UI Components
 import Button from '@/components/ui/Button.vue'
@@ -34,11 +35,11 @@ const availableBalance = computed(() => stakingStore.formattedAvailableBalance)
 const isLoading = computed(() => stakingStore.loading.delegate || stakingStore.loading.undelegate)
 
 const formattedStake = computed(() => {
-	return props.delegation ? formatEther(BigInt(props.delegation.stake || '0')) : '0'
+	return props.delegation ? abbreviate(parseFloat(formatEther(BigInt(props.delegation.stake || '0'))), 2) || '0' : '0'
 })
 
 const formattedRewards = computed(() => {
-	return props.delegation ? formatEther(BigInt(props.delegation.rewards || '0')) : '0'
+	return props.delegation ? abbreviate(parseFloat(formatEther(BigInt(props.delegation.rewards || '0'))), 2) || '0' : '0'
 })
 
 const hasRewards = computed(() => {
