@@ -326,6 +326,22 @@ const toggleDescription = () => {
 							<CopyButton :text="validator.validator_id" />
 						</Flex>
 					</Flex>
+
+					<!-- Registration ID (from precompile_validator_id) -->
+					<Flex direction="column" gap="8" :class="$style.key_value">
+						<Flex align="center" justify="between">
+							<Text size="13" weight="600" color="primary">Registration ID</Text>
+						</Flex>
+						<Flex align="center" gap="6">
+							<Text size="12" weight="600" color="tertiary" mono selectable>
+								{{ validator.staking?.precompile_validator_id ?? 'N/A' }}
+							</Text>
+							<CopyButton 
+								v-if="validator.staking?.precompile_validator_id !== null && validator.staking?.precompile_validator_id !== undefined" 
+								:text="String(validator.staking.precompile_validator_id)" 
+							/>
+						</Flex>
+					</Flex>
 					
 					<!-- Stake Information -->
 					<Flex v-if="validator.stake" direction="column" gap="8" :class="$style.key_value">
