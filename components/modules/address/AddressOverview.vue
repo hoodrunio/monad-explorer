@@ -17,8 +17,11 @@ import { comma, splitAddress } from "@/services/utils"
 
 /** API */
 import {
-	fetchTxsByAddressHash,
-} from "@/services/api/main"
+	fetchAddressTransactions,
+	fetchAddressBalance,
+	fetchAddressStats,
+	fetchAddressTokenTransfers,
+} from "@/services/api/address"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -40,6 +43,10 @@ const props = defineProps({
 
 const isRefetching = ref(false)
 const transactions = ref([])
+const addressBalance = ref(null)
+const addressStats = ref(null)
+const isLoadingBalance = ref(false)
+const isLoadingStats = ref(false)
 
 /** Tabs */
 const tabs = ref([
@@ -262,32 +269,108 @@ const resetFilters = (target, refetch) => {
 const getTransactions = async () => {
 	isRefetching.value = true
 
-	const { data } = await fetchTxsByAddressHash({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-		sort: sort.dir,
-		sort_by: sort.by,
-		status:
-			Object.keys(filters.status).find((f) => filters.status[f]) &&
-			Object.keys(filters.status)
-				.filter((f) => filters.status[f])
-				.join(","),
-		msg_type:
-			Object.keys(filters.message_type).find((f) => filters.message_type[f]) &&
-			Object.keys(filters.message_type)
-				.filter((f) => filters.message_type[f])
-				.join(","),
-	})
+	try {
+		const { data } = await fetchAddressTransactions(props.address.hash, {
+			limit: 10,
+			offset: (page.value - 1) * 10,
+			includeTokenTransfers: true,
+		})
 
-	transactions.value = data.value
-	cacheStore.current.transactions = transactions.value
-	handleNextCondition.value = transactions.value.length < 10
+		// Process the response to match the expected format
+		if (data.value?.data?.transactions) {
+			let txs = data.value.data.transactions
+
+			// Apply status filters
+			if (Object.keys(filters.status).find((f) => filters.status[f])) {
+				const activeStatuses = Object.keys(filters.status).filter((f) => filters.status[f])
+				txs = txs.filter((tx) => {
+					const status = tx.status === 1 ? "success" : "failed"
+					return activeStatuses.includes(status)
+				})
+			}
+
+			// Apply message type filters (map EVM transaction types to message types)
+			if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
+				const activeTypes = Object.keys(filters.message_type).filter((f) => filters.message_type[f])
+				txs = txs.filter((tx) => {
+					const txType = tx.isContractCreation ? "contract_creation" : 
+								   tx.isContractInteraction ? "contract_call" : "transfer"
+					return activeTypes.includes(txType)
+				})
+			}
+
+			transactions.value = txs.map(tx => ({
+				...tx,
+				// Map EVM fields to expected format
+				status: tx.status === 1 ? "success" : "failed",
+				gas_used: tx.gasUsed,
+				gas_wanted: tx.gas || tx.gasUsed,
+				fee: tx.transactionFee || "0",
+				message_types: tx.isContractCreation ? ["Contract Creation"] : 
+							   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
+			}))
+
+			handleNextCondition.value = transactions.value.length < 10
+		} else {
+			transactions.value = []
+			handleNextCondition.value = true
+		}
+
+		cacheStore.current.transactions = transactions.value
+	} catch (error) {
+		console.error('Failed to fetch address transactions:', error)
+		transactions.value = []
+		handleNextCondition.value = true
+	}
 
 	isRefetching.value = false
 }
 
 const collapseBalances = ref(false)
+
+/** Address Balance & Stats */
+const getAddressBalance = async () => {
+	isLoadingBalance.value = true
+	try {
+		const { data } = await fetchAddressBalance(props.address.hash, {
+			includeNative: true,
+			includeMetadata: true,
+		})
+		addressBalance.value = data.value?.data || null
+	} catch (error) {
+		console.error('Failed to fetch address balance:', error)
+		addressBalance.value = null
+	}
+	isLoadingBalance.value = false
+}
+
+const getAddressStats = async () => {
+	isLoadingStats.value = true
+	try {
+		const { data } = await fetchAddressStats(props.address.hash)
+		addressStats.value = data.value?.data?.stats || null
+	} catch (error) {
+		console.error('Failed to fetch address stats:', error)
+		addressStats.value = null
+	}
+	isLoadingStats.value = false
+}
+
+// Computed properties for display
+const nativeBalance = computed(() => {
+	if (!addressBalance.value?.nativeBalance) return "0"
+	// Convert wei to MON (divide by 10^18)
+	const monValue = parseInt(addressBalance.value.nativeBalance) / Math.pow(10, 18)
+	return monValue.toFixed(6)
+})
+
+const totalTransactions = computed(() => {
+	return addressStats.value?.transactionCount?.total || 0
+})
+
+const isActive = computed(() => {
+	return addressStats.value?.isActive || false
+})
 
 /** Watchers */
 watch(
@@ -308,6 +391,14 @@ watch(
 	},
 	{ immediate: true },
 )
+
+// Load balance and stats on component mount
+onMounted(async () => {
+	await Promise.all([
+		getAddressBalance(),
+		getAddressStats(),
+	])
+})
 
 watch(page, () => {
 	if (activeTab.value === "transactions") {

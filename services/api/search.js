@@ -2,6 +2,8 @@
 import { fetchTxByHash } from "@/services/api/tx"
 import { fetchValidatorByID } from "@/services/api/validator"
 import { fetchBlockByHeight } from "@/services/api/block"
+import { fetchAddressStats, hasAddressActivity } from "@/services/api/address"
+import { fetchContract, isContract } from "@/services/api/contract"
 
 export const search = async (query) => {
 	const promises = []
@@ -42,10 +44,65 @@ export const search = async (query) => {
 		)
 	}
 
+	// Check for Ethereum address (0x + 40 hex characters = 42 total)
+	if (typeof trimmedQuery === "string" && 
+		trimmedQuery.length === 42 && 
+		trimmedQuery.startsWith("0x") && 
+		/^0x[0-9a-fA-F]{40}$/.test(trimmedQuery)) {
+		
+		// Check if it's a contract
+		promises.push(
+			isContract(trimmedQuery).then(async (contractExists) => {
+				if (contractExists) {
+					try {
+						const { data } = await fetchContract(trimmedQuery, { includeMetadata: true })
+						if (data.value?.data) {
+							results.push({
+								type: "contract",
+								result: data.value.data,
+							})
+						}
+					} catch (error) {
+						// Contract exists but failed to fetch details, add basic info
+						results.push({
+							type: "contract",
+							result: { address: trimmedQuery },
+						})
+					}
+				} else {
+					// Check if it's an address with activity
+					try {
+						const hasActivity = await hasAddressActivity(trimmedQuery)
+						if (hasActivity) {
+							const { data } = await fetchAddressStats(trimmedQuery)
+							results.push({
+								type: "address",
+								result: { 
+									hash: trimmedQuery,
+									stats: data.value?.data?.stats || null
+								},
+							})
+						}
+					} catch (error) {
+						// Address might exist but no activity or stats available
+						results.push({
+							type: "address",
+							result: { hash: trimmedQuery },
+						})
+					}
+				}
+			}).catch(() => {
+				// If all checks fail, still add as potential address
+				results.push({
+					type: "address",
+					result: { hash: trimmedQuery },
+				})
+			})
+		)
+	}
+
+	// Legacy: Check for validator by secp key (64 hex characters without 0x)
 	if (typeof trimmedQuery === "string" && trimmedQuery.length === 64 && /^[0-9a-fA-F]+$/.test(trimmedQuery)) {
-		// For addresses, we could search for transactions involving this address
-		// This would require additional API endpoints that aren't defined yet
-		// For now, we'll just check if it's a validator address
 		promises.push(
 			fetchValidatorByID(trimmedQuery).then(({ data }) => {
 				if (data.value) {
@@ -55,8 +112,7 @@ export const search = async (query) => {
 					})
 				}
 			}).catch(() => {
-				// If validator lookup fails, we could add address search here
-				// For now, we'll just ignore the error
+				// Ignore validator lookup failures
 			}),
 		)
 	}
