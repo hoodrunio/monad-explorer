@@ -9,6 +9,7 @@ import QRCodeModal from "./QRCodeModal.vue"
 import RawDataModal from "./RawDataModal.vue"
 import HexSettingsModal from "./HexSettingsModal.vue"
 import APIModal from "./APIModal.vue"
+import InputDecodeModal from "./InputDecodeModal.vue"
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -26,4 +27,5 @@ const modalsStore = useModalsStore()
 	<HexSettingsModal :show="modalsStore.modals.hexSettings" @onClose="modalsStore.close('hexSettings')" />
 	<APIModal :show="modalsStore.modals.api" @onClose="modalsStore.close('api')" />
 	<ChartModal :show="modalsStore.modals.chart" @onClose="modalsStore.close('chart')" />
+	<InputDecodeModal :show="modalsStore.modals.inputDecode" @onClose="modalsStore.close('inputDecode')" />
 </template>

@@ -16,6 +16,9 @@ import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 
+/** Composables */
+import { useTransactionMethods } from "@/composables/useTransactionMethods"
+
 // API imports removed - using data directly from tx prop
 
 /** Store */
@@ -40,6 +43,44 @@ const activeTab = ref(preselectedTab)
 // Use data directly from tx prop since API already includes everything
 const tokenTransfers = computed(() => props.tx?.tokenTransfers || [])
 const internalTransactions = computed(() => props.tx?.internalTransactions || [])
+
+// Transaction method information
+const { getMethodInfo, formatInputData } = useTransactionMethods()
+const methodInfo = computed(() => {
+	if (!props.tx) return null
+	return getMethodInfo(props.tx)
+})
+
+// Reactive method information
+const enhancedMethodName = computed(() => {
+	if (!methodInfo.value) return props.tx?.methodName || null
+	return methodInfo.value.methodName.value || props.tx?.methodName || null
+})
+
+const methodSignature = computed(() => {
+	if (!methodInfo.value) return null
+	return methodInfo.value.signature.value
+})
+
+const canDecodeInput = computed(() => {
+	if (!methodInfo.value) return false
+	return methodInfo.value.canDecode.value
+})
+
+const isLoadingMethod = computed(() => {
+	if (!methodInfo.value) return false
+	return methodInfo.value.isLoadingMethod.value
+})
+
+// Format input data for display
+const formattedInput = computed(() => {
+	if (!props.tx?.input) return null
+	return formatInputData(props.tx.input, 80)
+})
+
+const hasInputData = computed(() => {
+	return props.tx?.input && props.tx.input !== '0x' && props.tx.input.length > 2
+})
 
 // EVM transaction helper functions
 const formatGasValue = (value) => {
@@ -112,6 +153,15 @@ onMounted(() => {
 const handleViewRawTransaction = () => {
 	cacheStore.current._target = "transaction"
 	modalsStore.open("rawData")
+}
+
+const handleDecodeInput = () => {
+	// Store transaction data and method signature in cache for the modal
+	cacheStore.current.transaction = props.tx
+	cacheStore.current.methodSignature = methodSignature.value
+	
+	// Open the input decode modal
+	modalsStore.open("inputDecode")
 }
 </script>
 
@@ -259,14 +309,42 @@ const handleViewRawTransaction = () => {
 							<Text size="12" weight="600" color="secondary">{{ formatMonValue(tx.transactionFee, 6) }} MON</Text>
 						</Flex>
 
-						<Flex v-if="tx.methodName" align="center" justify="between">
+						<Flex v-if="enhancedMethodName || tx.methodName" direction="column" gap="6">
 							<Text size="12" weight="600" color="tertiary">Method</Text>
-							<Text size="12" weight="600" color="secondary">{{ tx.methodName }}</Text>
+							<Flex align="center" justify="between">
+								<Text size="12" weight="600" color="secondary">
+									{{ enhancedMethodName || tx.methodName }}
+									<Text v-if="isLoadingMethod" size="12" color="support"> (loading...)</Text>
+								</Text>
+								<Flex v-if="canDecodeInput" align="center" gap="4">
+									<Icon name="code" size="12" color="green" />
+									<Text size="11" weight="500" color="green">Decodable</Text>
+								</Flex>
+							</Flex>
+							<Text v-if="methodSignature" size="11" weight="500" color="tertiary" mono>
+								{{ methodSignature }}
+							</Text>
 						</Flex>
 
 						<Flex v-if="tx.methodID" align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Method ID</Text>
 							<Text size="12" weight="600" color="secondary" mono>{{ tx.methodID }}</Text>
+						</Flex>
+
+						<Flex v-if="hasInputData" direction="column" gap="6">
+							<Flex align="center" justify="between">
+								<Text size="12" weight="600" color="tertiary">Input Data</Text>
+								<Flex align="center" gap="4">
+									<CopyButton :text="tx.input" size="12" />
+									<Button v-if="canDecodeInput" type="secondary" size="mini" @click="handleDecodeInput">
+										<Icon name="code" size="12" />
+										<Text size="11" weight="600">Decode</Text>
+									</Button>
+								</Flex>
+							</Flex>
+							<Text size="11" weight="500" color="tertiary" mono selectable :class="$style.input_data">
+								{{ formattedInput }}
+							</Text>
 						</Flex>
 
 						<Flex v-if="tokenTransfers.length" align="center" justify="between">
@@ -584,6 +662,15 @@ const handleViewRawTransaction = () => {
 .memo {
 	text-overflow: ellipsis;
 	overflow: hidden;
+}
+
+.input_data {
+	word-break: break-all;
+	line-height: 1.4;
+	padding: 8px;
+	border-radius: 4px;
+	background: var(--op-5);
+	border: 1px solid var(--op-8);
 }
 
 @media (max-width: 800px) {

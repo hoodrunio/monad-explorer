@@ -35,3 +35,4 @@ server/cache/*
 .env.development*
 monadoodle/image.png
 design
+TRANSACTION_IMPROVEMENTS.md
