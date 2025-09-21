@@ -9,7 +9,7 @@ import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import { splitAddress, comma } from "@/services/utils"
 
 /** API */
-import { fetchContractOverview, enrichContract } from "@/services/api/contract"
+import { fetchContract, enrichContract } from "@/services/api/contract"
 
 const route = useRoute()
 const router = useRouter()
@@ -29,7 +29,7 @@ if (!isValidAddress(route.params.address)) {
 }
 
 // Fetch contract data
-const { data: contractData, pending, error, refresh } = await fetchContractOverview(route.params.address)
+const { data: contractData, pending, error, refresh } = await fetchContract(route.params.address, { includeMetadata: true })
 
 // Handle error states
 if (error.value) {
@@ -72,9 +72,8 @@ useHead({
 })
 
 // Computed properties
-const contract = computed(() => contractData.value?.contract?.data?.value?.data)
+const contract = computed(() => contractData.value?.data)
 const metadata = computed(() => contract.value?.metadata)
-const discovery = computed(() => contractData.value?.discovery?.data?.value?.data)
 
 const contractType = computed(() => metadata.value?.contractType || 'Unknown')
 const isToken = computed(() => metadata.value?.isToken || false)
@@ -104,7 +103,6 @@ const copyAddress = () => {
 // View raw data
 const handleViewRawData = () => {
 	// This would open a modal with raw contract data
-	console.log('View raw data:', contract.value)
 }
 </script>
 
@@ -187,43 +185,22 @@ const handleViewRawData = () => {
 					</Flex>
 				</Flex>
 
-				<!-- Discovery Status -->
-				<Flex direction="column" gap="16" :class="$style.card" v-if="discovery">
-					<Text size="12" weight="600" color="primary">Discovery Status</Text>
+				<!-- Contract Status -->
+				<Flex direction="column" gap="16" :class="$style.card">
+					<Text size="12" weight="600" color="primary">Contract Status</Text>
 					
 					<Flex direction="column" gap="12">
 						<Flex align="center" justify="between">
-							<Text size="11" color="tertiary">On Chain</Text>
-							<Badge :type="discovery.existsOnChain ? 'green' : 'red'">
-								{{ discovery.existsOnChain ? 'Yes' : 'No' }}
+							<Text size="11" color="tertiary">Exists</Text>
+							<Badge :type="metadata?.contractExists ? 'green' : 'red'">
+								{{ metadata?.contractExists ? 'Yes' : 'No' }}
 							</Badge>
 						</Flex>
 
 						<Flex align="center" justify="between">
-							<Text size="11" color="tertiary">In Database</Text>
-							<Badge :type="discovery.existsInDatabase ? 'green' : 'red'">
-								{{ discovery.existsInDatabase ? 'Yes' : 'No' }}
-							</Badge>
-						</Flex>
-
-						<Flex align="center" justify="between" v-if="discovery.discoveryStatus">
-							<Text size="11" color="tertiary">Discovered</Text>
-							<Badge :type="discovery.discoveryStatus.discovered ? 'green' : 'red'">
-								{{ discovery.discoveryStatus.discovered ? 'Yes' : 'No' }}
-							</Badge>
-						</Flex>
-
-						<Flex align="center" justify="between" v-if="discovery.discoveryStatus">
-							<Text size="11" color="tertiary">Indexed</Text>
-							<Badge :type="discovery.discoveryStatus.indexed ? 'green' : 'yellow'">
-								{{ discovery.discoveryStatus.indexed ? 'Yes' : 'No' }}
-							</Badge>
-						</Flex>
-
-						<Flex align="center" justify="between" v-if="discovery.discoveryStatus">
-							<Text size="11" color="tertiary">Enriched</Text>
-							<Badge :type="discovery.discoveryStatus.enriched ? 'green' : 'yellow'">
-								{{ discovery.discoveryStatus.enriched ? 'Yes' : 'No' }}
+							<Text size="11" color="tertiary">Has Bytecode</Text>
+							<Badge :type="metadata?.runtimeBytecode ? 'green' : 'red'">
+								{{ metadata?.runtimeBytecode ? 'Yes' : 'No' }}
 							</Badge>
 						</Flex>
 					</Flex>

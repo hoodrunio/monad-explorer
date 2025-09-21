@@ -22,12 +22,13 @@ export const fetchContract = (address, {
 	includeBytecode = false,
 	blockNumber = null
 } = {}) => {
-	if (!isValidAddress(address)) {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid contract address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts/${address}`)
+		const url = new URL(`${useExplorerURL()}/api/contracts/${normalizedAddress}`)
 
 		if (includeMetadata !== undefined) url.searchParams.append("includeMetadata", includeMetadata.toString())
 		if (includeBytecode !== undefined) url.searchParams.append("includeBytecode", includeBytecode.toString())
@@ -172,17 +173,18 @@ export const fetchContractDiscoveryInfo = (address) => {
  * @returns {Promise<boolean>} - True if address is a contract
  */
 export const isContract = async (address) => {
-	if (!isValidAddress(address)) {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		return false
 	}
 
 	try {
-		const discoveryInfo = await fetchContractDiscoveryInfo(address)
+		const discoveryInfo = await fetchContractDiscoveryInfo(normalizedAddress)
 		return discoveryInfo.data?.value?.data?.existsOnChain === true
 	} catch (error) {
 		// If discovery endpoint fails, try to fetch contract metadata
 		try {
-			const metadata = await fetchContractMetadata(address)
+			const metadata = await fetchContractMetadata(normalizedAddress)
 			return metadata.data?.value?.data?.metadata?.contractExists === true
 		} catch (metadataError) {
 			console.error('Failed to check if address is contract:', error, metadataError)

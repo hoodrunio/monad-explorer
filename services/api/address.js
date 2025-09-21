@@ -12,7 +12,7 @@ const isValidAddress = (address) => {
 }
 
 /**
- * Get transactions for an address (sent or received)
+ * Get transactions for an address (sent or received) - SSR version
  * @param {string} address - Ethereum address
  * @param {Object} options - Query options
  * @returns {Promise} - API response
@@ -22,12 +22,13 @@ export const fetchAddressTransactions = (address, {
 	offset = 0,
 	includeTokenTransfers = false
 } = {}) => {
-	if (!isValidAddress(address)) {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${address}/transactions`)
+		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/transactions`)
 
 		if (limit) url.searchParams.append("limit", limit)
 		if (offset) url.searchParams.append("offset", offset)
@@ -36,6 +37,37 @@ export const fetchAddressTransactions = (address, {
 		return useFetch(url.href, {
 			key: `address-transactions-${address}-${limit}-${offset}-${includeTokenTransfers}`,
 		})
+	} catch (error) {
+		console.error('Failed to fetch address transactions:', error)
+		throw error
+	}
+}
+
+/**
+ * Get transactions for an address (sent or received) - Client-side version
+ * @param {string} address - Ethereum address
+ * @param {Object} options - Query options
+ * @returns {Promise} - API response
+ */
+export const fetchAddressTransactionsClient = async (address, {
+	limit = 50,
+	offset = 0,
+	includeTokenTransfers = false
+} = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/transactions`)
+
+		if (limit) url.searchParams.append("limit", limit)
+		if (offset) url.searchParams.append("offset", offset)
+		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+
+		const data = await $fetch(url.href)
+		return { data: { value: data } }
 	} catch (error) {
 		console.error('Failed to fetch address transactions:', error)
 		throw error
@@ -78,12 +110,54 @@ export const fetchAddressTokenTransfers = (address, {
 }
 
 /**
- * Get balances for an address
+ * Get balances for an address - SSR version
  * @param {string} address - Ethereum address
  * @param {Object} options - Query options
  * @returns {Promise} - API response
  */
 export const fetchAddressBalance = (address, {
+	tokenAddress = null,
+	includeNative = true,
+	includeMetadata = true,
+	useCache = true,
+	blockNumber = null
+} = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	const normalizedTokenAddress = tokenAddress?.toLowerCase()
+	
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	if (tokenAddress && !isValidAddress(normalizedTokenAddress)) {
+		throw new Error('Invalid token address format')
+	}
+
+	try {
+		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
+
+		if (normalizedTokenAddress) url.searchParams.append("tokenAddress", normalizedTokenAddress)
+		if (includeNative !== undefined) url.searchParams.append("includeNative", includeNative.toString())
+		if (includeMetadata !== undefined) url.searchParams.append("includeMetadata", includeMetadata.toString())
+		if (useCache !== undefined) url.searchParams.append("useCache", useCache.toString())
+		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
+
+		return useFetch(url.href, {
+			key: `address-balance-${address}-${tokenAddress || 'all'}-${blockNumber || 'latest'}`,
+		})
+	} catch (error) {
+		console.error('Failed to fetch address balance:', error)
+		throw error
+	}
+}
+
+/**
+ * Get balances for an address - Client-side version
+ * @param {string} address - Ethereum address
+ * @param {Object} options - Query options
+ * @returns {Promise} - API response
+ */
+export const fetchAddressBalanceClient = async (address, {
 	tokenAddress = null,
 	includeNative = true,
 	includeMetadata = true,
@@ -107,9 +181,8 @@ export const fetchAddressBalance = (address, {
 		if (useCache !== undefined) url.searchParams.append("useCache", useCache.toString())
 		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
 
-		return useFetch(url.href, {
-			key: `address-balance-${address}-${tokenAddress || 'all'}-${blockNumber || 'latest'}`,
-		})
+		const data = await $fetch(url.href)
+		return { data: { value: data } }
 	} catch (error) {
 		console.error('Failed to fetch address balance:', error)
 		throw error
@@ -150,21 +223,44 @@ export const fetchAddressInternalTransactions = (address, {
 }
 
 /**
- * Get statistics for an address
+ * Get statistics for an address - SSR version
  * @param {string} address - Ethereum address
  * @returns {Promise} - API response
  */
 export const fetchAddressStats = (address) => {
-	if (!isValidAddress(address)) {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${address}/stats`)
+		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/stats`)
 
 		return useFetch(url.href, {
 			key: `address-stats-${address}`,
 		})
+	} catch (error) {
+		console.error('Failed to fetch address stats:', error)
+		throw error
+	}
+}
+
+/**
+ * Get statistics for an address - Client-side version
+ * @param {string} address - Ethereum address
+ * @returns {Promise} - API response
+ */
+export const fetchAddressStatsClient = async (address) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/stats`)
+
+		const data = await $fetch(url.href)
+		return { data: { value: data } }
 	} catch (error) {
 		console.error('Failed to fetch address stats:', error)
 		throw error
@@ -264,7 +360,7 @@ export const hasAddressActivity = async (address) => {
 }
 
 /**
- * Get address overview (combines multiple endpoints)
+ * Get address overview (combines multiple endpoints) - SSR version
  * @param {string} address - Ethereum address
  * @returns {Promise} - Combined address data
  */
@@ -279,6 +375,37 @@ export const fetchAddressOverview = async (address) => {
 			fetchAddressBalance(address, { includeNative: true, includeMetadata: true }),
 			fetchAddressStats(address),
 			fetchAddressTransactions(address, { limit: 5, includeTokenTransfers: true })
+		])
+
+		return {
+			address,
+			balance: balance.status === 'fulfilled' ? balance.value : null,
+			stats: stats.status === 'fulfilled' ? stats.value : null,
+			recentTransactions: recentTx.status === 'fulfilled' ? recentTx.value : null,
+			success: true
+		}
+	} catch (error) {
+		console.error('Failed to fetch address overview:', error)
+		throw error
+	}
+}
+
+/**
+ * Get address overview (combines multiple endpoints) - Client-side version
+ * @param {string} address - Ethereum address
+ * @returns {Promise} - Combined address data
+ */
+export const fetchAddressOverviewClient = async (address) => {
+	if (!isValidAddress(address)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		// Fetch multiple endpoints in parallel
+		const [balance, stats, recentTx] = await Promise.allSettled([
+			fetchAddressBalanceClient(address, { includeNative: true, includeMetadata: true }),
+			fetchAddressStatsClient(address),
+			fetchAddressTransactionsClient(address, { limit: 5, includeTokenTransfers: true })
 		])
 
 		return {

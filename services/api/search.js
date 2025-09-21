@@ -1,8 +1,8 @@
 /** Services */
 import { fetchTxByHash } from "@/services/api/tx"
 import { fetchValidatorByID } from "@/services/api/validator"
-import { fetchBlockByHeight } from "@/services/api/block"
-import { fetchAddressStats, hasAddressActivity } from "@/services/api/address"
+import { fetchBlockByHeightClient } from "@/services/api/block"
+import { fetchAddressStatsClient, hasAddressActivity } from "@/services/api/address"
 import { fetchContract, isContract } from "@/services/api/contract"
 
 export const search = async (query) => {
@@ -14,7 +14,7 @@ export const search = async (query) => {
 	// Check if the query is a number (block height)
 	if (!isNaN(trimmedQuery) && !trimmedQuery.includes(".")) {
 		promises.push(
-			fetchBlockByHeight(trimmedQuery).then(({ data }) => {
+			fetchBlockByHeightClient(trimmedQuery).then(({ data }) => {
 				// Handle the actual API response structure: { data: { block: {...} } }
 				if (data.value?.data?.block) {
 					results.push({
@@ -22,6 +22,8 @@ export const search = async (query) => {
 						result: data.value.data.block,
 					})
 				}
+			}).catch(() => {
+				// Ignore block lookup failures
 			}),
 		)
 	}
@@ -45,17 +47,20 @@ export const search = async (query) => {
 	}
 
 	// Check for Ethereum address (0x + 40 hex characters = 42 total)
+	// Convert to lowercase for case-insensitive comparison
+	const normalizedQuery = trimmedQuery.toLowerCase()
+	
 	if (typeof trimmedQuery === "string" && 
 		trimmedQuery.length === 42 && 
-		trimmedQuery.startsWith("0x") && 
-		/^0x[0-9a-fA-F]{40}$/.test(trimmedQuery)) {
+		normalizedQuery.startsWith("0x") && 
+		/^0x[0-9a-f]{40}$/.test(normalizedQuery)) {
 		
-		// Check if it's a contract
+		// Check if it's a contract (use normalized lowercase address)
 		promises.push(
-			isContract(trimmedQuery).then(async (contractExists) => {
+			isContract(normalizedQuery).then(async (contractExists) => {
 				if (contractExists) {
 					try {
-						const { data } = await fetchContract(trimmedQuery, { includeMetadata: true })
+						const { data } = await fetchContract(normalizedQuery, { includeMetadata: true })
 						if (data.value?.data) {
 							results.push({
 								type: "contract",
@@ -66,19 +71,19 @@ export const search = async (query) => {
 						// Contract exists but failed to fetch details, add basic info
 						results.push({
 							type: "contract",
-							result: { address: trimmedQuery },
+							result: { address: normalizedQuery },
 						})
 					}
 				} else {
 					// Check if it's an address with activity
 					try {
-						const hasActivity = await hasAddressActivity(trimmedQuery)
+						const hasActivity = await hasAddressActivity(normalizedQuery)
 						if (hasActivity) {
-							const { data } = await fetchAddressStats(trimmedQuery)
+							const { data } = await fetchAddressStatsClient(normalizedQuery)
 							results.push({
 								type: "address",
 								result: { 
-									hash: trimmedQuery,
+									hash: normalizedQuery,
 									stats: data.value?.data?.stats || null
 								},
 							})
@@ -87,7 +92,7 @@ export const search = async (query) => {
 						// Address might exist but no activity or stats available
 						results.push({
 							type: "address",
-							result: { hash: trimmedQuery },
+							result: { hash: normalizedQuery },
 						})
 					}
 				}
@@ -95,7 +100,7 @@ export const search = async (query) => {
 				// If all checks fail, still add as potential address
 				results.push({
 					type: "address",
-					result: { hash: trimmedQuery },
+					result: { hash: normalizedQuery },
 				})
 			})
 		)

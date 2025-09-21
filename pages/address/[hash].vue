@@ -1,13 +1,9 @@
 <script setup>
 /** Components */
 import AddressOverview from "@/components/modules/address/AddressOverview.vue"
-import Skeleton from "@/components/Skeleton.vue"
 
 /** Services */
 import { splitAddress } from "@/services/utils"
-
-/** API */
-import { fetchAddressOverview } from "@/services/api/address"
 
 const route = useRoute()
 const router = useRouter()
@@ -26,16 +22,12 @@ if (!isValidAddress(route.params.hash)) {
 	})
 }
 
-// Fetch address data
-const { data: addressData, pending, error } = await fetchAddressOverview(route.params.hash)
+// Simple address object - let AddressOverview handle the data fetching
+const address = computed(() => ({
+	hash: route.params.hash,
+}))
 
-// Handle error states
-if (error.value) {
-	throw createError({
-		statusCode: error.value.statusCode || 404,
-		statusMessage: error.value.statusMessage || 'Address not found'
-	})
-}
+// AddressOverview will handle all data fetching internally
 
 // SEO
 useHead({
@@ -66,28 +58,10 @@ useHead({
 	],
 })
 
-// Computed address object for compatibility with AddressOverview component
-const address = computed(() => ({
-	hash: route.params.hash,
-	balance: addressData.value?.balance?.data?.nativeBalance || "0",
-	stats: addressData.value?.stats?.data?.stats || null,
-}))
 </script>
 
 <template>
-	<Flex direction="column" gap="4">
-		<Skeleton v-if="pending" />
-		<AddressOverview v-else-if="addressData" :address="address" />
-		<Flex v-else direction="column" align="center" justify="center" gap="16" :class="$style.empty">
-			<Icon name="address" size="32" color="tertiary" />
-			<Flex direction="column" align="center" gap="8">
-				<Text size="14" weight="600" color="primary">Address not found</Text>
-				<Text size="13" color="tertiary" align="center" style="max-width: 220px">
-					This address doesn't exist or hasn't been indexed yet
-				</Text>
-			</Flex>
-		</Flex>
-	</Flex>
+	<AddressOverview :address="address" />
 </template>
 
 <style module>
