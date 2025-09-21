@@ -41,6 +41,9 @@ const props = defineProps({
 	},
 })
 
+// Make address available in template
+const address = computed(() => props.address)
+
 const isRefetching = ref(false)
 const transactions = ref([])
 const addressBalance = ref(null)
@@ -404,6 +407,26 @@ watch(page, () => {
 		getTransactions()
 	}
 })
+
+// Modal handlers
+const handleOpenQRModal = () => {
+	// Set QR data in cache store
+	cacheStore.qr.data = address.value.hash
+	cacheStore.qr.description = "Address"
+	cacheStore.qr.icon = "address"
+	
+	// Open QR modal
+	modalsStore.open("qr")
+}
+
+const handleViewRawAddress = () => {
+	// Set raw data in cache store
+	cacheStore.current.address = address.value
+	cacheStore.current._target = "address"
+	
+	// Open raw data modal
+	modalsStore.open("rawData")
+}
 </script>
 
 <template>
