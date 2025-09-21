@@ -409,6 +409,13 @@ watch(page, () => {
 })
 
 // Modal handlers
+const handleSend = () => {
+	// For now, just log - could open a send modal in the future
+	console.log('Send to address:', props.address.hash)
+	// TODO: Implement send modal when available
+	// modalsStore.open("send")
+}
+
 const handleOpenQRModal = () => {
 	// Set QR data in cache store
 	cacheStore.qr.data = address.value.hash
