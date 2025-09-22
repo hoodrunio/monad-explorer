@@ -129,7 +129,25 @@ export const fetchValidatorBlocks = ({ id, limit, offset }) => {
 	}
 }
 
-export const fetchValidatorDelegators = ({ id, limit, offset }) => {
+// New Monad-specific delegators endpoint
+export const fetchValidatorDelegators = async (precompileId, { startDelegator, maxPages = 1, fetchAll = false } = {}) => {
+	try {
+		const url = new URL(`${useServerURL()}/api/validators/${precompileId}/delegators`)
+
+		if (startDelegator) url.searchParams.append("startDelegator", startDelegator)
+		if (maxPages) url.searchParams.append("maxPages", maxPages)
+		if (fetchAll !== undefined) url.searchParams.append("fetchAll", fetchAll)
+
+		return useFetch(encodeURI(url.href), {
+			key: `validator_delegators_${precompileId}`,
+		})
+	} catch (error) {
+		throw error
+	}
+}
+
+// Legacy delegators endpoint (keeping for compatibility)
+export const fetchValidatorDelegatorsLegacy = ({ id, limit, offset }) => {
 	try {
 		const url = new URL(`${useServerURL()}/validators/${id}/delegators`)
 
@@ -137,7 +155,7 @@ export const fetchValidatorDelegators = ({ id, limit, offset }) => {
 		if (offset) url.searchParams.append("offset", offset)
 
 		return useFetch(encodeURI(url.href), {
-			key: "validator_delegators",
+			key: "validator_delegators_legacy",
 		})
 	} catch (error) {
 		// Error handling can be added here
