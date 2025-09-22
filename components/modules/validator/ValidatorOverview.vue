@@ -170,8 +170,13 @@ const infrastructureDetails = computed(() => {
 	
 	if (!location || Object.keys(location).length === 0) return null
 	
+	// Prioritize GitHub validator name, then infrastructure name, then fallback
+	const githubValidatorName = props.validator?.github?.name || props.validator?.displayName
+	const infraValidatorName = props.validator?.infrastructure?.validator_name || location.validatorName || location.validator_name
+	const finalValidatorName = githubValidatorName || infraValidatorName || 'Unknown'
+	
 	return {
-		validatorName: location.validatorName || location.validator_name || 'Unknown',
+		validatorName: finalValidatorName,
 		provider: location.isp || location.provider || 'Unknown',
 		location: `${location.city || 'Unknown'}, ${location.country || 'Unknown'}`,
 		ip: location.ip || 'Unknown',
