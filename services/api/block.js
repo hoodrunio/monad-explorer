@@ -18,7 +18,7 @@ export const fetchBlocks = ({ limit = 20, offset = 0, page = 1 } = {}) => {
 	}
 }
 
-// Get specific block details by number
+// Get specific block details by number - SSR version
 export const fetchBlockByHeight = (number) => {
 	try {
 		const url = new URL(`${useExplorerURL()}/api/blocks/${number}`)
@@ -28,6 +28,19 @@ export const fetchBlockByHeight = (number) => {
 		})
 	} catch (error) {
 		// Error handling can be added here
+	}
+}
+
+// Get specific block details by number - Client-side version
+export const fetchBlockByHeightClient = async (number) => {
+	try {
+		const url = new URL(`${useExplorerURL()}/api/blocks/${number}`)
+
+		const data = await $fetch(encodeURI(url.href))
+		return { data: { value: data } }
+	} catch (error) {
+		console.error('Failed to fetch block by height:', error)
+		throw error
 	}
 }
 

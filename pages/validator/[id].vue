@@ -5,6 +5,7 @@ import ValidatorOverview from "@/components/modules/validator/ValidatorOverview.
 /** API */
 import { fetchValidatorByID, fetchValidatorHistory, fetchValidatorInfrastructure } from "@/services/api/validator"
 import { preloadGithubValidatorData } from "@/services/api/github"
+import { fetchAddressNativeBalance } from "@/services/api/address"
 
 /** Services */
 import { shortHex } from "@/services/utils"
@@ -19,6 +20,7 @@ const router = useRouter()
 const validator = ref()
 const validatorHistory = ref()
 const validatorInfrastructure = ref()
+const authorBalance = ref(null)
 
 const {
 	data,
@@ -62,12 +64,23 @@ const {
 
 watch(
 	data,
-	(newData) => {
+	async (newData) => {
 		if (newData) {
 			validator.value = newData.validator
 			validatorHistory.value = newData.history
 			validatorInfrastructure.value = newData.infrastructure
 			cacheStore.current.validator = newData.validator
+			
+			// Fetch author address balance if available
+			if (newData.validator?.staking?.auth_address) {
+				try {
+					const balanceResult = await fetchAddressNativeBalance(newData.validator.staking.auth_address)
+					authorBalance.value = balanceResult
+				} catch (error) {
+					console.error('Failed to fetch author balance:', error)
+					authorBalance.value = null
+				}
+			}
 		}
 	},
 	{ immediate: true },
@@ -131,6 +144,7 @@ useHead({
 				:validator="validator" 
 				:history="validatorHistory"
 				:infrastructure="validatorInfrastructure"
+				:author-balance="authorBalance"
 			/>
 		</Flex>
 	</Flex>

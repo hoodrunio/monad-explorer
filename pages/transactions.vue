@@ -8,6 +8,9 @@ import { comma, shortHex } from "@/services/utils"
 /** API */
 import { fetchTransactions } from "@/services/api/tx"
 
+/** Composables */
+import { useTransactionMethods } from "@/composables/useTransactionMethods"
+
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
@@ -21,6 +24,10 @@ const currentPage = ref(parseInt(route.query.page) || 1)
 const pageSize = ref(20)
 const totalTransactions = ref(0)
 const isLoading = ref(false)
+
+// Transaction method information
+const { batchGetMethodInfo } = useTransactionMethods()
+const methodInfoMap = ref(new Map())
 
 // EVM transaction helper functions
 const formatGasValue = (value) => {
@@ -48,6 +55,22 @@ const getTransactionTypes = (tx) => {
 	return [getTransactionType(tx)]
 }
 
+// Get enhanced method name for a transaction
+const getEnhancedMethodName = (tx) => {
+	if (!tx.methodID) return null
+	
+	const methodInfo = methodInfoMap.value.get(tx.methodID)
+	return methodInfo?.methodName || tx.methodName || null
+}
+
+// Check if transaction can be decoded
+const canDecodeTransaction = (tx) => {
+	if (!tx.methodID) return false
+	
+	const methodInfo = methodInfoMap.value.get(tx.methodID)
+	return methodInfo?.canDecode || false
+}
+
 
 
 const loadTransactions = async (page = 1) => {
@@ -63,17 +86,30 @@ const loadTransactions = async (page = 1) => {
 		if (error.value) {
 			transactions.value = []
 			totalTransactions.value = 0
+			methodInfoMap.value.clear()
 		} else if (data.value && data.value.data) {
 			transactions.value = data.value.data.transactions || []
 			totalTransactions.value = data.value.data.pagination?.total || transactions.value.length
 			currentPage.value = page
+			
+			// Fetch method information for all transactions
+			if (transactions.value.length > 0) {
+				try {
+					const methodInfo = await batchGetMethodInfo(transactions.value)
+					methodInfoMap.value = methodInfo
+				} catch (methodError) {
+					console.warn('Failed to fetch method information:', methodError)
+				}
+			}
 		} else {
 			transactions.value = []
 			totalTransactions.value = 0
+			methodInfoMap.value.clear()
 		}
 	} catch (error) {
 		transactions.value = []
 		totalTransactions.value = 0
+		methodInfoMap.value.clear()
 	} finally {
 		isLoading.value = false
 	}
@@ -228,8 +264,14 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
+											<Flex align="center" gap="6">
 												<MessageTypeBadge :types="getTransactionTypes(tx)" compact />
+												<Flex v-if="getEnhancedMethodName(tx)" align="center" gap="4">
+													<Text size="11" weight="500" color="tertiary">
+														{{ getEnhancedMethodName(tx) }}
+													</Text>
+													<Icon v-if="canDecodeTransaction(tx)" name="code" size="10" color="green" />
+												</Flex>
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -336,6 +378,15 @@ useHead({
 											<Text size="12" weight="600" color="primary">
 												{{ comma(tx.blockNumber) }}
 											</Text>
+										</Flex>
+										<Flex v-if="getEnhancedMethodName(tx)" align="center" justify="between">
+											<Text size="12" weight="600" color="tertiary">Method</Text>
+											<Flex align="center" gap="4">
+												<Text size="12" weight="600" color="primary">
+													{{ getEnhancedMethodName(tx) }}
+												</Text>
+												<Icon v-if="canDecodeTransaction(tx)" name="code" size="10" color="green" />
+											</Flex>
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Time</Text>

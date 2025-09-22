@@ -31,15 +31,15 @@ const getMessageColor = (type) => {
 					? MessageIconMap[types[0].replace('Msg', '').toLowerCase()]
 					: 'zap'
 			"
-			:size="compact ? 10 : 14"
+			:size="compact ? '10' : '14'"
 			:class="$style.icon"
 		/>
 
-		<Text :size="compact ? 10 : 13" height="160" weight="600" :class="[$style.text, $style.colored_text]">
+		<Text :size="compact ? '10' : '13'" height="160" weight="600" :class="[$style.text, $style.colored_text]">
 			{{ types[0].replace("Msg", "") }}
 		</Text>
 
-		<Text v-if="types.length > 1" :size="compact ? 9 : 12" weight="600" :class="[$style.badge, $style.colored_text]"> +{{ types.length - 1 }} </Text>
+		<Text v-if="types.length > 1" :size="compact ? '9' : '12'" weight="600" :class="[$style.badge, $style.colored_text]"> +{{ types.length - 1 }} </Text>
 	</Badge>
 </template>
 

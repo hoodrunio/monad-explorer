@@ -17,8 +17,11 @@ import { comma, splitAddress } from "@/services/utils"
 
 /** API */
 import {
-	fetchTxsByAddressHash,
-} from "@/services/api/main"
+	fetchAddressTransactionsClient,
+	fetchAddressBalanceClient,
+	fetchAddressStatsClient,
+	fetchAddressTokenTransfers,
+} from "@/services/api/address"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -38,8 +41,15 @@ const props = defineProps({
 	},
 })
 
+// Make address available in template
+const address = computed(() => props.address)
+
 const isRefetching = ref(false)
 const transactions = ref([])
+const addressBalance = ref(null)
+const addressStats = ref(null)
+const isLoadingBalance = ref(false)
+const isLoadingStats = ref(false)
 
 /** Tabs */
 const tabs = ref([
@@ -262,32 +272,107 @@ const resetFilters = (target, refetch) => {
 const getTransactions = async () => {
 	isRefetching.value = true
 
-	const { data } = await fetchTxsByAddressHash({
-		hash: props.address.hash,
-		limit: 10,
-		offset: (page.value - 1) * 10,
-		sort: sort.dir,
-		sort_by: sort.by,
-		status:
-			Object.keys(filters.status).find((f) => filters.status[f]) &&
-			Object.keys(filters.status)
-				.filter((f) => filters.status[f])
-				.join(","),
-		msg_type:
-			Object.keys(filters.message_type).find((f) => filters.message_type[f]) &&
-			Object.keys(filters.message_type)
-				.filter((f) => filters.message_type[f])
-				.join(","),
-	})
+	try {
+		const { data } = await fetchAddressTransactionsClient(props.address.hash, {
+			limit: 10,
+			offset: (page.value - 1) * 10,
+			includeTokenTransfers: true,
+		})
 
-	transactions.value = data.value
-	cacheStore.current.transactions = transactions.value
-	handleNextCondition.value = transactions.value.length < 10
+		// Process the response to match the expected format
+		if (data.value?.data?.transactions) {
+			let txs = data.value.data.transactions
+			// Apply status filters
+			if (Object.keys(filters.status).find((f) => filters.status[f])) {
+				const activeStatuses = Object.keys(filters.status).filter((f) => filters.status[f])
+				txs = txs.filter((tx) => {
+					const status = tx.status === 1 ? "success" : "failed"
+					return activeStatuses.includes(status)
+				})
+			}
+
+			// Apply message type filters (map EVM transaction types to message types)
+			if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
+				const activeTypes = Object.keys(filters.message_type).filter((f) => filters.message_type[f])
+				txs = txs.filter((tx) => {
+					const txType = tx.isContractCreation ? "contract_creation" : 
+								   tx.isContractInteraction ? "contract_call" : "transfer"
+					return activeTypes.includes(txType)
+				})
+			}
+
+			transactions.value = txs.map(tx => ({
+				...tx,
+				// Map EVM fields to expected format
+				status: tx.status === 1 ? "success" : "failed",
+				gas_used: tx.gasUsed,
+				gas_wanted: tx.gas || tx.gasUsed,
+				fee: tx.transactionFee || "0",
+				message_types: tx.isContractCreation ? ["Contract Creation"] : 
+							   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
+				// Fix time and block number mapping
+				time: tx.timestamp,  // API'dan gelen timestamp'i time olarak map et
+				height: tx.blockNumber, // API'dan gelen blockNumber'ı height olarak map et
+			}))
+
+			handleNextCondition.value = transactions.value.length < 10
+		} else {
+			transactions.value = []
+			handleNextCondition.value = true
+		}
+
+		cacheStore.current.transactions = transactions.value
+	} catch (error) {
+		transactions.value = []
+		handleNextCondition.value = true
+	}
 
 	isRefetching.value = false
 }
 
 const collapseBalances = ref(false)
+
+/** Address Balance & Stats */
+const getAddressBalance = async () => {
+	isLoadingBalance.value = true
+	try {
+		const { data } = await fetchAddressBalanceClient(props.address.hash, {
+			includeNative: true,
+			includeMetadata: true,
+		})
+		addressBalance.value = data.value?.data || null
+	} catch (error) {
+		addressBalance.value = null
+	}
+	isLoadingBalance.value = false
+}
+
+const getAddressStats = async () => {
+	isLoadingStats.value = true
+	try {
+		const { data } = await fetchAddressStatsClient(props.address.hash)
+		addressStats.value = data.value?.data?.stats || null
+	} catch (error) {
+		addressStats.value = null
+	}
+	isLoadingStats.value = false
+}
+
+// Computed properties for display
+const nativeBalance = computed(() => {
+	if (!addressBalance.value?.nativeBalance) return "0"
+	// Convert wei to MON (divide by 10^18)
+	const monValue = parseInt(addressBalance.value.nativeBalance) / Math.pow(10, 18)
+	return monValue.toFixed(6)
+})
+
+const totalTransactions = computed(() => {
+	return addressStats.value?.transactionCount?.total || 0
+})
+
+const isActive = computed(() => {
+	return addressStats.value?.isActive || false
+})
 
 /** Watchers */
 watch(
@@ -309,15 +394,50 @@ watch(
 	{ immediate: true },
 )
 
+// Load balance and stats on component mount
+onMounted(async () => {
+	await Promise.all([
+		getAddressBalance(),
+		getAddressStats(),
+	])
+})
+
 watch(page, () => {
 	if (activeTab.value === "transactions") {
 		getTransactions()
 	}
 })
+
+// Modal handlers
+const handleSend = () => {
+	// For now, just log - could open a send modal in the future
+	console.log('Send to address:', props.address.hash)
+	// TODO: Implement send modal when available
+	// modalsStore.open("send")
+}
+
+const handleOpenQRModal = () => {
+	// Set QR data in cache store
+	cacheStore.qr.data = address.value.hash
+	cacheStore.qr.description = "Address"
+	cacheStore.qr.icon = "address"
+	
+	// Open QR modal
+	modalsStore.open("qr")
+}
+
+const handleViewRawAddress = () => {
+	// Set raw data in cache store
+	cacheStore.current.address = address.value
+	cacheStore.current._target = "address"
+	
+	// Open raw data modal
+	modalsStore.open("rawData")
+}
 </script>
 
 <template>
-	<Flex direction="column" gap="4">
+	<Flex direction="column" gap="4" wide>
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="8">
 				<Icon name="address" size="14" color="primary" />
@@ -362,7 +482,7 @@ watch(page, () => {
 			</Flex>
 		</Flex>
 
-		<Flex gap="4" :class="$style.content">
+		<Flex gap="16" :class="$style.content">
 			<Flex direction="column" justify="between" gap="32" :class="$style.data">
 				<Flex direction="column" gap="24" :class="$style.main">
 					<Flex v-if="address.celestials" align="center" gap="12" :class="$style.key_value">
@@ -371,7 +491,7 @@ watch(page, () => {
 						</Flex>
 
 						<Flex direction="column" gap="8" :class="$style.key_value">
-							<Text size="14" weight="600" color="secondary"> {{ $getDisplayName("addresses", "", address) }}</Text>
+							<Text size="14" weight="600" color="secondary"> Address </Text>
 
 							<Flex align="center" gap="10">
 								<Text size="12" weight="600" color="secondary"> {{ splitAddress(address.hash) }} </Text>
@@ -401,11 +521,8 @@ watch(page, () => {
 
 						<Flex v-if="!collapseBalances" direction="column" gap="12" :class="$style.key_value">
 							<Flex align="center" justify="between">
-								<Text size="12" weight="600" color="tertiary"> Spendable</Text>
-								<AmountInCurrency
-									:amount="{ value: address.balance.spendable }"
-									:styles="{ amount: { color: 'secondary' }, currency: { color: 'secondary' } }"
-								/>
+								<Text size="12" weight="600" color="tertiary"> Native Balance</Text>
+								<Text size="12" weight="600" color="secondary">{{ nativeBalance }} MON</Text>
 							</Flex>
 						</Flex>
 					</Flex>
@@ -413,13 +530,18 @@ watch(page, () => {
 					<Flex direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Details</Text>
 
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> First Height</Text>
-							<Text size="12" weight="600" color="secondary"> {{ comma(address.first_height) }} </Text>
+						<Flex align="center" justify="between" v-if="addressStats?.firstTransactionDate">
+							<Text size="12" weight="600" color="tertiary"> First Activity</Text>
+							<Text size="12" weight="600" color="secondary"> {{ new Date(addressStats.firstTransactionDate).toLocaleDateString() }} </Text>
 						</Flex>
+						<Flex align="center" justify="between" v-if="addressStats?.lastTransactionDate">
+							<Text size="12" weight="600" color="tertiary"> Last Activity</Text>
+							<Text size="12" weight="600" color="secondary"> {{ new Date(addressStats.lastTransactionDate).toLocaleDateString() }} </Text>
+						</Flex>
+
 						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Last Height</Text>
-							<Text size="12" weight="600" color="secondary"> {{ comma(address.last_height) }} </Text>
+							<Text size="12" weight="600" color="tertiary"> Total Transactions</Text>
+							<Text size="12" weight="600" color="secondary"> {{ comma(totalTransactions) }} </Text>
 						</Flex>
 					</Flex>
 				</Flex>
@@ -630,8 +752,14 @@ watch(page, () => {
 	padding: 0 12px;
 }
 
+.content {
+	width: 100%;
+	max-width: none;
+}
+
 .data {
-	min-width: 384px;
+	flex: 0 0 320px;
+	max-width: 320px;
 
 	border-radius: 4px 4px 4px 8px;
 	background: var(--card-background);
@@ -674,6 +802,7 @@ watch(page, () => {
 }
 
 .txs_wrapper {
+	flex: 1;
 	min-width: 0;
 }
 
@@ -747,12 +876,14 @@ watch(page, () => {
 
 .table {
 	flex: 1;
+	width: 100%;
+	min-width: 0;
 }
 
 .filters {
 	border-bottom: 1px dashed var(--op-8);
 
-	padding: 12px 8px 12px 8px;
+	padding: 12px 16px 12px 16px;
 }
 
 .badge {
@@ -805,15 +936,35 @@ watch(page, () => {
 	}
 }
 
+@media (max-width: 1200px) {
+	.data {
+		flex: 0 0 300px;
+		max-width: 300px;
+	}
+}
+
+@media (max-width: 1000px) {
+	.data {
+		flex: 0 0 280px;
+		max-width: 280px;
+	}
+}
+
 @media (max-width: 800px) {
 	.content {
 		flex-direction: column;
 	}
 
 	.data {
-		min-width: initial;
+		flex: none;
+		max-width: none;
+		width: 100%;
 
 		border-radius: 4px;
+	}
+
+	.txs_wrapper {
+		flex: none;
 	}
 
 	.table {

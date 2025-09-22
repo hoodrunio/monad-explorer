@@ -3,7 +3,7 @@
 import { DateTime } from "luxon"
 
 /** Services */
-import { comma, space } from "@/services/utils"
+import { comma, space, shortHex } from "@/services/utils"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
@@ -60,7 +60,7 @@ const props = defineProps({
 									/>
 
 									<Text size="12" weight="600" color="primary" mono class="table_column_alias">
-										{{ $getDisplayName('txs', tx.hash) }}
+										{{ shortHex(tx.hash) }}
 									</Text>
 
 									<CopyButton :text="tx.hash" />

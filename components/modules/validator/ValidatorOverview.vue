@@ -16,6 +16,7 @@ import { convertUTCToLocal } from "@/services/utils/validator"
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
 import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed.vue"
 import ValidatorEventsTable from "./ValidatorEventsTable.vue"
+import ValidatorDelegatorsTable from "./ValidatorDelegatorsTable.vue"
 import ValidatorTransactionAnalytics from "./ValidatorTransactionAnalytics.vue"
 
 const route = useRoute()
@@ -34,6 +35,10 @@ const props = defineProps({
 		type: Object,
 		default: null,
 	},
+	authorBalance: {
+		type: Object,
+		default: null,
+	},
 })
 
 const tabs = ref([
@@ -48,6 +53,10 @@ const tabs = ref([
 	{
 		name: "Events",
 		icon: "message",
+	},
+	{
+		name: "Delegators",
+		icon: "granters",
 	},
 ])
 
@@ -258,6 +267,27 @@ const needsDescriptionToggle = computed(() => {
 const toggleDescription = () => {
 	isDescriptionExpanded.value = !isDescriptionExpanded.value
 }
+
+const formatBalance = (balance) => {
+	if (!balance || balance === '0') return '0'
+	
+	try {
+		// Convert from wei to ether (divide by 10^18)
+		const balanceInEther = parseFloat(balance) / Math.pow(10, 18)
+		
+		// Format with appropriate decimal places
+		if (balanceInEther >= 1000000) {
+			return comma(balanceInEther.toFixed(2))
+		} else if (balanceInEther >= 1) {
+			return comma(balanceInEther.toFixed(4))
+		} else {
+			return balanceInEther.toFixed(6)
+		}
+	} catch (error) {
+		console.error('Error formatting balance:', error)
+		return '0'
+	}
+}
 </script>
 
 <template>
@@ -349,13 +379,38 @@ const toggleDescription = () => {
 							<Text size="13" weight="600" color="primary">Author Address</Text>
 						</Flex>
 						<Flex align="center" gap="6">
-							<Text size="12" weight="600" color="tertiary" mono selectable>
-								{{ validator.staking?.auth_address ? shortHex(validator.staking.auth_address) : 'N/A' }}
+							<NuxtLink 
+								v-if="validator.staking?.auth_address"
+								:to="`/address/${validator.staking.auth_address}`" 
+								:class="$style.address_link"
+							>
+								<Text size="12" weight="600" color="brand" mono selectable>
+									{{ shortHex(validator.staking.auth_address) }}
+								</Text>
+							</NuxtLink>
+							<Text v-else size="12" weight="600" color="tertiary" mono selectable>
+								N/A
 							</Text>
 							<CopyButton 
 								v-if="validator.staking?.auth_address" 
 								:text="validator.staking.auth_address" 
 							/>
+						</Flex>
+						
+						<!-- Author Balance -->
+						<Flex v-if="validator.staking?.auth_address" align="center" justify="between">
+							<Text size="11" weight="500" color="tertiary">Balance</Text>
+							<Flex align="center" gap="4">
+								<Text v-if="authorBalance?.success" size="11" weight="600" color="secondary">
+									{{ formatBalance(authorBalance.balance) }} MON
+								</Text>
+								<Text v-else-if="authorBalance === null" size="11" weight="500" color="tertiary">
+									Loading...
+								</Text>
+								<Text v-else size="11" weight="500" color="tertiary">
+									N/A
+								</Text>
+							</Flex>
 						</Flex>
 					</Flex>
 					
@@ -440,6 +495,7 @@ const toggleDescription = () => {
 					<Flex align="center" gap="4">
 						<button
 							v-for="tab in tabs"
+							:key="tab.name"
 							@click="activeTab = tab.name"
 							:class="[$style.tab, activeTab === tab.name && $style.tab_active]"
 						>
@@ -540,6 +596,20 @@ const toggleDescription = () => {
 					<!-- Events Tab -->
 					<template v-if="activeTab === 'Events'">
 						<ValidatorEventsTable :validator-id="validator.validator_id" />
+					</template>
+
+					<!-- Delegators Tab -->
+					<template v-if="activeTab === 'Delegators'">
+						<ValidatorDelegatorsTable 
+							v-if="validator.staking?.precompile_validator_id"
+							:precompile-id="validator.staking.precompile_validator_id" 
+						/>
+						<Flex v-else direction="column" gap="12" align="center" :class="$style.no_precompile">
+							<Icon name="warning" size="24" color="tertiary" />
+							<Text size="12" weight="500" color="tertiary">
+								No precompile validator ID available for this validator
+							</Text>
+						</Flex>
 					</template>
 				</Flex>
 			</Flex>
@@ -758,6 +828,20 @@ const toggleDescription = () => {
 
 .analytics_header {
 	margin-bottom: 16px;
+}
+
+.no_precompile {
+	padding: 40px 20px;
+	text-align: center;
+}
+
+.address_link {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.address_link:hover {
+	opacity: 0.8;
 }
 
 @media (max-width: 768px) {
