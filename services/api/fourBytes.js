@@ -7,6 +7,7 @@
  * Cache for method signatures to avoid repeated API calls
  * Structure: { methodId: { signature: string, timestamp: number } }
  */
+import { enhancedDecode } from './abiDecoder'
 const methodSignatureCache = new Map()
 
 // Cache duration: 24 hours
@@ -117,6 +118,39 @@ export const hasMethodSignature = async (methodId) => {
  */
 export const clearMethodCache = () => {
 	methodSignatureCache.clear()
+}
+
+/**
+ * Enhanced function signature lookup that tries ABI first, then 4bytes.directory
+ * @param {string} methodId - The method ID
+ * @param {string} inputData - Complete transaction input data (optional, for ABI decoding)
+ * @param {string} abiPath - Path to ABI JSON file (default: staking ABI)
+ * @returns {Promise<{signature: string, methodName: string, source: string, decodedParams?: Array}>}
+ */
+export const getEnhancedSignature = async (methodId, inputData = null, abiPath = '/abi/staking_abi.json') => {
+	// Try ABI decoding first if input data is provided
+	if (inputData) {
+		try {
+			const abiResult = await enhancedDecode(methodId, inputData, abiPath)
+			if (abiResult) {
+				return abiResult
+			}
+		} catch (error) {
+			console.warn('ABI decoding failed, falling back to 4bytes.directory:', error)
+		}
+	}
+
+	// Fallback to 4bytes.directory
+	const signature = await getFunctionSignature(methodId)
+	if (signature) {
+		return {
+			source: '4bytes',
+			signature,
+			methodName: extractMethodName(signature)
+		}
+	}
+
+	return null
 }
 
 /**

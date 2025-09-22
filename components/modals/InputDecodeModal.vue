@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button.vue"
 
 /** Services */
 import { shortHex } from "@/services/utils"
+import { getEnhancedSignature } from "@/services/api/fourBytes"
+import { decodeWithAbi } from "@/services/api/abiDecoder"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -18,6 +20,11 @@ const props = defineProps({
 // Get transaction data from cache
 const transaction = computed(() => cacheStore.current.transaction)
 const methodSignature = computed(() => cacheStore.current.methodSignature)
+
+// Enhanced decoding state
+const enhancedDecoding = ref(null)
+const isDecodingWithAbi = ref(false)
+const abiDecodingError = ref(null)
 
 // Parse input data for display
 const parsedInput = computed(() => {
@@ -82,6 +89,63 @@ const formattedParameters = computed(() => {
 	return formatParameters(parsedInput.value.parameters)
 })
 
+// Enhanced ABI decoding
+const performAbiDecoding = async () => {
+	if (!transaction.value?.input || !transaction.value?.methodID) {
+		return
+	}
+
+	isDecodingWithAbi.value = true
+	abiDecodingError.value = null
+
+	try {
+		// Try enhanced signature lookup with ABI decoding
+		const result = await getEnhancedSignature(
+			transaction.value.methodID,
+			transaction.value.input,
+			'/abi/staking_abi.json'
+		)
+
+		enhancedDecoding.value = result
+	} catch (error) {
+		console.error('Enhanced decoding failed:', error)
+		abiDecodingError.value = error.message
+	} finally {
+		isDecodingWithAbi.value = false
+	}
+}
+
+// Watch for transaction changes and attempt ABI decoding
+watch(transaction, performAbiDecoding, { immediate: true })
+
+// Computed property for showing decoded parameters
+const decodedParameters = computed(() => {
+	if (enhancedDecoding.value?.decodedParams) {
+		return enhancedDecoding.value.decodedParams
+	}
+	return null
+})
+
+// Check if we have ABI-decoded data
+const hasAbiDecoding = computed(() => {
+	return enhancedDecoding.value?.source === 'abi' && enhancedDecoding.value?.decodedParams
+})
+
+// Get the signature to display (ABI or 4bytes)
+const displaySignature = computed(() => {
+	return enhancedDecoding.value?.signature || methodSignature.value
+})
+
+// Get the decoding source info
+const decodingSource = computed(() => {
+	if (enhancedDecoding.value?.source === 'abi') {
+		return 'ABI (Staking Contract)'
+	} else if (enhancedDecoding.value?.source === '4bytes') {
+		return '4bytes.directory'
+	}
+	return null
+})
+
 const handleClose = () => {
 	emit("onClose")
 }
@@ -106,8 +170,18 @@ const copyToClipboard = (text) => {
 			</Flex>
 
 			<!-- Method Information -->
-			<Flex v-if="transaction?.methodID || methodSignature" direction="column" gap="12" :class="$style.section">
-				<Text size="13" weight="600" color="secondary">Method Information</Text>
+			<Flex v-if="transaction?.methodID || displaySignature" direction="column" gap="12" :class="$style.section">
+				<Flex align="center" justify="between">
+					<Text size="13" weight="600" color="secondary">Method Information</Text>
+					<Flex v-if="isDecodingWithAbi" align="center" gap="4">
+						<Icon name="loader" size="12" color="tertiary" />
+						<Text size="11" weight="500" color="tertiary">Decoding...</Text>
+					</Flex>
+					<Flex v-else-if="decodingSource" align="center" gap="4">
+						<Icon :name="enhancedDecoding?.source === 'abi' ? 'check' : 'globe'" size="12" :color="enhancedDecoding?.source === 'abi' ? 'green' : 'tertiary'" />
+						<Text size="11" weight="500" :color="enhancedDecoding?.source === 'abi' ? 'green' : 'tertiary'">{{ decodingSource }}</Text>
+					</Flex>
+				</Flex>
 				
 				<Flex v-if="transaction?.methodID" direction="column" gap="4">
 					<Text size="12" weight="500" color="tertiary">Method ID</Text>
@@ -117,12 +191,25 @@ const copyToClipboard = (text) => {
 					</Flex>
 				</Flex>
 
-				<Flex v-if="methodSignature" direction="column" gap="4">
+				<Flex v-if="displaySignature" direction="column" gap="4">
 					<Text size="12" weight="500" color="tertiary">Function Signature</Text>
 					<Flex align="center" gap="8" :class="$style.code_block">
-						<Text size="12" weight="500" color="primary" mono>{{ methodSignature }}</Text>
-						<CopyButton :text="methodSignature" size="12" />
+						<Text size="12" weight="500" color="primary" mono>{{ displaySignature }}</Text>
+						<CopyButton :text="displaySignature" size="12" />
 					</Flex>
+				</Flex>
+
+				<Flex v-if="enhancedDecoding?.methodName" direction="column" gap="4">
+					<Text size="12" weight="500" color="tertiary">Method Name</Text>
+					<Flex align="center" gap="8" :class="$style.code_block">
+						<Text size="12" weight="600" color="primary">{{ enhancedDecoding.methodName }}</Text>
+						<CopyButton :text="enhancedDecoding.methodName" size="12" />
+					</Flex>
+				</Flex>
+
+				<Flex v-if="abiDecodingError" direction="column" gap="4">
+					<Text size="12" weight="500" color="red">Decoding Error</Text>
+					<Text size="11" weight="400" color="red">{{ abiDecodingError }}</Text>
 				</Flex>
 			</Flex>
 
@@ -143,11 +230,62 @@ const copyToClipboard = (text) => {
 				</Flex>
 			</Flex>
 
+			<!-- ABI Decoded Parameters -->
+			<Flex v-if="hasAbiDecoding" direction="column" gap="12" :class="$style.section">
+				<Flex align="center" gap="8">
+					<Icon name="check" size="16" color="green" />
+					<Text size="13" weight="600" color="secondary">ABI Decoded Parameters</Text>
+				</Flex>
+				<Text size="11" weight="400" color="green">
+					Parameters decoded using the staking contract ABI. These values are accurate and typed.
+				</Text>
+				
+				<div :class="$style.parameters">
+					<div v-for="(param, index) in decodedParameters" :key="index" :class="$style.parameter">
+						<Flex direction="column" gap="8">
+							<Flex align="center" justify="between">
+								<Flex direction="column" gap="2">
+									<Text size="12" weight="600" color="primary">{{ param.name || `Parameter ${index + 1}` }}</Text>
+									<Text size="10" weight="500" color="support" mono>{{ param.type }}</Text>
+								</Flex>
+								<CopyButton :text="param.value?.toString() || ''" size="12" />
+							</Flex>
+							
+							<Flex direction="column" gap="6">
+								<!-- Handle different value formats -->
+								<template v-if="typeof param.formattedValue === 'object' && param.formattedValue.decimal">
+									<Flex direction="column" gap="2">
+										<Text size="11" weight="500" color="support">Decimal</Text>
+										<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+											{{ param.formattedValue.decimal }}
+										</Text>
+									</Flex>
+									<Flex direction="column" gap="2">
+										<Text size="11" weight="500" color="support">Hex</Text>
+										<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+											{{ param.formattedValue.hex }}
+										</Text>
+									</Flex>
+								</template>
+								<template v-else>
+									<Flex direction="column" gap="2">
+										<Text size="11" weight="500" color="support">Value</Text>
+										<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+											{{ param.formattedValue || param.value?.toString() || 'N/A' }}
+										</Text>
+									</Flex>
+								</template>
+							</Flex>
+						</Flex>
+					</div>
+				</div>
+			</Flex>
+
 			<!-- Parameter Breakdown -->
-			<Flex v-if="formattedParameters.length" direction="column" gap="12" :class="$style.section">
-				<Text size="13" weight="600" color="secondary">Parameter Breakdown</Text>
+			<Flex v-if="formattedParameters.length && !hasAbiDecoding" direction="column" gap="12" :class="$style.section">
+				<Text size="13" weight="600" color="secondary">Raw Parameter Breakdown</Text>
 				<Text size="11" weight="400" color="support">
-					Note: This is a basic hex interpretation. For accurate decoding, use the function signature with a proper ABI decoder.
+					Note: This is a basic hex interpretation. ABI decoding is not available for this function.
 				</Text>
 				
 				<div :class="$style.parameters">
@@ -185,10 +323,58 @@ const copyToClipboard = (text) => {
 				</div>
 			</Flex>
 
+			<!-- Advanced Raw Breakdown (only show if ABI decoding is available) -->
+			<Flex v-if="formattedParameters.length && hasAbiDecoding" direction="column" gap="12" :class="$style.section">
+				<Flex align="center" gap="8">
+					<Icon name="code" size="16" color="tertiary" />
+					<Text size="13" weight="600" color="secondary">Advanced: Raw Hex Breakdown</Text>
+				</Flex>
+				<Text size="11" weight="400" color="support">
+					Raw parameter data for advanced users. The ABI-decoded parameters above are recommended for normal use.
+				</Text>
+				
+				<div :class="$style.parameters">
+					<div v-for="param in formattedParameters" :key="param.index" :class="$style.parameter">
+						<Flex direction="column" gap="8">
+							<Flex align="center" justify="between">
+								<Text size="12" weight="600" color="tertiary">Raw Parameter {{ param.index + 1 }}</Text>
+								<CopyButton :text="param.hex" size="12" />
+							</Flex>
+							
+							<Flex direction="column" gap="6">
+								<Flex direction="column" gap="2">
+									<Text size="11" weight="500" color="support">Hex</Text>
+									<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+										{{ param.hex }}
+									</Text>
+								</Flex>
+								
+								<Flex direction="column" gap="2">
+									<Text size="11" weight="500" color="support">Decimal</Text>
+									<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+										{{ param.decimal }}
+									</Text>
+								</Flex>
+								
+								<Flex v-if="param.ascii" direction="column" gap="2">
+									<Text size="11" weight="500" color="support">ASCII (if string)</Text>
+									<Text size="11" weight="400" color="primary" mono :class="$style.param_value">
+										"{{ param.ascii }}"
+									</Text>
+								</Flex>
+							</Flex>
+						</Flex>
+					</div>
+				</div>
+			</Flex>
+
 			<!-- Footer -->
 			<Flex direction="column" gap="12" :class="$style.footer">
-				<Text size="11" weight="400" color="support" align="center">
-					For precise parameter decoding, use tools like Etherscan's input data decoder with the function ABI.
+				<Text v-if="!hasAbiDecoding" size="11" weight="400" color="support" align="center">
+					For precise parameter decoding, try using a contract ABI or tools like Etherscan's input data decoder.
+				</Text>
+				<Text v-else size="11" weight="400" color="green" align="center">
+					✅ Parameters have been decoded using the contract ABI for accurate results.
 				</Text>
 				<Button type="secondary" size="small" @click="handleClose" block>
 					Close
