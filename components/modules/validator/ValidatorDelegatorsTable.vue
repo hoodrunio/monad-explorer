@@ -137,7 +137,7 @@ const formattedTimestamp = computed(() => {
 		<!-- Empty state -->
 		<Flex v-else-if="!delegatorsData || delegatorCount === 0" direction="column" gap="12" align="center" :class="$style.empty">
 			<Icon name="granters" size="24" color="tertiary" />
-			<Text size="12" weight="500" color="tertiary">No delegators found</Text>
+			<Text size="12" weight="500" color="tertiary">No delegators</Text>
 		</Flex>
 
 		<!-- Delegators list -->
