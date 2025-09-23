@@ -4,7 +4,7 @@
  */
 
 import { ref, computed, watch } from 'vue'
-import { getFunctionSignature, extractMethodName, hasMethodSignature } from '@/services/api/fourBytes'
+import { getFunctionSignature, extractMethodName, hasMethodSignature, getEnhancedSignature } from '@/services/api/fourBytes'
 
 /**
  * Global state for method information to avoid duplicate API calls
@@ -53,25 +53,39 @@ export const useTransactionMethods = () => {
 			isLoadingMethod.value = true
 			error.value = null
 
-			try {
-				// Fetch from 4bytes.directory
-				const fetchedSignature = await getFunctionSignature(currentMethodId)
-				const fetchedMethodName = fetchedSignature ? extractMethodName(fetchedSignature) : null
-				const decodeable = fetchedSignature !== null
+		try {
+			// Try enhanced signature lookup (ABI first, then 4bytes.directory)
+			const enhancedResult = await getEnhancedSignature(currentMethodId, input.value)
+			
+			let fetchedSignature = null
+			let fetchedMethodName = null
+			let decodeable = false
+			
+			if (enhancedResult) {
+				fetchedSignature = enhancedResult.signature
+				fetchedMethodName = enhancedResult.methodName
+				decodeable = true
+			} else {
+				// Fallback to original 4bytes.directory method
+				fetchedSignature = await getFunctionSignature(currentMethodId)
+				fetchedMethodName = fetchedSignature ? extractMethodName(fetchedSignature) : null
+				decodeable = fetchedSignature !== null
+			}
 
-				// Cache the result
-				const cacheData = {
-					signature: fetchedSignature,
-					methodName: fetchedMethodName,
-					canDecode: decodeable,
-					timestamp: Date.now()
-				}
-				methodInfoCache.set(currentMethodId, cacheData)
+			// Cache the result
+			const cacheData = {
+				signature: fetchedSignature,
+				methodName: fetchedMethodName,
+				canDecode: decodeable,
+				enhancedResult: enhancedResult,
+				timestamp: Date.now()
+			}
+			methodInfoCache.set(currentMethodId, cacheData)
 
-				// Update reactive values
-				signature.value = fetchedSignature
-				methodName.value = fetchedMethodName || existingMethodName.value
-				canDecode.value = decodeable
+			// Update reactive values
+			signature.value = fetchedSignature
+			methodName.value = fetchedMethodName || existingMethodName.value
+			canDecode.value = decodeable
 			} catch (err) {
 				error.value = err.message || 'Failed to fetch method information'
 				console.warn('Error fetching method info:', err)
