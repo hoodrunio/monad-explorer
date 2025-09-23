@@ -431,6 +431,18 @@ const formatBalance = (balance) => {
 						</Flex>
 					</Flex>
 					
+					<!-- Commission Information -->
+					<Flex v-if="validator.staking?.commission" direction="column" gap="8" :class="$style.key_value">
+						<Flex align="center" justify="between">
+							<Text size="13" weight="600" color="primary">Commission Rate</Text>
+						</Flex>
+						<Flex align="center" gap="6">
+							<Text size="12" weight="600" color="secondary"> 
+								{{ parseFloat(validator.staking.commission.percentage || 0).toFixed(2).replace(/\.?0+$/, '') }}%
+							</Text>
+						</Flex>
+					</Flex>
+					
 					<!-- Infrastructure Details -->
 					<Flex v-if="infrastructureDetails" direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Infrastructure Details</Text>

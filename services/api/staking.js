@@ -623,7 +623,7 @@ export async function getStakingStats() {
 		}, BigInt('0'))
 		
 		const averageCommission = activeValidatorsData.reduce((sum, validator) => {
-			return sum + (validator.staking?.commission_rate || 0)
+			return sum + parseFloat(validator.staking?.commission?.percentage || 0)
 		}, 0) / Math.max(activeValidatorsData.length, 1)
 		
 		return {

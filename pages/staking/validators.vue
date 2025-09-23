@@ -183,10 +183,10 @@ async function loadValidators() {
 						parseFloat(validator.staking.real_time_stake_mon * 1e18).toFixed(0) : '0', // Convert to wei
 					consensusStake: validator.staking?.real_time_stake_mon ? 
 						parseFloat(validator.staking.real_time_stake_mon * 1e18).toFixed(0) : '0', // Convert to wei
-					commissionRate: validator.staking?.commission_rate || 0,
+					commissionRate: parseFloat(validator.staking?.commission?.percentage || 0),
 					formattedStake: validator.staking?.real_time_stake_mon || '0',
 					formattedConsensusStake: validator.staking?.real_time_stake_mon || '0',
-					formattedCommissionRate: `${(validator.staking?.commission_rate || 0).toFixed(2)}%`,
+					formattedCommissionRate: `${parseFloat(validator.staking?.commission?.percentage || 0).toFixed(2).replace(/\.?0+$/, '')}%`,
 					isActive: validator.staking?.is_staking_active || false,
 					// Include staking object for ValidatorList component
 					staking: validator.staking,

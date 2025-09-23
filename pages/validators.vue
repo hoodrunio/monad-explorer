@@ -146,6 +146,9 @@ const getValidators = async () => {
 					qcParticipations: v.details?.qc_participations || 0,
 					totalQcOpportunities: v.details?.total_qc_opportunities || 0,
 					logoUrl: preferredLogo,
+					// Commission information from new API structure
+					commissionRate: parseFloat(v.staking?.commission?.percentage || 0),
+					formattedCommissionRate: `${parseFloat(v.staking?.commission?.percentage || 0).toFixed(2).replace(/\.?0+$/, '')}%`,
 					// Include staking object for precompile_validator_id access
 					staking: v.staking,
 					precompileValidatorId: v.staking?.precompile_validator_id
@@ -556,6 +559,7 @@ onMounted(() => {
 										/>
 									</Flex>
 								</th>
+								<th :class="$style.col_commission"><Text size="12" weight="600" color="tertiary" noWrap>Commission</Text></th>
 								<th :class="$style.col_location"><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 								<th :class="$style.col_bookmark"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
@@ -598,6 +602,13 @@ onMounted(() => {
 									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Text size="13" weight="600" :color="getPerformanceColor(validator.uptimeScore)">
 											{{ formatPercentage(validator.uptimeScore) }}
+										</Text>
+									</NuxtLink>
+								</td>
+								<td :class="$style.col_commission">
+									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
+										<Text size="13" weight="600" color="secondary">
+											{{ validator.formattedCommissionRate || 'N/A' }}
 										</Text>
 									</NuxtLink>
 								</td>
@@ -744,6 +755,10 @@ onMounted(() => {
 
 		& .col_uptime {
 			width: 130px;
+		}
+
+		& .col_commission {
+			width: 120px;
 		}
 
 		& .col_location {
