@@ -71,7 +71,14 @@ export const useModalsStore = defineStore("modals", () => {
 		open('transactionResult')
 	}
 
-	return { history, lastModal, modals, transactionData, open, close, closeAll, showTransactionResult }
+	const updateTransactionResult = (transaction) => {
+		// Only update if modal is already open
+		if (modals.transactionResult) {
+			transactionData.value = transaction
+		}
+	}
+
+	return { history, lastModal, modals, transactionData, open, close, closeAll, showTransactionResult, updateTransactionResult }
 })
 
 if (import.meta.hot) {

@@ -7,7 +7,7 @@ import {
 } from '@wagmi/core'
 import { parseEther, formatEther, parseUnits, formatUnits } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
-import { STAKING_CONFIG, STAKING_SELECTORS, monadTestnet } from '~/config/chains'
+import { STAKING_CONFIG, monadTestnet } from '~/config/chains'
 import { useModalsStore } from '~/store/modals.store'
 import { getDelegatorWithdrawals } from '~/services/api/staking'
 
@@ -345,16 +345,27 @@ export const useStakingStore = defineStore('staking', {
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
 				
-				// Wait for confirmation
-				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				// Wait for confirmation with timeout
+				try {
+					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+						hash,
+						timeout: 60000 // 60 seconds timeout
+					})
+					
+					// Update transaction status
+					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+					transaction.blockNumber = receipt.blockNumber
+					transaction.gasUsed = receipt.gasUsed
+					
+				} catch (receiptError) {
+					console.error('Failed to get transaction receipt:', receiptError)
+					// Mark as failed if we can't get receipt
+					transaction.status = 'failed'
+					transaction.error = 'Transaction confirmation timeout'
+				}
 				
-				// Update transaction status
-				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-				transaction.blockNumber = receipt.blockNumber
-				transaction.gasUsed = receipt.gasUsed
-				
-				// Update modal with final status
-				modalsStore.showTransactionResult(transaction)
+				// Update modal with final status (don't reopen, just update)
+				modalsStore.updateTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()
@@ -436,16 +447,27 @@ export const useStakingStore = defineStore('staking', {
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
 				
-				// Wait for confirmation
-				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				// Wait for confirmation with timeout
+				try {
+					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+						hash,
+						timeout: 60000 // 60 seconds timeout
+					})
+					
+					// Update transaction status
+					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+					transaction.blockNumber = receipt.blockNumber
+					transaction.gasUsed = receipt.gasUsed
+					
+				} catch (receiptError) {
+					console.error('Failed to get transaction receipt:', receiptError)
+					// Mark as failed if we can't get receipt
+					transaction.status = 'failed'
+					transaction.error = 'Transaction confirmation timeout'
+				}
 				
-				// Update transaction status
-				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-				transaction.blockNumber = receipt.blockNumber
-				transaction.gasUsed = receipt.gasUsed
-				
-				// Update modal with final status
-				modalsStore.showTransactionResult(transaction)
+				// Update modal with final status (don't reopen, just update)
+				modalsStore.updateTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchUserStakingData()
@@ -520,16 +542,27 @@ export const useStakingStore = defineStore('staking', {
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
 				
-				// Wait for confirmation
-				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				// Wait for confirmation with timeout
+				try {
+					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+						hash,
+						timeout: 60000 // 60 seconds timeout
+					})
+					
+					// Update transaction status
+					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+					transaction.blockNumber = receipt.blockNumber
+					transaction.gasUsed = receipt.gasUsed
+					
+				} catch (receiptError) {
+					console.error('Failed to get transaction receipt:', receiptError)
+					// Mark as failed if we can't get receipt
+					transaction.status = 'failed'
+					transaction.error = 'Transaction confirmation timeout'
+				}
 				
-				// Update transaction status
-				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-				transaction.blockNumber = receipt.blockNumber
-				transaction.gasUsed = receipt.gasUsed
-				
-				// Update modal with final status
-				modalsStore.showTransactionResult(transaction)
+				// Update modal with final status (don't reopen, just update)
+				modalsStore.updateTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchUserStakingData()
@@ -602,16 +635,27 @@ export const useStakingStore = defineStore('staking', {
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
 				
-				// Wait for confirmation
-				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				// Wait for confirmation with timeout
+				try {
+					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+						hash,
+						timeout: 60000 // 60 seconds timeout
+					})
+					
+					// Update transaction status
+					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+					transaction.blockNumber = receipt.blockNumber
+					transaction.gasUsed = receipt.gasUsed
+					
+				} catch (receiptError) {
+					console.error('Failed to get transaction receipt:', receiptError)
+					// Mark as failed if we can't get receipt
+					transaction.status = 'failed'
+					transaction.error = 'Transaction confirmation timeout'
+				}
 				
-				// Update transaction status
-				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-				transaction.blockNumber = receipt.blockNumber
-				transaction.gasUsed = receipt.gasUsed
-				
-				// Update modal with final status
-				modalsStore.showTransactionResult(transaction)
+				// Update modal with final status (don't reopen, just update)
+				modalsStore.updateTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()
@@ -689,16 +733,27 @@ export const useStakingStore = defineStore('staking', {
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
 				
-				// Wait for confirmation
-				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				// Wait for confirmation with timeout
+				try {
+					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+						hash,
+						timeout: 60000 // 60 seconds timeout
+					})
+					
+					// Update transaction status
+					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+					transaction.blockNumber = receipt.blockNumber
+					transaction.gasUsed = receipt.gasUsed
+					
+				} catch (receiptError) {
+					console.error('Failed to get transaction receipt:', receiptError)
+					// Mark as failed if we can't get receipt
+					transaction.status = 'failed'
+					transaction.error = 'Transaction confirmation timeout'
+				}
 				
-				// Update transaction status
-				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-				transaction.blockNumber = receipt.blockNumber
-				transaction.gasUsed = receipt.gasUsed
-				
-				// Update modal with final status
-				modalsStore.showTransactionResult(transaction)
+				// Update modal with final status (don't reopen, just update)
+				modalsStore.updateTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()

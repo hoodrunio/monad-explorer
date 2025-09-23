@@ -17,6 +17,56 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+// Debug: Watch transaction changes
+watch(() => props.transaction, (newTx) => {
+	if (newTx) {
+	}
+}, { deep: true })
+
+// Auto-polling for pending transactions
+let pollingInterval = null
+
+onMounted(() => {
+	// Start polling if transaction is pending
+	if (isPending.value && props.transaction?.hash) {
+		startPolling()
+	}
+})
+
+onUnmounted(() => {
+	if (pollingInterval) {
+		clearInterval(pollingInterval)
+	}
+})
+
+// Watch for status changes to stop/start polling
+watch(() => props.transaction?.status, (newStatus) => {
+	if (newStatus === 'pending' && props.transaction?.hash) {
+		startPolling()
+	} else {
+		stopPolling()
+	}
+})
+
+function startPolling() {
+	if (pollingInterval) return // Already polling
+	
+	pollingInterval = setInterval(() => {
+		if (isPending.value && props.transaction?.hash) {
+			checkTransactionStatus()
+		} else {
+			stopPolling()
+		}
+	}, 5000) // Check every 5 seconds
+}
+
+function stopPolling() {
+	if (pollingInterval) {
+		clearInterval(pollingInterval)
+		pollingInterval = null
+	}
+}
+
 // Computed properties
 const isSuccess = computed(() => props.transaction?.status === 'success')
 const isError = computed(() => props.transaction?.status === 'failed' || props.transaction?.status === 'error')
@@ -77,10 +127,43 @@ function copyHash() {
 	}
 }
 
-// Close on escape key
+async function checkTransactionStatus() {
+	if (!props.transaction?.hash) return
+	
+	try {
+		const { useStakingStore } = await import('~/store/staking.store')
+		const { useModalsStore } = await import('~/store/modals.store')
+		const { waitForTransactionReceipt } = await import('@wagmi/core')
+		
+		const stakingStore = useStakingStore()
+		const modalsStore = useModalsStore()
+		const { $wagmiConfig } = useNuxtApp()		
+		const receipt = await waitForTransactionReceipt($wagmiConfig, { 
+			hash: props.transaction.hash,
+			timeout: 10000 // 10 seconds timeout for manual check
+		})
+		
+		// Update transaction with receipt info
+		const updatedTransaction = {
+			...props.transaction,
+			status: receipt.status === 'success' ? 'success' : 'failed',
+			blockNumber: receipt.blockNumber,
+			gasUsed: receipt.gasUsed
+		}
+		
+		modalsStore.updateTransactionResult(updatedTransaction)
+		
+	} catch (error) {
+		console.error('Manual transaction check failed:', error)
+	}
+}
+
+// Close on escape key (only if not pending)
 onMounted(() => {
 	const handleKeydown = (e) => {
-		if (e.key === 'Escape') handleClose()
+		if (e.key === 'Escape' && !isPending.value) {
+			handleClose()
+		}
 	}
 	document.addEventListener('keydown', handleKeydown)
 	onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
@@ -88,14 +171,14 @@ onMounted(() => {
 </script>
 
 <template>
-	<div v-if="show && transaction" class="modal-overlay" @click.self="handleClose">
+	<div v-if="show && transaction" class="modal-overlay" @click.self="!isPending && handleClose()">
 		<div class="modal-content">
 			<!-- Header -->
 			<div class="modal-header">
 				<div class="status-indicator" :class="statusColor">
 					<Icon :name="statusIcon" size="32" :color="statusColor" />
 				</div>
-				<button class="close-btn" @click="handleClose">×</button>
+				<button class="close-btn" :disabled="isPending" @click="!isPending && handleClose()">×</button>
 			</div>
 
 			<!-- Content -->
@@ -110,9 +193,18 @@ onMounted(() => {
 							Your {{ transactionTypeText.toLowerCase() }} transaction failed. {{ transaction.error || 'Please try again.' }}
 						</template>
 						<template v-else-if="isPending">
-							Your {{ transactionTypeText.toLowerCase() }} transaction is being processed. This may take a few moments.
+							Your {{ transactionTypeText.toLowerCase() }} transaction is being processed. Please wait for blockchain confirmation.
 						</template>
 					</p>
+					
+					<!-- Loading indicator for pending transactions -->
+					<div v-if="isPending" class="loading-indicator">
+						<div class="spinner"></div>
+						<span>Waiting for confirmation...</span>
+						<button v-if="transaction.hash" class="refresh-btn" @click="checkTransactionStatus">
+							<Icon name="refresh" size="16" />
+						</button>
+					</div>
 				</div>
 
 				<!-- Transaction Details -->
@@ -137,12 +229,12 @@ onMounted(() => {
 						</div>
 					</div>
 					
-					<div v-if="transaction.blockNumber" class="detail-item">
+					<div v-if="transaction.blockNumber && !isPending" class="detail-item">
 						<span class="label">Block:</span>
 						<span class="value">#{{ transaction.blockNumber }}</span>
 					</div>
 					
-					<div v-if="transaction.gasUsed" class="detail-item">
+					<div v-if="transaction.gasUsed && !isPending" class="detail-item">
 						<span class="label">Gas Used:</span>
 						<span class="value">{{ Number(transaction.gasUsed).toLocaleString() }}</span>
 					</div>
@@ -163,7 +255,7 @@ onMounted(() => {
 			<!-- Footer -->
 			<div class="modal-footer">
 				<Button 
-					v-if="transaction.hash && (isSuccess || isError)"
+					v-if="transaction.hash"
 					type="secondary"
 					size="medium"
 					@click="openExplorer"
@@ -176,7 +268,7 @@ onMounted(() => {
 					size="medium"
 					@click="handleClose"
 				>
-					{{ isPending ? 'Continue' : 'Done' }}
+					{{ isPending ? 'Close' : 'Done' }}
 				</Button>
 			</div>
 		</div>
@@ -253,9 +345,14 @@ onMounted(() => {
 		align-items: center;
 		justify-content: center;
 		
-		&:hover {
+		&:hover:not(:disabled) {
 			background: var(--op-5);
 			color: var(--txt-primary);
+		}
+		
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
 		}
 	}
 }
@@ -279,6 +376,50 @@ onMounted(() => {
 			color: var(--txt-secondary);
 			font-size: 14px;
 			line-height: 1.5;
+		}
+		
+		.loading-indicator {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+			margin-top: 20px;
+			padding: 16px;
+			background: var(--op-5);
+			border-radius: 8px;
+			
+			span {
+				color: var(--txt-secondary);
+				font-size: 14px;
+			}
+			
+			.spinner {
+				width: 20px;
+				height: 20px;
+				border: 2px solid var(--op-10);
+				border-top: 2px solid var(--primary);
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			.refresh-btn {
+				background: none;
+				border: 1px solid var(--op-10);
+				color: var(--txt-secondary);
+				padding: 8px;
+				border-radius: 6px;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all 0.2s;
+				
+				&:hover {
+					background: var(--op-5);
+					color: var(--txt-primary);
+					border-color: var(--op-20);
+				}
+			}
 		}
 	}
 	
