@@ -1,5 +1,5 @@
 <script setup>
-import { formatEther, parseEther } from 'viem'
+import { formatEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { useStakingStore } from '~/store/staking.store'
 
@@ -17,6 +17,10 @@ const props = defineProps({
 		type: Object,
 		default: null
 	},
+	withdrawals: {
+		type: Array,
+		default: () => []
+	},
 	show: {
 		type: Boolean,
 		default: false
@@ -28,7 +32,7 @@ const emit = defineEmits(['close', 'success'])
 const stakingStore = useStakingStore()
 
 // State
-const activeTab = ref('claim') // claim, compound, unstake
+const activeTab = ref('claim') // claim, compound, unstake, withdraw
 const unstakeAmount = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -53,6 +57,33 @@ const unstakeAmountError = computed(() => {
 
 const canUnstake = computed(() => {
 	return unstakeAmount.value && !unstakeAmountError.value && !loading.value
+})
+
+// Computed for withdrawals
+const validatorWithdrawals = computed(() => {
+	return props.withdrawals.filter(w => w.valId === props.validator?.valId) || []
+})
+
+const withdrawableWithdrawals = computed(() => {
+	return validatorWithdrawals.value.filter(w => w.isWithdrawable) || []
+})
+
+const pendingWithdrawals = computed(() => {
+	return validatorWithdrawals.value.filter(w => !w.isWithdrawable) || []
+})
+
+const totalWithdrawable = computed(() => {
+	return withdrawableWithdrawals.value.reduce((total, w) => {
+		return total + BigInt(w.amount || '0')
+	}, BigInt('0'))
+})
+
+const formattedTotalWithdrawable = computed(() => {
+	return abbreviate(parseFloat(formatEther(totalWithdrawable.value)), 2) || '0'
+})
+
+const hasWithdrawals = computed(() => {
+	return validatorWithdrawals.value.length > 0
 })
 
 // Actions
@@ -97,12 +128,35 @@ async function handleUnstake() {
 		loading.value = true
 		error.value = ''
 		
-		await stakingStore.undelegate(props.validator.valId, unstakeAmount.value, 1) // withdrawId = 1
+		// Generate next available withdrawId
+		const nextWithdrawId = Math.max(1, ...validatorWithdrawals.value.map(w => w.withdrawId), 0) + 1
+		await stakingStore.undelegate(props.validator.valId, unstakeAmount.value, nextWithdrawId)
 		
-		emit('success')
+		// Close this modal immediately after transaction starts
 		handleClose()
+		emit('success')
 	} catch (err) {
 		error.value = err.message || 'Failed to unstake'
+	} finally {
+		loading.value = false
+	}
+}
+
+async function handleWithdraw() {
+	if (!hasWithdrawals.value || withdrawableWithdrawals.value.length === 0) return
+	
+	try {
+		loading.value = true
+		error.value = ''
+		
+		// Process all withdrawable requests
+		for (const withdrawal of withdrawableWithdrawals.value) {
+			await stakingStore.withdraw(withdrawal.valId, withdrawal.withdrawId)
+		}
+		
+		emit('success')
+	} catch (err) {
+		error.value = err.message || 'Failed to withdraw'
 	} finally {
 		loading.value = false
 	}
@@ -174,6 +228,14 @@ onMounted(() => {
 					@click="activeTab = 'unstake'"
 				>
 					Unstake
+				</button>
+				<button 
+					v-if="hasWithdrawals"
+					class="tab-btn"
+					:class="{ active: activeTab === 'withdraw' }"
+					@click="activeTab = 'withdraw'"
+				>
+					Withdraw
 				</button>
 			</div>
 
@@ -255,6 +317,66 @@ onMounted(() => {
 					>
 						Unstake {{ unstakeAmount || '0' }} MON
 					</Button>
+				</div>
+
+				<!-- Withdraw Tab -->
+				<div v-if="activeTab === 'withdraw'" class="tab-content">
+					<p class="tab-description">
+						Withdraw your unstaked tokens that have completed the withdrawal delay period.
+					</p>
+
+					<!-- Withdrawable Amount -->
+					<div v-if="withdrawableWithdrawals.length > 0" class="withdrawable-section">
+						<div class="withdrawable-amount">
+							<div class="amount-display">
+								<span class="amount">{{ formattedTotalWithdrawable }} MON</span>
+								<span class="label">Ready to Withdraw</span>
+							</div>
+						</div>
+
+						<div class="withdrawal-list">
+							<div v-for="withdrawal in withdrawableWithdrawals" :key="`${withdrawal.valId}-${withdrawal.withdrawId}`" class="withdrawal-item">
+								<div class="withdrawal-info">
+									<span class="amount">{{ withdrawal.formattedAmount }} MON</span>
+									<span class="id">Request #{{ withdrawal.withdrawId }}</span>
+								</div>
+								<span class="status ready">Ready</span>
+							</div>
+						</div>
+
+						<Button 
+							type="primary"
+							size="large"
+							wide
+							:loading="loading"
+							@click="handleWithdraw"
+						>
+							Withdraw {{ formattedTotalWithdrawable }} MON
+						</Button>
+					</div>
+
+					<!-- Pending Withdrawals -->
+					<div v-if="pendingWithdrawals.length > 0" class="pending-section">
+						<h4>Pending Withdrawals</h4>
+						<p class="pending-description">These withdrawals are still in the delay period.</p>
+
+						<div class="withdrawal-list">
+							<div v-for="withdrawal in pendingWithdrawals" :key="`${withdrawal.valId}-${withdrawal.withdrawId}`" class="withdrawal-item">
+								<div class="withdrawal-info">
+									<span class="amount">{{ withdrawal.formattedAmount }} MON</span>
+									<span class="id">Request #{{ withdrawal.withdrawId }}</span>
+								</div>
+								<span class="status pending">
+									Epoch {{ withdrawal.withdrawableEpoch }}
+								</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- No Withdrawals -->
+					<div v-if="!hasWithdrawals" class="no-withdrawals">
+						<p>You don't have any pending withdrawals for this validator.</p>
+					</div>
 				</div>
 
 				<!-- Error Display -->
@@ -471,6 +593,109 @@ onMounted(() => {
 		border-radius: 8px;
 		font-size: 14px;
 		margin-top: 16px;
+	}
+	
+	.withdrawable-section {
+		.withdrawable-amount {
+			background: var(--green-bg);
+			border-radius: 12px;
+			padding: 20px;
+			margin-bottom: 16px;
+			text-align: center;
+			
+			.amount-display {
+				.amount {
+					display: block;
+					font-size: 24px;
+					font-weight: 700;
+					color: var(--green);
+					margin-bottom: 4px;
+				}
+				
+				.label {
+					font-size: 14px;
+					color: var(--txt-secondary);
+				}
+			}
+		}
+	}
+	
+	.pending-section {
+		margin-top: 24px;
+		
+		h4 {
+			margin: 0 0 8px 0;
+			font-size: 16px;
+			font-weight: 600;
+			color: var(--txt-primary);
+		}
+		
+		.pending-description {
+			margin: 0 0 16px 0;
+			font-size: 14px;
+			color: var(--txt-secondary);
+		}
+	}
+	
+	.withdrawal-list {
+		margin-bottom: 24px;
+		
+		.withdrawal-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 12px 16px;
+			background: var(--op-5);
+			border-radius: 8px;
+			
+			&:not(:last-child) {
+				margin-bottom: 8px;
+			}
+			
+			.withdrawal-info {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				
+				.amount {
+					font-weight: 600;
+					color: var(--txt-primary);
+				}
+				
+				.id {
+					font-size: 12px;
+					color: var(--txt-tertiary);
+				}
+			}
+			
+			.status {
+				font-size: 12px;
+				font-weight: 600;
+				padding: 4px 8px;
+				border-radius: 6px;
+				
+				&.ready {
+					background: var(--green);
+					color: white;
+				}
+				
+				&.pending {
+					background: var(--yellow-bg);
+					color: var(--yellow);
+				}
+			}
+		}
+	}
+	
+	.no-withdrawals {
+		text-align: center;
+		padding: 40px 20px;
+		
+		p {
+			margin: 0;
+			color: var(--txt-secondary);
+			font-size: 14px;
+		}
 	}
 }
 </style>

@@ -1,5 +1,4 @@
 <script setup>
-import { formatEther, parseEther } from 'viem'
 import { useStakingStore } from '~/store/staking.store'
 
 // Components
@@ -59,8 +58,9 @@ async function handleStake() {
 		
 		await stakingStore.delegate(props.validator.valId, stakeAmount.value)
 		
-		emit('success')
+		// Close this modal immediately after transaction starts
 		handleClose()
+		emit('success')
 	} catch (err) {
 		error.value = err.message || 'Failed to stake'
 	} finally {

@@ -8,6 +8,7 @@ export const useModalsStore = defineStore("modals", () => {
 	const history = ref([])
 
 	const lastModal = ref()
+	const transactionData = ref(null)
 	const modals = reactive({
 		api: false,
 		confirmation: false,
@@ -20,6 +21,7 @@ export const useModalsStore = defineStore("modals", () => {
 		chart: false,
 		qr: false,
 		inputDecode: false,
+		transactionResult: false,
 	})
 
 	const open = (target) => {
@@ -64,7 +66,12 @@ export const useModalsStore = defineStore("modals", () => {
 		})
 	}
 
-	return { history, lastModal, modals, open, close, closeAll }
+	const showTransactionResult = (transaction) => {
+		transactionData.value = transaction
+		open('transactionResult')
+	}
+
+	return { history, lastModal, modals, transactionData, open, close, closeAll, showTransactionResult }
 })
 
 if (import.meta.hot) {

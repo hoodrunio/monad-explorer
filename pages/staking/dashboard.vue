@@ -1,6 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
-import { getValidatorById, getStakingStats, getDelegatorWithdrawals } from '~/services/api/staking'
+import { getValidatorById, getDelegatorWithdrawals } from '~/services/api/staking'
 import { formatEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 
@@ -128,11 +128,19 @@ const withdrawableTotal = computed(() => {
 async function loadWithdrawals() {
 	if (!isConnected.value || !address.value) return
 	
+	// Skip if no delegations (no point checking withdrawals)
+	if (userDelegations.value.length === 0) {
+		withdrawals.value = []
+		return
+	}
+	
 	try {
 		loadingWithdrawals.value = true
 		withdrawals.value = await getDelegatorWithdrawals(address.value)
 	} catch (error) {
 		console.error('Failed to load withdrawals:', error)
+		// Don't fail silently, but don't break the app
+		withdrawals.value = []
 	} finally {
 		loadingWithdrawals.value = false
 	}
@@ -142,13 +150,19 @@ async function loadWithdrawals() {
 async function refreshData() {
 	try {
 		refreshing.value = true
+		
+		// Load balance and staking data first
 		await Promise.all([
 			stakingStore.fetchBalance(),
 			stakingStore.fetchUserStakingData(),
-			loadWithdrawals(),
 		])
-		// Load validator details after refreshing user data
+		
+		// Load validator details
 		await loadValidatorDetails()
+		
+		// Load withdrawals last (most expensive operation)
+		await loadWithdrawals()
+		
 	} catch (error) {
 		console.error('Failed to refresh data:', error)
 	} finally {
@@ -578,6 +592,7 @@ watch(userDelegations, async (newDelegations) => {
 			:show="showManageModal"
 			:validator="selectedValidator"
 			:delegation="selectedDelegation"
+			:withdrawals="withdrawals"
 			@close="handleManageModalClose"
 			@success="handleModalSuccess"
 		/>

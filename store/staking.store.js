@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import { 
-	getAccount, 
 	getBalance, 
-	watchAccount, 
-	watchChainId,
 	readContract,
 	writeContract,
 	waitForTransactionReceipt,
@@ -11,6 +8,8 @@ import {
 import { parseEther, formatEther, parseUnits, formatUnits } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { STAKING_CONFIG, STAKING_SELECTORS, monadTestnet } from '~/config/chains'
+import { useModalsStore } from '~/store/modals.store'
+import { getDelegatorWithdrawals } from '~/services/api/staking'
 
 export const useStakingStore = defineStore('staking', {
 	state: () => ({
@@ -265,10 +264,24 @@ export const useStakingStore = defineStore('staking', {
 
 		// Fetch user's withdrawal requests
 		async fetchUserWithdrawals() {
-			// Implementation would iterate through withdrawal IDs
-			// For now, return empty array as withdrawal enumeration isn't straightforward
-			this.userWithdrawals = []
-			return []
+			if (!this.address) return []
+			
+			try {
+				// Only fetch withdrawals if user has delegations
+				if (this.userDelegations.length === 0) {
+					this.userWithdrawals = []
+					return []
+				}
+				
+				const withdrawals = await getDelegatorWithdrawals(this.address)
+				this.userWithdrawals = withdrawals
+				return withdrawals
+			} catch (error) {
+				console.error('Failed to fetch user withdrawals:', error)
+				// Don't fail completely, just return empty array
+				this.userWithdrawals = []
+				return []
+			}
 		},
 
 		// Fetch all user staking data
@@ -298,6 +311,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 			
 			this.loading.delegate = true
+			const modalsStore = useModalsStore()
 			
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -317,27 +331,56 @@ export const useStakingStore = defineStore('staking', {
 					value: amountWei,
 				})
 				
-				this.pendingTransactions.push({
+				const transaction = {
 					hash,
 					type: 'delegate',
 					valId,
 					amount: amount.toString(),
 					timestamp: Date.now(),
-				})
+					status: 'pending'
+				}
+				
+				this.pendingTransactions.push(transaction)
+				
+				// Show transaction result modal
+				modalsStore.showTransactionResult(transaction)
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($wagmiConfig, { hash })
+				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				
+				// Update transaction status
+				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+				transaction.blockNumber = receipt.blockNumber
+				transaction.gasUsed = receipt.gasUsed
+				
+				// Update modal with final status
+				modalsStore.showTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
 				
-				// Remove from pending
-				this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				// Remove from pending after delay
+				setTimeout(() => {
+					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				}, 3000)
 				
 				return hash
 			} catch (error) {
 				console.error('Delegation failed:', error)
+				
+				// Show error in modal
+				const errorTransaction = {
+					hash: null,
+					type: 'delegate',
+					valId,
+					amount: amount.toString(),
+					timestamp: Date.now(),
+					status: 'failed',
+					error: error.message || 'Transaction failed'
+				}
+				modalsStore.showTransactionResult(errorTransaction)
+				
 				throw error
 			} finally {
 				this.loading.delegate = false
@@ -355,6 +398,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 			
 			this.loading.undelegate = true
+			const modalsStore = useModalsStore()
 			
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -377,27 +421,57 @@ export const useStakingStore = defineStore('staking', {
 					args: [valId, amountWei, withdrawId],
 				})
 				
-				this.pendingTransactions.push({
+				const transaction = {
 					hash,
 					type: 'undelegate',
 					valId,
 					amount: amount.toString(),
 					withdrawId,
 					timestamp: Date.now(),
-				})
+					status: 'pending'
+				}
+				
+				this.pendingTransactions.push(transaction)
+				
+				// Show transaction result modal
+				modalsStore.showTransactionResult(transaction)
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($wagmiConfig, { hash })
+				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				
+				// Update transaction status
+				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+				transaction.blockNumber = receipt.blockNumber
+				transaction.gasUsed = receipt.gasUsed
+				
+				// Update modal with final status
+				modalsStore.showTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchUserStakingData()
 				
-				// Remove from pending
-				this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				// Remove from pending after delay
+				setTimeout(() => {
+					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				}, 3000)
 				
 				return hash
 			} catch (error) {
 				console.error('Undelegation failed:', error)
+				
+				// Show error in modal
+				const errorTransaction = {
+					hash: null,
+					type: 'undelegate',
+					valId,
+					amount: amount.toString(),
+					withdrawId,
+					timestamp: Date.now(),
+					status: 'failed',
+					error: error.message || 'Transaction failed'
+				}
+				modalsStore.showTransactionResult(errorTransaction)
+				
 				throw error
 			} finally {
 				this.loading.undelegate = false
@@ -415,6 +489,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 			
 			this.loading.compound = true
+			const modalsStore = useModalsStore()
 			
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -432,25 +507,53 @@ export const useStakingStore = defineStore('staking', {
 					args: [valId],
 				})
 				
-				this.pendingTransactions.push({
+				const transaction = {
 					hash,
 					type: 'compound',
 					valId,
 					timestamp: Date.now(),
-				})
+					status: 'pending'
+				}
+				
+				this.pendingTransactions.push(transaction)
+				
+				// Show transaction result modal
+				modalsStore.showTransactionResult(transaction)
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($wagmiConfig, { hash })
+				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				
+				// Update transaction status
+				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+				transaction.blockNumber = receipt.blockNumber
+				transaction.gasUsed = receipt.gasUsed
+				
+				// Update modal with final status
+				modalsStore.showTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchUserStakingData()
 				
-				// Remove from pending
-				this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				// Remove from pending after delay
+				setTimeout(() => {
+					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				}, 3000)
 				
 				return hash
 			} catch (error) {
 				console.error('Compound failed:', error)
+				
+				// Show error in modal
+				const errorTransaction = {
+					hash: null,
+					type: 'compound',
+					valId,
+					timestamp: Date.now(),
+					status: 'failed',
+					error: error.message || 'Transaction failed'
+				}
+				modalsStore.showTransactionResult(errorTransaction)
+				
 				throw error
 			} finally {
 				this.loading.compound = false
@@ -468,6 +571,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 			
 			this.loading.claimRewards = true
+			const modalsStore = useModalsStore()
 			
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -485,26 +589,54 @@ export const useStakingStore = defineStore('staking', {
 					args: [valId],
 				})
 				
-				this.pendingTransactions.push({
+				const transaction = {
 					hash,
 					type: 'claimRewards',
 					valId,
 					timestamp: Date.now(),
-				})
+					status: 'pending'
+				}
+				
+				this.pendingTransactions.push(transaction)
+				
+				// Show transaction result modal
+				modalsStore.showTransactionResult(transaction)
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($wagmiConfig, { hash })
+				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				
+				// Update transaction status
+				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+				transaction.blockNumber = receipt.blockNumber
+				transaction.gasUsed = receipt.gasUsed
+				
+				// Update modal with final status
+				modalsStore.showTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
 				
-				// Remove from pending
-				this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				// Remove from pending after delay
+				setTimeout(() => {
+					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				}, 3000)
 				
 				return hash
 			} catch (error) {
 				console.error('Claim rewards failed:', error)
+				
+				// Show error in modal
+				const errorTransaction = {
+					hash: null,
+					type: 'claimRewards',
+					valId,
+					timestamp: Date.now(),
+					status: 'failed',
+					error: error.message || 'Transaction failed'
+				}
+				modalsStore.showTransactionResult(errorTransaction)
+				
 				throw error
 			} finally {
 				this.loading.claimRewards = false
@@ -522,6 +654,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 			
 			this.loading.withdraw = true
+			const modalsStore = useModalsStore()
 			
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -542,27 +675,56 @@ export const useStakingStore = defineStore('staking', {
 					args: [valId, withdrawId],
 				})
 				
-				this.pendingTransactions.push({
+				const transaction = {
 					hash,
 					type: 'withdraw',
 					valId,
 					withdrawId,
 					timestamp: Date.now(),
-				})
+					status: 'pending'
+				}
+				
+				this.pendingTransactions.push(transaction)
+				
+				// Show transaction result modal
+				modalsStore.showTransactionResult(transaction)
 				
 				// Wait for confirmation
-				await waitForTransactionReceipt($wagmiConfig, { hash })
+				const receipt = await waitForTransactionReceipt($wagmiConfig, { hash })
+				
+				// Update transaction status
+				transaction.status = receipt.status === 'success' ? 'success' : 'failed'
+				transaction.blockNumber = receipt.blockNumber
+				transaction.gasUsed = receipt.gasUsed
+				
+				// Update modal with final status
+				modalsStore.showTransactionResult(transaction)
 				
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
 				
-				// Remove from pending
-				this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				// Remove from pending after delay
+				setTimeout(() => {
+					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+				}, 3000)
 				
 				return hash
 			} catch (error) {
 				console.error('Withdraw failed:', error)
+				
+				// Show error in modal
+				const errorTransaction = {
+					hash: null,
+					type: 'withdraw',
+					valId,
+					withdrawId,
+					timestamp: Date.now(),
+					status: 'failed',
+					error: error.message || 'Transaction failed'
+				}
+				modalsStore.showTransactionResult(errorTransaction)
+				
 				throw error
 			} finally {
 				this.loading.withdraw = false
