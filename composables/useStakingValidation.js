@@ -62,9 +62,7 @@ export function useStakingValidation() {
 			return errors
 		}
 		
-		if (!validator.isActive) {
-			errors.push('Validator is not active')
-		}
+		// Note: Removed active validator check - users can stake to inactive validators
 		
 		if (validator.commissionRate > 50) {
 			errors.push('High commission rate (>50%)')

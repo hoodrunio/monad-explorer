@@ -167,7 +167,6 @@ const handleManage = (validator) => {
 								<Button 
 									size="small" 
 									type="primary"
-									:disabled="!validator.isActive"
 									@click="handleStake(validator)"
 								>
 									Stake

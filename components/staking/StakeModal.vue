@@ -121,6 +121,12 @@ onMounted(() => {
 					</div>
 				</div>
 
+				<!-- Warning for inactive validators -->
+				<div v-if="!validator?.isActive" class="warning-message">
+					⚠️ This validator is currently inactive and not participating in consensus. 
+					Staking to inactive validators will not earn rewards until they become active again.
+				</div>
+
 				<!-- Stake Amount Input -->
 				<div class="input-group">
 					<label>Amount to Stake</label>
@@ -155,7 +161,7 @@ onMounted(() => {
 					type="primary"
 					size="medium"
 					:loading="loading"
-					:disabled="!canStake || !validator?.isActive"
+					:disabled="!canStake"
 					@click="handleStake"
 				>
 					Stake {{ stakeAmount || '0' }} MON
@@ -281,6 +287,18 @@ onMounted(() => {
 				font-size: 14px;
 			}
 		}
+	}
+	
+	.warning-message {
+		background: rgba(255, 193, 7, 0.1);
+		border: 1px solid rgba(255, 193, 7, 0.3);
+		border-radius: 12px;
+		padding: 16px;
+		margin-bottom: 24px;
+		color: var(--orange);
+		font-weight: 500;
+		font-size: 14px;
+		line-height: 1.5;
 	}
 	
 	.input-group {
