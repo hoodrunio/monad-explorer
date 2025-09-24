@@ -204,7 +204,6 @@ function setMaxUnstake() {
 				<Button 
 					size="medium"
 					type="primary"
-					:disabled="!validator.isActive"
 					@click="showStakeModal = true"
 				>
 					Stake
@@ -247,6 +246,10 @@ function setMaxUnstake() {
 					/>
 					
 					<div class="modal-info">
+						<div v-if="!validator.isActive" class="warning-message">
+							⚠️ This validator is currently inactive and not participating in consensus. 
+							Staking to inactive validators will not earn rewards until they become active again.
+						</div>
 						<p>• Staked tokens will be active in the next epoch</p>
 						<p>• Commission rate: {{ validator.formattedCommissionRate }}</p>
 						<p>• You can unstake at any time with 1 epoch delay</p>
@@ -534,6 +537,16 @@ function setMaxUnstake() {
 			border-radius: 8px;
 			font-size: 13px;
 			line-height: 1.5;
+			
+			.warning-message {
+				background: rgba(255, 193, 7, 0.1);
+				border: 1px solid rgba(255, 193, 7, 0.3);
+				border-radius: 6px;
+				padding: 12px;
+				margin-bottom: 16px;
+				color: var(--orange);
+				font-weight: 500;
+			}
 			
 			&.warning {
 				background: var(--op-5);

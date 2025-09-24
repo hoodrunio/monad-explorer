@@ -126,11 +126,10 @@ const statusText = computed(() => {
 				v-if="!hasUserDelegation"
 				size="medium"
 				type="primary"
-				:disabled="!validator.isActive"
 				@click="$emit('stake', validator)"
 				wide
 			>
-				{{ validator.isActive ? 'Stake' : 'Validator Inactive' }}
+				{{ validator.isActive ? 'Stake' : 'Stake (Inactive)' }}
 			</Button>
 			<template v-else>
 				<Button 
@@ -143,10 +142,9 @@ const statusText = computed(() => {
 				<Button 
 					size="medium"
 					type="primary"
-					:disabled="!validator.isActive"
 					@click="$emit('stake', validator)"
 				>
-					Stake More
+					{{ validator.isActive ? 'Stake More' : 'Stake More (Inactive)' }}
 				</Button>
 			</template>
 		</div>

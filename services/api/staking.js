@@ -1,12 +1,25 @@
 /** Staking API Services */
 import { createPublicClient, http, parseEther, formatEther } from 'viem'
 import { monadTestnet, STAKING_CONFIG } from '~/config/chains'
+import { rpcBatcher } from '~/services/utils/rpcBatcher'
 
 // Create public client for read operations
 const publicClient = createPublicClient({
 	chain: monadTestnet,
 	transport: http(),
 })
+
+// Simple cache for withdrawal requests to avoid repeated calls
+const withdrawalCache = new Map()
+const CACHE_DURATION = 30000 // 30 seconds
+
+function getCacheKey(valId, delegatorAddress, withdrawId) {
+	return `${valId}-${delegatorAddress}-${withdrawId}`
+}
+
+function isCacheValid(timestamp) {
+	return Date.now() - timestamp < CACHE_DURATION
+}
 
 // Staking Contract ABI (minimal required functions)
 const STAKING_ABI = [
@@ -423,6 +436,14 @@ export async function getDelegatorDelegations(delegatorAddress) {
  * Get withdrawal request information
  */
 export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) {
+	const cacheKey = getCacheKey(valId, delegatorAddress, withdrawId)
+	const cached = withdrawalCache.get(cacheKey)
+	
+	// Return cached result if valid
+	if (cached && isCacheValid(cached.timestamp)) {
+		return cached.data
+	}
+	
 	try {
 		const result = await publicClient.readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
@@ -431,20 +452,27 @@ export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) 
 			args: [BigInt(valId), delegatorAddress, withdrawId],
 		})
 		
-		if (result[0] === 0n) {
-			return null // No withdrawal request
+		let withdrawalData = null
+		if (result[0] !== 0n) {
+			withdrawalData = {
+				valId: Number(valId),
+				delegatorAddress,
+				withdrawId,
+				amount: result[0].toString(),
+				acc: result[1].toString(),
+				epoch: Number(result[2]),
+				formattedAmount: formatEther(result[0]),
+				isWithdrawable: false, // Will be set based on current epoch
+			}
 		}
 		
-		return {
-			valId: Number(valId),
-			delegatorAddress,
-			withdrawId,
-			amount: result[0].toString(),
-			acc: result[1].toString(),
-			epoch: Number(result[2]),
-			formattedAmount: formatEther(result[0]),
-			isWithdrawable: false, // Will be set based on current epoch
-		}
+		// Cache the result
+		withdrawalCache.set(cacheKey, {
+			data: withdrawalData,
+			timestamp: Date.now()
+		})
+		
+		return withdrawalData
 	} catch (error) {
 		console.error(`Failed to get withdrawal request for validator ${valId}, withdraw ID ${withdrawId}:`, error)
 		return null
@@ -462,13 +490,18 @@ export async function getDelegatorWithdrawals(delegatorAddress) {
 		const currentEpoch = await getCurrentEpoch()
 		
 		// Check withdrawal requests for each validator the user has delegated to
+		// Limit to fewer withdrawal IDs and add delay between calls
 		for (const delegation of delegations) {
 			const valId = delegation.valId
 			
-			// Check first few withdrawal IDs (0-9) to avoid too many calls
-			for (let withdrawId = 0; withdrawId < 10; withdrawId++) {
+			// Only check first 3 withdrawal IDs to reduce RPC calls
+			for (let withdrawId = 1; withdrawId <= 3; withdrawId++) {
 				try {
-					const withdrawal = await getWithdrawalRequest(valId, delegatorAddress, withdrawId)
+					// Use batcher to queue RPC calls
+					const withdrawal = await rpcBatcher.add(() => 
+						getWithdrawalRequest(valId, delegatorAddress, withdrawId)
+					)
+					
 					if (withdrawal) {
 						// Check if withdrawal is ready
 						const withdrawableEpoch = withdrawal.epoch + STAKING_CONFIG.WITHDRAWAL_DELAY
@@ -479,8 +512,15 @@ export async function getDelegatorWithdrawals(delegatorAddress) {
 					}
 				} catch (error) {
 					// Skip errors for non-existent withdrawal requests
+					if (error.message?.includes('Rate limit')) {
+						console.warn('Rate limit hit, stopping withdrawal checks for validator', valId)
+						break
+					}
 				}
 			}
+			
+			// Add delay between validators to avoid rate limiting
+			await new Promise(resolve => setTimeout(resolve, 200))
 		}
 		
 		return withdrawals

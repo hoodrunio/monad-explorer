@@ -10,6 +10,7 @@ import RawDataModal from "./RawDataModal.vue"
 import HexSettingsModal from "./HexSettingsModal.vue"
 import APIModal from "./APIModal.vue"
 import InputDecodeModal from "./InputDecodeModal.vue"
+import TransactionResultModal from "./TransactionResultModal.vue"
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -28,4 +29,5 @@ const modalsStore = useModalsStore()
 	<APIModal :show="modalsStore.modals.api" @onClose="modalsStore.close('api')" />
 	<ChartModal :show="modalsStore.modals.chart" @onClose="modalsStore.close('chart')" />
 	<InputDecodeModal :show="modalsStore.modals.inputDecode" @onClose="modalsStore.close('inputDecode')" />
+	<TransactionResultModal :show="modalsStore.modals.transactionResult" :transaction="modalsStore.transactionData" @close="modalsStore.close('transactionResult')" />
 </template>
