@@ -170,8 +170,8 @@ onBeforeUnmount(() => {
 				</Flex>
 			</Flex>
 			<Flex v-else-if="isDelayed" align="center" gap="4">
-				<Text size="13" weight="600" color="secondary">Delayed by </Text>
-				<Text size="13" weight="600" color="primary">{{ formatTime(delay) }}</Text>
+				<Text size="13" weight="600" color="secondary">In delay period · </Text>
+				<Text size="13" weight="600" color="orange">{{ formatTime(delay) }}</Text>
 			</Flex>
 			<Flex v-else align="center" justify="center">
 				<Skeleton w="100" h="16" />
@@ -308,7 +308,17 @@ onBeforeUnmount(() => {
 	transform-origin: left;
 
 	&.delayed {
-		background: var(--op-10);
+		background: linear-gradient(90deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 100, 0, 0.3) 100%);
+		animation: pulse-delay 2s ease-in-out infinite;
+	}
+}
+
+@keyframes pulse-delay {
+	0%, 100% {
+		opacity: 0.8;
+	}
+	50% {
+		opacity: 1;
 	}
 }
 
