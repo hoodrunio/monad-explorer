@@ -45,21 +45,23 @@ const init = async () => {
 		clearInterval(epochProgressInterval)
 		clearInterval(delayInterval)
 
+		// Get estimated time from progress - available in both normal and delay periods
+		const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
+		estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
+
 		// Check if we're in epoch delay period using the new API field
 		if (epochData.value.inEpochDelayPeriod && epochData.value.delayPeriod) {
 			isDelayed.value = true
-			// Use roundsElapsed from delayPeriod object
-			delay.value = epochData.value.delayPeriod.roundsElapsed || 0
+			delay.value = estimatedTimeToNextEpoch.value
+			
+			// Start countdown for delay period
 			delayInterval = setInterval(() => {
-				delay.value += 1
+				delay.value -= 1
+				if (delay.value < 0) delay.value = 0
 			}, 1_000)
 		} else {
 			isDelayed.value = false
 			delay.value = 0
-			
-			const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
-			estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
-			
 			epochProgress.value = estimatedTimeToNextEpoch.value
 			startEpochProgress()
 		}
