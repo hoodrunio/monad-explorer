@@ -41,22 +41,25 @@ const init = async () => {
 
 		epochInterval.value = epochData.value.epochInterval
 		
-		const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
-		estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
-
 		// Clear existing intervals
 		clearInterval(epochProgressInterval)
 		clearInterval(delayInterval)
 
-		if (estimatedTimeToNextEpoch.value <= 0) {
+		// Check if we're in epoch delay period using the new API field
+		if (epochData.value.inEpochDelayPeriod && epochData.value.delayPeriod) {
 			isDelayed.value = true
-			delay.value = Math.abs(estimatedTimeToNextEpoch.value)
+			// Use roundsElapsed from delayPeriod object
+			delay.value = epochData.value.delayPeriod.roundsElapsed || 0
 			delayInterval = setInterval(() => {
 				delay.value += 1
 			}, 1_000)
 		} else {
 			isDelayed.value = false
 			delay.value = 0
+			
+			const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
+			estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
+			
 			epochProgress.value = estimatedTimeToNextEpoch.value
 			startEpochProgress()
 		}
@@ -167,8 +170,8 @@ onBeforeUnmount(() => {
 				</Flex>
 			</Flex>
 			<Flex v-else-if="isDelayed" align="center" gap="4">
-				<Text size="13" weight="600" color="secondary">Delayed by </Text>
-				<Text size="13" weight="600" color="primary">{{ formatTime(delay) }}</Text>
+				<Text size="13" weight="600" color="secondary">In delay period · </Text>
+				<Text size="13" weight="600" color="orange">{{ formatTime(delay) }}</Text>
 			</Flex>
 			<Flex v-else align="center" justify="center">
 				<Skeleton w="100" h="16" />
@@ -194,6 +197,15 @@ onBeforeUnmount(() => {
 				</Text>
 				<Text size="12" weight="500" color="secondary">
 					Next: {{ comma(epochData.progress.epochEndBlock + 1) }}
+				</Text>
+			</Flex>
+			
+			<Flex v-if="epochData.inEpochDelayPeriod && epochData.delayPeriod" align="center" justify="between" style="margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--op-5);">
+				<Text size="12" weight="500" color="tertiary">
+					Delay Rounds: {{ comma(epochData.delayPeriod.roundsElapsed) }} / {{ comma(epochData.delayPeriod.totalDelayRounds) }}
+				</Text>
+				<Text size="12" weight="500" color="orange">
+					{{ epochData.delayPeriod.progressPercentage.toFixed(2) }}%
 				</Text>
 			</Flex>
 		</Flex>
@@ -296,7 +308,17 @@ onBeforeUnmount(() => {
 	transform-origin: left;
 
 	&.delayed {
-		background: var(--op-10);
+		background: linear-gradient(90deg, rgba(255, 140, 0, 0.2) 0%, rgba(255, 100, 0, 0.3) 100%);
+		animation: pulse-delay 2s ease-in-out infinite;
+	}
+}
+
+@keyframes pulse-delay {
+	0%, 100% {
+		opacity: 0.8;
+	}
+	50% {
+		opacity: 1;
 	}
 }
 
