@@ -41,22 +41,25 @@ const init = async () => {
 
 		epochInterval.value = epochData.value.epochInterval
 		
-		const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
-		estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
-
 		// Clear existing intervals
 		clearInterval(epochProgressInterval)
 		clearInterval(delayInterval)
 
-		if (estimatedTimeToNextEpoch.value <= 0) {
+		// Check if we're in epoch delay period using the new API field
+		if (epochData.value.inEpochDelayPeriod && epochData.value.delayPeriod) {
 			isDelayed.value = true
-			delay.value = Math.abs(estimatedTimeToNextEpoch.value)
+			// Use roundsElapsed from delayPeriod object
+			delay.value = epochData.value.delayPeriod.roundsElapsed || 0
 			delayInterval = setInterval(() => {
 				delay.value += 1
 			}, 1_000)
 		} else {
 			isDelayed.value = false
 			delay.value = 0
+			
+			const { estimatedTimeToNextEpoch: timeEstimate } = epochData.value.progress
+			estimatedTimeToNextEpoch.value = timeEstimate.hours * 3600 + timeEstimate.minutes * 60 + timeEstimate.seconds
+			
 			epochProgress.value = estimatedTimeToNextEpoch.value
 			startEpochProgress()
 		}
@@ -194,6 +197,15 @@ onBeforeUnmount(() => {
 				</Text>
 				<Text size="12" weight="500" color="secondary">
 					Next: {{ comma(epochData.progress.epochEndBlock + 1) }}
+				</Text>
+			</Flex>
+			
+			<Flex v-if="epochData.inEpochDelayPeriod && epochData.delayPeriod" align="center" justify="between" style="margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--op-5);">
+				<Text size="12" weight="500" color="tertiary">
+					Delay Rounds: {{ comma(epochData.delayPeriod.roundsElapsed) }} / {{ comma(epochData.delayPeriod.totalDelayRounds) }}
+				</Text>
+				<Text size="12" weight="500" color="orange">
+					{{ epochData.delayPeriod.progressPercentage.toFixed(2) }}%
 				</Text>
 			</Flex>
 		</Flex>
