@@ -110,8 +110,8 @@ async function fetchValidatorData() {
     }
     
     const contents = await response.json()
-    const validatorFiles = contents.filter(item => 
-      item.type === 'file' && item.name.endsWith('.json')
+    const validatorFiles = contents.filter(item =>
+      item.type === 'file' && (item.name.endsWith('.json') || !item.name.includes('.'))
     )
         
     const validatorsObject = {}
