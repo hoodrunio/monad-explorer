@@ -1,8 +1,9 @@
 import { DateTime } from "luxon"
 
 /**
- * Format large stake numbers in compact scientific notation
- * Example: 5820000000000000000000000000000000 → "5.82e33"
+ * Format large stake numbers in human-readable format
+ * Converts from wei to MON tokens (1 MON = 10^18 wei)
+ * Example: 6420000000000000000000000000 → "6.42B MON"
  * @param {string|number} value - Stake value in wei
  * @returns {string} Formatted compact notation
  */
@@ -13,14 +14,26 @@ export const formatStakeCompact = (value) => {
 
 	if (isNaN(num)) return "0"
 
-	// Convert to scientific notation
-	const exp = Math.floor(Math.log10(Math.abs(num)))
-	const mantissa = num / Math.pow(10, exp)
+	// Convert wei to MON (divide by 10^18)
+	const MON = num / Math.pow(10, 18)
 
-	// Format mantissa to 2 decimal places
-	const formattedMantissa = mantissa.toFixed(2)
+	// Format with suffixes
+	const suffixes = [
+		{ value: 1e12, suffix: "T" },  // Trillion
+		{ value: 1e9, suffix: "B" },   // Billion
+		{ value: 1e6, suffix: "M" },   // Million
+		{ value: 1e3, suffix: "K" },   // Thousand
+	]
 
-	return `${formattedMantissa}e${exp}`
+	for (const { value: threshold, suffix } of suffixes) {
+		if (MON >= threshold) {
+			const formatted = (MON / threshold).toFixed(2)
+			return `${formatted}${suffix} MON`
+		}
+	}
+
+	// For values less than 1000 MON
+	return `${MON.toFixed(2)} MON`
 }
 
 /**

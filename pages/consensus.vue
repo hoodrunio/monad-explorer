@@ -3,8 +3,7 @@
 import ConsensusHeader from "@/components/modules/consensus/ConsensusHeader.vue"
 import ConsensusQuorumCard from "@/components/modules/consensus/ConsensusQuorumCard.vue"
 import ConsensusSummaryTiles from "@/components/modules/consensus/ConsensusSummaryTiles.vue"
-import ConsensusVotesTable from "@/components/modules/consensus/ConsensusVotesTable.vue"
-import ConsensusMissingTable from "@/components/modules/consensus/ConsensusMissingTable.vue"
+import ConsensusValidatorsTable from "@/components/modules/consensus/ConsensusValidatorsTable.vue"
 import ConsensusHistoryChart from "@/components/modules/consensus/ConsensusHistoryChart.vue"
 
 /** Composables */
@@ -146,13 +145,10 @@ useHead({
 			<!-- Section 3: Summary Tiles -->
 			<ConsensusSummaryTiles />
 
-			<!-- Section 4: Who Signed Table -->
-			<ConsensusVotesTable />
+			<!-- Section 4: Validators Table (Signed / Missing) -->
+			<ConsensusValidatorsTable />
 
-			<!-- Section 5: Who is Missing Table -->
-			<ConsensusMissingTable />
-
-			<!-- Section 6: History Chart -->
+			<!-- Section 5: History Chart -->
 			<ConsensusHistoryChart />
 		</Flex>
 	</Flex>

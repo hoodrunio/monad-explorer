@@ -98,7 +98,7 @@ const peakAbsoluteTime = computed(() => getAbsoluteTime(peakTimestamp.value))
 			<!-- Stake display -->
 			<Flex direction="column" gap="4">
 				<Text size="11" weight="500" color="tertiary">
-					Current Stake / Total Stake
+					Current VP / Total VP
 				</Text>
 				<Tooltip :side="'bottom'">
 					<Text size="13" weight="600" color="secondary" mono :class="$style.stake_text">
