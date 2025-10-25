@@ -44,7 +44,8 @@ watch(
 	() => quorumData.value?.is_quorum_reached,
 	(newVal, oldVal) => {
 		if (newVal && !oldVal) {
-			quorumReachedRound.value = latestData.value?.round
+			// Get round from quorumData peak_round or latestData round
+			quorumReachedRound.value = quorumData.value?.peak_round || latestData.value?.round || "N/A"
 			showQuorumBanner.value = true
 
 			// Auto-hide banner after 10 seconds

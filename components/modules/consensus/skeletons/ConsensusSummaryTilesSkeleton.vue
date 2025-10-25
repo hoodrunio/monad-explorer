@@ -3,31 +3,31 @@
 		<!-- Tile 1 -->
 		<Flex direction="column" gap="12" :class="$style.tile">
 			<Flex align="center" gap="8">
-				<Skeleton :w="14" :h="14" :r="4" />
-				<Skeleton :w="90" :h="14" :r="4" />
+				<Skeleton w="14" h="14" r="4" />
+				<Skeleton w="90" h="14" r="4" />
 			</Flex>
 			<Flex gap="6" align="center">
-				<Skeleton :w="60" :h="28" :r="6" />
-				<Skeleton :w="50" :h="20" :r="4" />
+				<Skeleton w="60" h="28" r="6" />
+				<Skeleton w="50" h="20" r="4" />
 			</Flex>
 		</Flex>
 
 		<!-- Tile 2 -->
 		<Flex direction="column" gap="12" :class="$style.tile">
 			<Flex align="center" gap="8">
-				<Skeleton :w="14" :h="14" :r="4" />
-				<Skeleton :w="90" :h="14" :r="4" />
+				<Skeleton w="14" h="14" r="4" />
+				<Skeleton w="90" h="14" r="4" />
 			</Flex>
-			<Skeleton :w="80" :h="28" :r="6" />
+			<Skeleton w="80" h="28" r="6" />
 		</Flex>
 
 		<!-- Tile 3 -->
 		<Flex direction="column" gap="12" :class="$style.tile">
 			<Flex align="center" gap="8">
-				<Skeleton :w="14" :h="14" :r="4" />
-				<Skeleton :w="90" :h="14" :r="4" />
+				<Skeleton w="14" h="14" r="4" />
+				<Skeleton w="90" h="14" r="4" />
 			</Flex>
-			<Skeleton :w="80" :h="28" :r="6" />
+			<Skeleton w="80" h="28" r="6" />
 		</Flex>
 	</Flex>
 </template>

@@ -3,41 +3,41 @@
 		<!-- Header with Tabs -->
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="12">
-				<Skeleton :w="100" :h="32" :r="6" />
-				<Skeleton :w="100" :h="32" :r="6" />
+				<Skeleton w="100" h="32" r="6" />
+				<Skeleton w="100" h="32" r="6" />
 			</Flex>
 
 			<Flex align="center" gap="8">
-				<Skeleton :w="80" :h="24" :r="4" />
-				<Skeleton :w="80" :h="24" :r="4" />
+				<Skeleton w="80" h="24" r="4" />
+				<Skeleton w="80" h="24" r="4" />
 			</Flex>
 		</Flex>
 
 		<!-- Search -->
-		<Skeleton w="100%" :h="36" :r="6" />
+		<Skeleton w="100%" h="36" r="6" />
 
 		<!-- Table -->
 		<div :class="$style.table_wrapper">
 			<table :class="$style.table">
 				<thead>
 					<tr>
-						<th><Skeleton :w="80" :h="14" :r="4" /></th>
-						<th><Skeleton :w="70" :h="14" :r="4" /></th>
-						<th><Skeleton :w="70" :h="14" :r="4" /></th>
-						<th><Skeleton :w="60" :h="14" :r="4" /></th>
+						<th><Skeleton w="80" h="14" r="4" /></th>
+						<th><Skeleton w="70" h="14" r="4" /></th>
+						<th><Skeleton w="70" h="14" r="4" /></th>
+						<th><Skeleton w="60" h="14" r="4" /></th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr v-for="i in 8" :key="i">
 						<td>
 							<Flex align="center" gap="8">
-								<Skeleton :w="24" :h="24" :r="50" />
-								<Skeleton :w="150" :h="14" :r="4" />
+								<Skeleton w="24" h="24" r="50" />
+								<Skeleton w="150" h="14" r="4" />
 							</Flex>
 						</td>
-						<td><Skeleton :w="100" :h="14" :r="4" /></td>
-						<td><Skeleton :w="80" :h="14" :r="4" /></td>
-						<td><Skeleton :w="90" :h="14" :r="4" /></td>
+						<td><Skeleton w="100" h="14" r="4" /></td>
+						<td><Skeleton w="80" h="14" r="4" /></td>
+						<td><Skeleton w="90" h="14" r="4" /></td>
 					</tr>
 				</tbody>
 			</table>
@@ -45,11 +45,11 @@
 
 		<!-- Pagination -->
 		<Flex align="center" justify="center" gap="8" :class="$style.pagination">
-			<Skeleton :w="32" :h="28" :r="4" />
-			<Skeleton :w="32" :h="28" :r="4" />
-			<Skeleton :w="80" :h="28" :r="4" />
-			<Skeleton :w="32" :h="28" :r="4" />
-			<Skeleton :w="32" :h="28" :r="4" />
+			<Skeleton w="32" h="28" r="4" />
+			<Skeleton w="32" h="28" r="4" />
+			<Skeleton w="80" h="28" r="4" />
+			<Skeleton w="32" h="28" r="4" />
+			<Skeleton w="32" h="28" r="4" />
 		</Flex>
 	</Flex>
 </template>
