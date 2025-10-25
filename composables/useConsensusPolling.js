@@ -19,14 +19,17 @@ const setupAutoRefresh = (refreshFn, interval) => {
 export const useConsensusLatest = () => {
 	const url = new URL(`${useServerURL()}/api/consensus/latest`)
 
-	const { data, status, error, refresh } = useFetch(url.href, {
+	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_latest",
 	})
+
+	// Unwrap the API response (API returns { success, data })
+	const data = computed(() => rawData.value?.data || null)
 
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 5000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,
@@ -42,14 +45,17 @@ export const useConsensusLatest = () => {
 export const useConsensusSummary = () => {
 	const url = new URL(`${useServerURL()}/api/consensus/summary`)
 
-	const { data, status, error, refresh } = useFetch(url.href, {
+	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_summary",
 	})
+
+	// Unwrap the API response (API returns { success, data })
+	const data = computed(() => rawData.value?.data || null)
 
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 5000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,
@@ -65,14 +71,17 @@ export const useConsensusSummary = () => {
 export const useConsensusQuorum = () => {
 	const url = new URL(`${useServerURL()}/api/consensus/quorum`)
 
-	const { data, status, error, refresh } = useFetch(url.href, {
+	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_quorum",
 	})
+
+	// Unwrap the API response (API returns { success, data })
+	const data = computed(() => rawData.value?.data || null)
 
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 5000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,
@@ -107,17 +116,20 @@ export const useConsensusVotes = () => {
 
 	// Enhance data with GitHub info
 	const data = computed(() => {
-		if (!rawData.value?.votes || !Array.isArray(rawData.value.votes)) {
+		// Unwrap API response first (API returns { success, data: { votes, count } })
+		const votesData = rawData.value?.data?.votes
+
+		if (!votesData || !Array.isArray(votesData)) {
 			return []
 		}
 
 		// If no GitHub data yet, return raw data
 		if (!githubDataCache.value) {
-			return rawData.value.votes
+			return votesData
 		}
 
 		// Enhance with GitHub data
-		return rawData.value.votes.map((vote) => {
+		return votesData.map((vote) => {
 			const githubData = githubDataCache.value.get(vote.validator_id || vote.author)
 			return {
 				...vote,
@@ -131,7 +143,7 @@ export const useConsensusVotes = () => {
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 5000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,
@@ -166,17 +178,20 @@ export const useConsensusMissing = () => {
 
 	// Enhance data with GitHub info
 	const data = computed(() => {
-		if (!rawData.value?.missing || !Array.isArray(rawData.value.missing)) {
+		// Unwrap API response first (API returns { success, data: { missing, count } })
+		const missingData = rawData.value?.data?.missing
+
+		if (!missingData || !Array.isArray(missingData)) {
 			return []
 		}
 
 		// If no GitHub data yet, return raw data
 		if (!githubDataCache.value) {
-			return rawData.value.missing
+			return missingData
 		}
 
 		// Enhance with GitHub data
-		return rawData.value.missing.map((validator) => {
+		return missingData.map((validator) => {
 			const githubData = githubDataCache.value.get(validator.validator_id || validator.author)
 			return {
 				...validator,
@@ -190,7 +205,7 @@ export const useConsensusMissing = () => {
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 5000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,
@@ -212,16 +227,19 @@ export const useConsensusHistory = (limit = 30) => {
 	})
 
 	const data = computed(() => {
-		if (!rawData.value?.rounds || !Array.isArray(rawData.value.rounds)) {
+		// Unwrap API response first (API returns { success, data: { rounds } })
+		const roundsData = rawData.value?.data?.rounds
+
+		if (!roundsData || !Array.isArray(roundsData)) {
 			return []
 		}
-		return rawData.value.rounds
+		return roundsData
 	})
 
 	const isLoading = computed(() => status.value === 'pending')
 	const isError = computed(() => !!error.value)
 
-	setupAutoRefresh(refresh, 10000)
+	setupAutoRefresh(refresh, 15000)
 
 	return {
 		data,

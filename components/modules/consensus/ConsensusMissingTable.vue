@@ -19,8 +19,8 @@ const sortedMissing = computed(() => {
 
 	// Sort by stake (descending by default)
 	sorted.sort((a, b) => {
-		const stakeA = parseFloat(a.realtime_stake_wei || 0)
-		const stakeB = parseFloat(b.realtime_stake_wei || 0)
+		const stakeA = parseFloat(a.real_time_stake_wei || 0)
+		const stakeB = parseFloat(b.real_time_stake_wei || 0)
 
 		return sortDirection.value === "desc" ? stakeB - stakeA : stakeA - stakeB
 	})
@@ -57,7 +57,7 @@ const isHighStake = (stakeWei) => {
 	// Consider high stake if in top 20% (arbitrary threshold)
 	if (!sortedMissing.value.length) return false
 
-	const allStakes = sortedMissing.value.map((m) => parseFloat(m.realtime_stake_wei || 0))
+	const allStakes = sortedMissing.value.map((m) => parseFloat(m.real_time_stake_wei || 0))
 	const threshold = allStakes.sort((a, b) => b - a)[Math.floor(allStakes.length * 0.2)]
 
 	return stake >= threshold
@@ -158,7 +158,7 @@ watch(showTopOnly, () => {
 						<td>
 							<Flex align="center" gap="8">
 								<!-- Attention dot for high stake -->
-								<div v-if="isHighStake(validator.realtime_stake_wei)" :class="$style.attention_dot" />
+								<div v-if="isHighStake(validator.real_time_stake_wei)" :class="$style.attention_dot" />
 								<ValidatorLogo
 									:logo-url="validator.logoUrl"
 									:validator-name="validator.validator_name"
@@ -192,7 +192,7 @@ watch(showTopOnly, () => {
 						<td>
 							<Tooltip :side="'bottom'">
 								<Text size="13" weight="600" color="primary" mono :class="$style.stake_text">
-									{{ formatStakeCompact(validator.realtime_stake_wei) }}
+									{{ formatStakeCompact(validator.real_time_stake_wei) }}
 								</Text>
 
 								<template #content>
@@ -201,7 +201,7 @@ watch(showTopOnly, () => {
 											Full Stake (wei):
 										</Text>
 										<Text size="12" weight="600" color="primary" mono>
-											{{ formatStakeFull(validator.realtime_stake_wei) }}
+											{{ formatStakeFull(validator.real_time_stake_wei) }}
 										</Text>
 									</Flex>
 								</template>
