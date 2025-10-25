@@ -90,7 +90,7 @@ const mainLinks = reactive([
 		],
 	},
 	{
-		icon: "activity",
+		icon: "zap",
 		name: "Consensus",
 		path: "/consensus",
 	},

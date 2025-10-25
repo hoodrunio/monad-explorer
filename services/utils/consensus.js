@@ -90,7 +90,8 @@ export const getRelativeTime = (timestamp) => {
 		let dt
 		if (typeof timestamp === "string") {
 			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
-			dt = DateTime.fromSQL(timestamp)
+			// API sends UTC timestamps, so we need to specify zone
+			dt = DateTime.fromSQL(timestamp, { zone: 'utc' })
 			// If invalid, try ISO format
 			if (!dt.isValid) {
 				dt = DateTime.fromISO(timestamp)
@@ -117,7 +118,8 @@ export const getAbsoluteTime = (timestamp) => {
 		let dt
 		if (typeof timestamp === "string") {
 			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
-			dt = DateTime.fromSQL(timestamp)
+			// API sends UTC timestamps, so we need to specify zone
+			dt = DateTime.fromSQL(timestamp, { zone: 'utc' })
 			// If invalid, try ISO format
 			if (!dt.isValid) {
 				dt = DateTime.fromISO(timestamp)
@@ -145,7 +147,8 @@ export const isDataStale = (lastUpdate, thresholdSeconds = 10) => {
 		let dt
 		if (typeof lastUpdate === "string") {
 			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
-			dt = DateTime.fromSQL(lastUpdate)
+			// API sends UTC timestamps, so we need to specify zone
+			dt = DateTime.fromSQL(lastUpdate, { zone: 'utc' })
 			// If invalid, try ISO format
 			if (!dt.isValid) {
 				dt = DateTime.fromISO(lastUpdate)
@@ -156,7 +159,7 @@ export const isDataStale = (lastUpdate, thresholdSeconds = 10) => {
 
 		if (!dt.isValid) return true
 
-		const now = DateTime.now()
+		const now = DateTime.utc()
 		const diffSeconds = now.diff(dt, "seconds").seconds
 
 		return diffSeconds > thresholdSeconds
