@@ -110,7 +110,7 @@ useHead({
 				<Flex align="center" gap="8">
 					<Icon name="time" size="14" color="blue" />
 					<Text size="12" weight="600" color="blue">
-						Epoch switched to {{ newEpoch }}
+						New Epoch {{ newEpoch }}
 					</Text>
 				</Flex>
 				<button @click="dismissEpochToast" :class="$style.toast_close">

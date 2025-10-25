@@ -21,12 +21,15 @@ export const useConsensusLatest = () => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_latest",
+		lazy: true,
+		server: false,
 	})
 
 	// Unwrap the API response (API returns { success, data })
 	const data = computed(() => rawData.value?.data || null)
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)
@@ -47,12 +50,15 @@ export const useConsensusSummary = () => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_summary",
+		lazy: true,
+		server: false,
 	})
 
 	// Unwrap the API response (API returns { success, data })
 	const data = computed(() => rawData.value?.data || null)
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)
@@ -73,12 +79,15 @@ export const useConsensusQuorum = () => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_quorum",
+		lazy: true,
+		server: false,
 	})
 
 	// Unwrap the API response (API returns { success, data })
 	const data = computed(() => rawData.value?.data || null)
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)
@@ -100,6 +109,8 @@ export const useConsensusVotes = () => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_votes",
+		lazy: true,
+		server: false,
 	})
 
 	// GitHub data cache
@@ -140,7 +151,8 @@ export const useConsensusVotes = () => {
 		})
 	})
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)
@@ -162,6 +174,8 @@ export const useConsensusMissing = () => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: "consensus_missing",
+		lazy: true,
+		server: false,
 	})
 
 	// GitHub data cache
@@ -202,7 +216,8 @@ export const useConsensusMissing = () => {
 		})
 	})
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)
@@ -224,6 +239,8 @@ export const useConsensusHistory = (limit = 30) => {
 
 	const { data: rawData, status, error, refresh } = useFetch(url.href, {
 		key: `consensus_history_${limit}`,
+		lazy: true,
+		server: false,
 	})
 
 	const data = computed(() => {
@@ -236,7 +253,8 @@ export const useConsensusHistory = (limit = 30) => {
 		return roundsData
 	})
 
-	const isLoading = computed(() => status.value === 'pending')
+	
+	const isLoading = computed(() => status.value === 'pending' && !rawData.value)
 	const isError = computed(() => !!error.value)
 
 	setupAutoRefresh(refresh, 15000)

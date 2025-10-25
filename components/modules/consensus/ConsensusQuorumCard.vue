@@ -10,6 +10,7 @@ import {
 	getAbsoluteTime,
 } from "@/services/utils/consensus"
 import Tooltip from "@/components/ui/Tooltip.vue"
+import ConsensusQuorumCardSkeleton from "@/components/modules/consensus/skeletons/ConsensusQuorumCardSkeleton.vue"
 
 const { data: quorumData, isLoading, isError } = useConsensusQuorum()
 
@@ -37,7 +38,11 @@ const peakAbsoluteTime = computed(() => getAbsoluteTime(peakTimestamp.value))
 </script>
 
 <template>
-	<Flex direction="column" gap="16" :class="$style.wrapper">
+	<!-- Loading Skeleton -->
+	<ConsensusQuorumCardSkeleton v-if="isLoading" />
+
+	<!-- Main Content -->
+	<Flex v-else direction="column" gap="16" :class="$style.wrapper">
 		<!-- Header -->
 		<Flex align="center" justify="between">
 			<Flex align="center" gap="8">
@@ -121,7 +126,7 @@ const peakAbsoluteTime = computed(() => getAbsoluteTime(peakTimestamp.value))
 			<!-- Peak info -->
 			<Flex v-if="peakRound" direction="column" gap="4" :class="$style.peak_info">
 				<Text size="11" weight="500" color="tertiary">
-					Peak Performance
+					Peak Round
 				</Text>
 				<Tooltip :side="'bottom'">
 					<Text size="12" weight="500" color="secondary" :class="$style.peak_text">

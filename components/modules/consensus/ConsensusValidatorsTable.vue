@@ -5,6 +5,7 @@ import Input from "@/components/ui/Input.vue"
 import Button from "@/components/ui/Button.vue"
 import ValidatorLogo from "@/components/ValidatorLogo.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
+import ConsensusValidatorsTableSkeleton from "@/components/modules/consensus/skeletons/ConsensusValidatorsTableSkeleton.vue"
 
 const { data: votesData, isLoading: isVotesLoading, isError: isVotesError } = useConsensusVotes()
 const { data: missingData, isLoading: isMissingLoading, isError: isMissingError } = useConsensusMissing()
@@ -135,7 +136,11 @@ watch([activeTab, searchTerm, showTopOnly], () => {
 </script>
 
 <template>
-	<Flex direction="column" gap="16" :class="$style.wrapper">
+	<!-- Loading Skeleton (show if BOTH are loading initially) -->
+	<ConsensusValidatorsTableSkeleton v-if="isVotesLoading && isMissingLoading" />
+
+	<!-- Main Content -->
+	<Flex v-else direction="column" gap="16" :class="$style.wrapper">
 		<!-- Header with Tabs -->
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="12">

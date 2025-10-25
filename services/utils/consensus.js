@@ -80,18 +80,26 @@ export const getQuorumColor = (percentage, quorumThreshold = 66.67) => {
 
 /**
  * Get relative time from timestamp
- * @param {string|number} timestamp - ISO timestamp or unix timestamp
+ * @param {string|number} timestamp - ISO timestamp, SQL timestamp, or unix timestamp
  * @returns {string} Relative time (e.g., "2 seconds ago")
  */
 export const getRelativeTime = (timestamp) => {
 	if (!timestamp) return "N/A"
 
 	try {
-		const dt = typeof timestamp === "string"
-			? DateTime.fromISO(timestamp)
-			: DateTime.fromMillis(timestamp)
+		let dt
+		if (typeof timestamp === "string") {
+			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
+			dt = DateTime.fromSQL(timestamp)
+			// If invalid, try ISO format
+			if (!dt.isValid) {
+				dt = DateTime.fromISO(timestamp)
+			}
+		} else {
+			dt = DateTime.fromMillis(timestamp)
+		}
 
-		return dt.toRelative() || "N/A"
+		return dt.isValid ? (dt.toRelative() || "N/A") : "N/A"
 	} catch (error) {
 		return "N/A"
 	}
@@ -99,18 +107,26 @@ export const getRelativeTime = (timestamp) => {
 
 /**
  * Get absolute time for tooltip
- * @param {string|number} timestamp - ISO timestamp or unix timestamp
+ * @param {string|number} timestamp - ISO timestamp, SQL timestamp, or unix timestamp
  * @returns {string} Formatted absolute time
  */
 export const getAbsoluteTime = (timestamp) => {
 	if (!timestamp) return "N/A"
 
 	try {
-		const dt = typeof timestamp === "string"
-			? DateTime.fromISO(timestamp)
-			: DateTime.fromMillis(timestamp)
+		let dt
+		if (typeof timestamp === "string") {
+			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
+			dt = DateTime.fromSQL(timestamp)
+			// If invalid, try ISO format
+			if (!dt.isValid) {
+				dt = DateTime.fromISO(timestamp)
+			}
+		} else {
+			dt = DateTime.fromMillis(timestamp)
+		}
 
-		return dt.toFormat("yyyy-MM-dd HH:mm:ss") + " UTC"
+		return dt.isValid ? (dt.toFormat("yyyy-MM-dd HH:mm:ss") + " UTC") : "N/A"
 	} catch (error) {
 		return "N/A"
 	}
@@ -118,7 +134,7 @@ export const getAbsoluteTime = (timestamp) => {
 
 /**
  * Check if data is stale (more than threshold seconds old)
- * @param {string|number} lastUpdate - Last update timestamp
+ * @param {string|number} lastUpdate - Last update timestamp (ISO, SQL, or unix)
  * @param {number} thresholdSeconds - Threshold in seconds (default 10)
  * @returns {boolean} True if data is stale
  */
@@ -126,9 +142,19 @@ export const isDataStale = (lastUpdate, thresholdSeconds = 10) => {
 	if (!lastUpdate) return true
 
 	try {
-		const dt = typeof lastUpdate === "string"
-			? DateTime.fromISO(lastUpdate)
-			: DateTime.fromMillis(lastUpdate)
+		let dt
+		if (typeof lastUpdate === "string") {
+			// Try SQL format first (e.g., "2025-10-25 06:50:49.913")
+			dt = DateTime.fromSQL(lastUpdate)
+			// If invalid, try ISO format
+			if (!dt.isValid) {
+				dt = DateTime.fromISO(lastUpdate)
+			}
+		} else {
+			dt = DateTime.fromMillis(lastUpdate)
+		}
+
+		if (!dt.isValid) return true
 
 		const now = DateTime.now()
 		const diffSeconds = now.diff(dt, "seconds").seconds

@@ -1,6 +1,7 @@
 <script setup>
 import { useConsensusSummary } from "@/composables/useConsensusPolling"
 import { formatPercentage, getQuorumColor } from "@/services/utils/consensus"
+import ConsensusSummaryTilesSkeleton from "@/components/modules/consensus/skeletons/ConsensusSummaryTilesSkeleton.vue"
 
 const { data: summaryData, isLoading, isError } = useConsensusSummary()
 
@@ -14,7 +15,11 @@ const stakeColor = computed(() => getQuorumColor(stakeRatio.value))
 </script>
 
 <template>
-	<Flex gap="16" :class="$style.wrapper">
+	<!-- Loading Skeleton -->
+	<ConsensusSummaryTilesSkeleton v-if="isLoading" />
+
+	<!-- Main Content -->
+	<Flex v-else gap="16" :class="$style.wrapper">
 		<!-- Signed / Total Tile -->
 		<Flex direction="column" gap="12" :class="$style.tile">
 			<Flex align="center" gap="8">

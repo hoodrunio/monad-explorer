@@ -2,6 +2,7 @@
 import { useConsensusLatest } from "@/composables/useConsensusPolling"
 import { getRelativeTime, getAbsoluteTime, isDataStale } from "@/services/utils/consensus"
 import Tooltip from "@/components/ui/Tooltip.vue"
+import ConsensusHeaderSkeleton from "@/components/modules/consensus/skeletons/ConsensusHeaderSkeleton.vue"
 
 const { data: latestData, isLoading, isError } = useConsensusLatest()
 
@@ -14,7 +15,11 @@ const isStale = computed(() => isDataStale(timestamp.value))
 </script>
 
 <template>
-	<Flex direction="column" gap="12" :class="$style.wrapper">
+	<!-- Loading Skeleton -->
+	<ConsensusHeaderSkeleton v-if="isLoading" />
+
+	<!-- Main Content -->
+	<Flex v-else direction="column" gap="12" :class="$style.wrapper">
 		<!-- Stale data warning -->
 		<Flex v-if="!isLoading && isStale" align="center" gap="8" :class="$style.warning">
 			<Icon name="time" size="14" color="yellow" />
