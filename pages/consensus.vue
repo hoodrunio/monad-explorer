@@ -100,7 +100,7 @@ useHead({
 
 		<!-- Page Title -->
 		<Flex align="center" gap="8" :class="$style.page_header">
-			<Icon name="activity" size="16" color="secondary" />
+			<Icon name="zap" size="16" color="secondary" />
 			<Text as="h1" size="14" weight="600" color="primary">Network Consensus</Text>
 		</Flex>
 

@@ -151,7 +151,7 @@ watch([activeTab, searchTerm, showTopOnly], () => {
 					@click="activeTab = 'signed'"
 				>
 					<Icon name="check" size="14" :color="activeTab === 'signed' ? 'black' : 'primary'" />
-					Signed
+					Voted
 					<Flex v-if="!isVotesLoading && votesData.length > 0" :class="$style.count_chip">
 						<Text size="11" weight="600" :color="activeTab === 'signed' ? 'black' : 'primary'">
 							{{ votesData.length }}
@@ -165,7 +165,7 @@ watch([activeTab, searchTerm, showTopOnly], () => {
 					@click="activeTab = 'missing'"
 				>
 					<Icon name="close" size="14" :color="activeTab === 'missing' ? 'black' : 'red'" />
-					Missing
+					Missed
 					<Flex v-if="!isMissingLoading && missingData.length > 0" :class="$style.count_chip_red">
 						<Text size="11" weight="600" :color="activeTab === 'missing' ? 'black' : 'red'">
 							{{ missingData.length }}
