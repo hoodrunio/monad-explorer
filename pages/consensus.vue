@@ -136,22 +136,15 @@ useHead({
 		</Transition>
 
 		<!-- Main Content -->
-		<Flex direction="column" gap="20" wide>
-			<!-- Section 1: Header -->
-			<ConsensusHeader />
-
-			<!-- Section 2: Quorum Card -->
-			<ConsensusQuorumCard />
-
-			<!-- Section 3: Summary Tiles -->
-			<ConsensusSummaryTiles />
-
-			<!-- Section 4: Validators Table (Signed / Missing) -->
-			<ConsensusValidatorsTable />
-
-			<!-- Section 5: History Chart -->
-			<ConsensusHistoryChart />
-		</Flex>
+		<ClientOnly>
+			<Flex direction="column" gap="20" wide>
+				<ConsensusHeader />
+				<ConsensusQuorumCard />
+				<ConsensusSummaryTiles />
+				<ConsensusValidatorsTable />
+				<ConsensusHistoryChart />
+			</Flex>
+		</ClientOnly>
 	</Flex>
 </template>
 
