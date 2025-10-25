@@ -39,6 +39,12 @@ export default defineNuxtConfig({
 				priority: 0.7,
 			},
 		},
+		"/consensus": {
+			sitemap: {
+				changefreq: "daily",
+				priority: 0.75,
+			},
+		},
 		"/namespaces": {
 			sitemap: {
 				changefreq: "daily",
