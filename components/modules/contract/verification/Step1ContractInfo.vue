@@ -8,7 +8,7 @@ import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import { useVerificationStore } from "@/store/verification.store"
 
 /** API */
-import { fetchContractMetadata } from "@/services/api/contract"
+import { fetchContractBytecode } from "@/services/api/verifier"
 
 const verificationStore = useVerificationStore()
 
@@ -73,24 +73,30 @@ const handleAddressChange = async () => {
 		return
 	}
 
-	// Auto-fill bytecode from chain
+	// Auto-fill bytecode from Blockscout API
 	isLoadingMetadata.value = true
 	try {
-		const { data } = await fetchContractMetadata(address, {
-			includeAnalysis: false
-		})
+		const response = await fetchContractBytecode(address)
 
-		if (data.value?.data?.metadata) {
-			contractMetadata.value = data.value.data.metadata
+		if (response) {
+			contractMetadata.value = response
 
-			// Auto-fill bytecode if available
-			if (data.value.data.metadata.runtimeBytecode) {
-				verificationStore.setBytecode(data.value.data.metadata.runtimeBytecode)
+			// Auto-fill bytecode based on selected type
+			const bytecode = verificationStore.bytecodeType === 'CREATION_INPUT'
+				? response.creationBytecode
+				: response.deployedBytecode
+
+			if (bytecode && bytecode !== '0x') {
+				verificationStore.setBytecode(bytecode)
+			} else {
+				autoFillError.value = 'No bytecode found at this address'
 			}
+		} else {
+			autoFillError.value = 'Contract not found'
 		}
 	} catch (error) {
-		autoFillError.value = 'Failed to fetch contract metadata'
-		console.error('Failed to fetch contract metadata:', error)
+		autoFillError.value = 'Failed to fetch contract data'
+		console.error('Failed to fetch contract data:', error)
 	} finally {
 		isLoadingMetadata.value = false
 	}
@@ -100,6 +106,13 @@ const handleAddressChange = async () => {
 watch(() => verificationStore.contractAddress, () => {
 	const timeout = setTimeout(handleAddressChange, 500)
 	return () => clearTimeout(timeout)
+})
+
+// Watch for bytecode type changes - refetch bytecode
+watch(() => verificationStore.bytecodeType, () => {
+	if (verificationStore.contractAddress && contractMetadata.value) {
+		handleAddressChange()
+	}
 })
 </script>
 

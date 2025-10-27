@@ -37,26 +37,38 @@ export const useVerificationStore = defineStore("verification", () => {
 	const verificationHistory = ref([])
 
 	// Computed
-	const isFormValid = computed(() => {
+	const missingFields = computed(() => {
+		const missing = []
+
 		// Basic validation
-		if (!contractAddress.value || !bytecode.value || !compilerVersion.value) {
-			return false
-		}
+		if (!contractAddress.value) missing.push('Contract Address')
+		if (!bytecode.value) missing.push('Bytecode')
+		if (!compilerVersion.value) missing.push('Compiler Version')
 
 		// Method-specific validation
 		if (verificationMethod.value === 'solidity-multi-part' || verificationMethod.value === 'vyper-multi-part') {
-			return Object.keys(sourceFiles.value).length > 0
+			if (Object.keys(sourceFiles.value).length === 0) {
+				missing.push('Source Files')
+			}
 		}
 
 		if (verificationMethod.value === 'solidity-standard-json' || verificationMethod.value === 'vyper-standard-json') {
-			return standardJsonInput.value.trim().length > 0
+			if (!standardJsonInput.value.trim()) {
+				missing.push('Standard JSON Input')
+			}
 		}
 
 		if (verificationMethod.value === 'sourcify') {
-			return Object.keys(sourceFiles.value).length > 0
+			if (Object.keys(sourceFiles.value).length === 0) {
+				missing.push('Source Files')
+			}
 		}
 
-		return false
+		return missing
+	})
+
+	const isFormValid = computed(() => {
+		return missingFields.value.length === 0
 	})
 
 	const hasVerificationResult = computed(() => {
@@ -332,6 +344,7 @@ export const useVerificationStore = defineStore("verification", () => {
 
 		// Computed
 		isFormValid,
+		missingFields,
 		hasVerificationResult,
 		isVerificationSuccess,
 		matchType,

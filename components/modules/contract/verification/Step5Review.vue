@@ -306,14 +306,27 @@ const cancelReset = () => {
 			</div>
 
 			<!-- Validation Messages -->
-			<Flex v-if="!verificationStore.isFormValid" direction="column" gap="8" :class="$style.warningCard">
+			<Flex v-if="!verificationStore.isFormValid" direction="column" gap="12" :class="$style.warningCard">
 				<Flex align="center" gap="8">
 					<Icon name="danger" size="14" color="orange" />
 					<Text size="12" weight="600" color="primary">Incomplete Information</Text>
 				</Flex>
-				<Text size="11" color="tertiary">
-					Please complete all required fields in the previous steps
-				</Text>
+				<Flex direction="column" gap="6">
+					<Text size="11" color="tertiary">
+						Please complete the following required fields:
+					</Text>
+					<Flex direction="column" gap="4" :class="$style.missingFieldsList">
+						<Flex
+							v-for="field in verificationStore.missingFields"
+							:key="field"
+							align="center"
+							gap="6"
+						>
+							<Icon name="close-circle" size="12" color="orange" />
+							<Text size="11" weight="500" color="secondary">{{ field }}</Text>
+						</Flex>
+					</Flex>
+				</Flex>
 			</Flex>
 
 			<!-- Submit Button -->
@@ -422,6 +435,11 @@ const cancelReset = () => {
 	background: rgba(251, 146, 60, 0.05);
 	border: 1px solid rgba(251, 146, 60, 0.3);
 	border-radius: 10px;
+}
+
+.missingFieldsList {
+	padding-left: 8px;
+	margin-top: 4px;
 }
 
 @media (max-width: 1024px) {

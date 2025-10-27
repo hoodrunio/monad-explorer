@@ -1,5 +1,35 @@
 /** Contract Verification API Services */
-import { useVerifierURL } from "@/services/config"
+import { useVerifierURL, useBlockscoutURL } from "@/services/config"
+
+/**
+ * Fetch contract bytecode from Blockscout API
+ * @param {string} address - Contract address
+ * @returns {Promise} - Contract data with bytecode
+ */
+export const fetchContractBytecode = async (address) => {
+	if (!address || !/^0x[a-fA-F0-9]{40}$/i.test(address)) {
+		throw new Error('Invalid contract address format')
+	}
+
+	try {
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${address.toLowerCase()}`
+
+		const response = await $fetch(url, {
+			method: 'GET'
+		})
+
+		return {
+			creationBytecode: response.creation_bytecode,
+			deployedBytecode: response.deployed_bytecode,
+			creationStatus: response.creation_status,
+			proxyType: response.proxy_type,
+			implementations: response.implementations || []
+		}
+	} catch (error) {
+		console.error('Failed to fetch contract bytecode:', error)
+		throw error
+	}
+}
 
 /**
  * Validate bytecode format
@@ -84,6 +114,10 @@ export const fetchVyperVersions = () => {
  * @returns {Promise} - Verification result
  */
 export const verifySolidityMultiPart = async (data) => {
+	if (!data.bytecode) {
+		throw new Error('Bytecode is required')
+	}
+
 	if (!isValidBytecode(data.bytecode)) {
 		throw new Error('Invalid bytecode format. Must start with 0x and contain only hex characters.')
 	}
@@ -104,26 +138,33 @@ export const verifySolidityMultiPart = async (data) => {
 	try {
 		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-multi-part`
 
+		const requestBody = {
+			bytecode: data.bytecode,
+			bytecodeType: data.bytecodeType,
+			compilerVersion: data.compilerVersion,
+			evmVersion: data.evmVersion || undefined,
+			optimizationRuns: data.optimizationRuns === null ? null : (data.optimizationRuns || 200),
+			sourceFiles: data.sourceFiles,
+			libraries: data.libraries || {},
+			metadata: data.metadata || {}
+		}
+
+		console.log('Verification Request:', requestBody)
+
 		const response = await $fetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
-				bytecode: data.bytecode,
-				bytecodeType: data.bytecodeType,
-				compilerVersion: data.compilerVersion,
-				evmVersion: data.evmVersion || undefined,
-				optimizationRuns: data.optimizationRuns === null ? null : (data.optimizationRuns || 200),
-				sourceFiles: data.sourceFiles,
-				libraries: data.libraries || {},
-				metadata: data.metadata || {}
-			})
+			body: JSON.stringify(requestBody)
 		})
+
+		console.log('Verification Response:', response)
 
 		return response
 	} catch (error) {
 		console.error('Failed to verify contract (Solidity Multi-Part):', error)
+		console.error('Error details:', error.data || error.message)
 		throw error
 	}
 }
@@ -138,6 +179,10 @@ export const verifySolidityMultiPart = async (data) => {
  * @returns {Promise} - Verification result
  */
 export const verifySolidityStandardJson = async (data) => {
+	if (!data.bytecode) {
+		throw new Error('Bytecode is required')
+	}
+
 	if (!isValidBytecode(data.bytecode)) {
 		throw new Error('Invalid bytecode format')
 	}
@@ -160,22 +205,30 @@ export const verifySolidityStandardJson = async (data) => {
 	try {
 		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-standard-json`
 
+		const requestBody = {
+			bytecode: data.bytecode,
+			bytecodeType: data.bytecodeType,
+			compilerVersion: data.compilerVersion,
+			input: data.input,
+			metadata: data.metadata || {}
+		}
+
+		console.log('Verification Request (Standard JSON):', requestBody)
+
 		const response = await $fetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
-				bytecode: data.bytecode,
-				bytecodeType: data.bytecodeType,
-				compilerVersion: data.compilerVersion,
-				input: data.input
-			})
+			body: JSON.stringify(requestBody)
 		})
+
+		console.log('Verification Response (Standard JSON):', response)
 
 		return response
 	} catch (error) {
 		console.error('Failed to verify contract (Solidity Standard JSON):', error)
+		console.error('Error details:', error.data || error.message)
 		throw error
 	}
 }
@@ -192,6 +245,10 @@ export const verifySolidityStandardJson = async (data) => {
  * @returns {Promise} - Verification result
  */
 export const verifyVyperMultiPart = async (data) => {
+	if (!data.bytecode) {
+		throw new Error('Bytecode is required')
+	}
+
 	if (!isValidBytecode(data.bytecode)) {
 		throw new Error('Invalid bytecode format')
 	}
@@ -207,24 +264,32 @@ export const verifyVyperMultiPart = async (data) => {
 	try {
 		const url = `${useVerifierURL()}/api/v2/verifier/vyper/sources:verify-multi-part`
 
+		const requestBody = {
+			bytecode: data.bytecode,
+			bytecodeType: data.bytecodeType,
+			compilerVersion: data.compilerVersion,
+			evmVersion: data.evmVersion || undefined,
+			sourceFiles: data.sourceFiles,
+			interfaces: data.interfaces || {},
+			metadata: data.metadata || {}
+		}
+
+		console.log('Verification Request (Vyper):', requestBody)
+
 		const response = await $fetch(url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
-				bytecode: data.bytecode,
-				bytecodeType: data.bytecodeType,
-				compilerVersion: data.compilerVersion,
-				evmVersion: data.evmVersion || undefined,
-				sourceFiles: data.sourceFiles,
-				interfaces: data.interfaces || {}
-			})
+			body: JSON.stringify(requestBody)
 		})
+
+		console.log('Verification Response (Vyper):', response)
 
 		return response
 	} catch (error) {
 		console.error('Failed to verify contract (Vyper Multi-Part):', error)
+		console.error('Error details:', error.data || error.message)
 		throw error
 	}
 }
@@ -361,6 +426,7 @@ export const getEvmVersions = () => {
 		{ value: 'london', label: 'London' },
 		{ value: 'paris', label: 'Paris' },
 		{ value: 'shanghai', label: 'Shanghai' },
+		{ value: 'prague', label: 'Prague' },
 		{ value: 'cancun', label: 'Cancun' }
 	]
 }

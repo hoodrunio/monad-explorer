@@ -55,14 +55,14 @@ const loadCompilerVersions = async () => {
 		if (isSolidityMethod.value && verificationStore.solidityVersions.length === 0) {
 			const { data, error } = await fetchSolidityVersions()
 			if (error.value) throw error.value
-			if (data.value?.compiler_versions) {
-				verificationStore.setSolidityVersions(data.value.compiler_versions)
+			if (data.value?.compilerVersions) {
+				verificationStore.setSolidityVersions(data.value.compilerVersions)
 			}
 		} else if (isVyperMethod.value && verificationStore.vyperVersions.length === 0) {
 			const { data, error } = await fetchVyperVersions()
 			if (error.value) throw error.value
-			if (data.value?.compiler_versions) {
-				verificationStore.setVyperVersions(data.value.compiler_versions)
+			if (data.value?.compilerVersions) {
+				verificationStore.setVyperVersions(data.value.compilerVersions)
 			}
 		}
 	} catch (error) {

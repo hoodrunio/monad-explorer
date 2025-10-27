@@ -75,3 +75,9 @@ export const useVerifierURL = () => {
 	const config = useRuntimeConfig()
 	return config.public.verifierApiUrl || ''
 }
+
+export const useBlockscoutURL = () => {
+	// Blockscout API base URL
+	const config = useRuntimeConfig()
+	return config.public.blockscoutApiUrl || ''
+}
