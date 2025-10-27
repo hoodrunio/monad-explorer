@@ -2,6 +2,7 @@
 /** Components */
 import Button from "@/components/ui/Button.vue"
 import Badge from "@/components/ui/Badge.vue"
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue"
 
 /** Store */
 import { useVerificationStore } from "@/store/verification.store"
@@ -22,6 +23,7 @@ const verificationStore = useVerificationStore()
 const route = useRoute()
 
 const isSubmitting = ref(false)
+const showResetDialog = ref(false)
 
 const verificationSummary = computed(() => {
 	return {
@@ -89,6 +91,19 @@ const matchTypeInfo = computed(() => {
 	if (!verificationStore.matchType) return null
 	return formatMatchType(verificationStore.matchType)
 })
+
+const handleVerifyAnother = () => {
+	showResetDialog.value = true
+}
+
+const confirmReset = () => {
+	verificationStore.resetForm()
+	showResetDialog.value = false
+}
+
+const cancelReset = () => {
+	showResetDialog.value = false
+}
 </script>
 
 <template>
@@ -159,7 +174,7 @@ const matchTypeInfo = computed(() => {
 						<Icon name="eye" size="14" color="primary" />
 						View Contract
 					</Button>
-					<Button type="secondary" size="medium" @click="verificationStore.resetForm">
+					<Button type="secondary" size="medium" @click="handleVerifyAnother">
 						Verify Another
 					</Button>
 				</Flex>
@@ -314,6 +329,18 @@ const matchTypeInfo = computed(() => {
 				{{ isSubmitting ? 'Verifying Contract...' : 'Submit Verification' }}
 			</Button>
 		</Flex>
+
+		<!-- Reset Confirmation Dialog -->
+		<ConfirmDialog
+			:show="showResetDialog"
+			title="Start New Verification"
+			message="Are you sure you want to start a new verification? Current verification data and results will be cleared."
+			confirmText="Start New"
+			cancelText="Cancel"
+			type="warning"
+			@confirm="confirmReset"
+			@cancel="cancelReset"
+		/>
 	</Flex>
 </template>
 

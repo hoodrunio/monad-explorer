@@ -1,12 +1,14 @@
 <script setup>
 /** Components */
 import Button from "@/components/ui/Button.vue"
-import Badge from "@/components/ui/Badge.vue"
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue"
 
 /** Store */
 import { useVerificationStore } from "@/store/verification.store"
 
 const verificationStore = useVerificationStore()
+
+const showResetDialog = ref(false)
 
 const steps = [
 	{ id: 1, title: 'Contract', shortTitle: 'Info', description: 'Basic contract details' },
@@ -27,6 +29,19 @@ const goToStep = (stepId) => {
 	if (stepId < verificationStore.currentStep) {
 		verificationStore.setCurrentStep(stepId)
 	}
+}
+
+const handleReset = () => {
+	showResetDialog.value = true
+}
+
+const confirmReset = () => {
+	verificationStore.resetForm()
+	showResetDialog.value = false
+}
+
+const cancelReset = () => {
+	showResetDialog.value = false
 }
 </script>
 
@@ -138,7 +153,7 @@ const goToStep = (stepId) => {
 				<Button
 					type="tertiary"
 					size="medium"
-					@click="verificationStore.resetForm"
+					@click="handleReset"
 				>
 					Reset
 				</Button>
@@ -165,6 +180,18 @@ const goToStep = (stepId) => {
 				</Button>
 			</Flex>
 		</Flex>
+
+		<!-- Reset Confirmation Dialog -->
+		<ConfirmDialog
+			:show="showResetDialog"
+			title="Reset Form"
+			message="Are you sure you want to reset the form? All entered data will be lost and cannot be recovered."
+			confirmText="Reset"
+			cancelText="Cancel"
+			type="warning"
+			@confirm="confirmReset"
+			@cancel="cancelReset"
+		/>
 	</Flex>
 </template>
 
