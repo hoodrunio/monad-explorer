@@ -260,7 +260,7 @@ onMounted(() => {
 						:class="$style.filter_checkbox"
 					/>
 					<Flex align="center" gap="6">
-						<Icon name="x" size="12" color="red" />
+						<Icon name="close" size="12" color="red" />
 						<Text size="12" weight="500" color="primary">Block Skipped</Text>
 					</Flex>
 				</Flex>
