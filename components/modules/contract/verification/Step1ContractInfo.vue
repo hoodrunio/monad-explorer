@@ -18,27 +18,39 @@ const autoFillError = ref(null)
 
 const methods = [
 	{
-		value: 'solidity-multi-part',
+		value: 'solidity-flattened',
 		label: 'Solidity (Flattened)',
 		description: 'Single flattened source file',
-		icon: 'solidity'
+		icon: 'code'
+	},
+	{
+		value: 'solidity-multi-part',
+		label: 'Solidity (Multi-Part)',
+		description: 'Multiple source files',
+		icon: 'code'
 	},
 	{
 		value: 'solidity-standard-json',
 		label: 'Solidity (Standard JSON)',
-		description: 'Hardhat/Foundry output',
+		description: 'Hardhat/Foundry compiler output',
+		icon: 'code'
+	},
+	{
+		value: 'vyper-flattened',
+		label: 'Vyper (Flattened)',
+		description: 'Single flattened Vyper file',
 		icon: 'code'
 	},
 	{
 		value: 'vyper-multi-part',
-		label: 'Vyper (Flattened)',
-		description: 'Single Vyper source file',
+		label: 'Vyper (Multi-Part)',
+		description: 'Multiple Vyper source files',
 		icon: 'code'
 	},
 	{
 		value: 'sourcify',
 		label: 'Sourcify',
-		description: 'Use Sourcify service',
+		description: 'Use Sourcify verification',
 		icon: 'shield-check'
 	}
 ]

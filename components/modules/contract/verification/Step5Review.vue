@@ -9,8 +9,10 @@ import { useVerificationStore } from "@/store/verification.store"
 
 /** API */
 import {
+	verifySolidityFlattened,
 	verifySolidityMultiPart,
 	verifySolidityStandardJson,
+	verifyVyperFlattened,
 	verifyVyperMultiPart,
 	parseVerificationError,
 	formatMatchType
@@ -59,7 +61,19 @@ const handleVerify = async () => {
 			}
 		}
 
-		if (verificationStore.verificationMethod === 'solidity-multi-part') {
+		if (verificationStore.verificationMethod === 'solidity-flattened') {
+			// Get first source file for flattened
+			const firstFileName = Object.keys(verificationStore.sourceFiles)[0]
+			const sourceCode = verificationStore.sourceFiles[firstFileName]
+			const contractName = firstFileName.replace('.sol', '')
+
+			result = await verifySolidityFlattened({
+				...verificationData,
+				sourceCode: sourceCode,
+				contractName: contractName,
+				libraries: verificationStore.libraries
+			})
+		} else if (verificationStore.verificationMethod === 'solidity-multi-part') {
 			result = await verifySolidityMultiPart({
 				...verificationData,
 				sourceFiles: verificationStore.sourceFiles,
@@ -69,6 +83,18 @@ const handleVerify = async () => {
 			result = await verifySolidityStandardJson({
 				...verificationData,
 				input: verificationStore.standardJsonInput
+			})
+		} else if (verificationStore.verificationMethod === 'vyper-flattened') {
+			// Get first source file for flattened
+			const firstFileName = Object.keys(verificationStore.sourceFiles)[0]
+			const sourceCode = verificationStore.sourceFiles[firstFileName]
+			const contractName = firstFileName.replace('.vy', '')
+
+			result = await verifyVyperFlattened({
+				...verificationData,
+				sourceCode: sourceCode,
+				contractName: contractName,
+				interfaces: verificationStore.interfaces
 			})
 		} else if (verificationStore.verificationMethod === 'vyper-multi-part') {
 			result = await verifyVyperMultiPart({

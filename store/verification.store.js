@@ -46,7 +46,10 @@ export const useVerificationStore = defineStore("verification", () => {
 		if (!compilerVersion.value) missing.push('Compiler Version')
 
 		// Method-specific validation
-		if (verificationMethod.value === 'solidity-multi-part' || verificationMethod.value === 'vyper-multi-part') {
+		if (verificationMethod.value === 'solidity-flattened' ||
+		    verificationMethod.value === 'solidity-multi-part' ||
+		    verificationMethod.value === 'vyper-flattened' ||
+		    verificationMethod.value === 'vyper-multi-part') {
 			if (Object.keys(sourceFiles.value).length === 0) {
 				missing.push('Source Files')
 			}

@@ -101,7 +101,82 @@ export const fetchVyperVersions = () => {
 }
 
 /**
- * Verify contract using Solidity Multi-Part (Flattened source code)
+ * Verify contract using Solidity Flattened (Single flattened source file)
+ * @param {Object} data - Verification data
+ * @param {string} data.bytecode - Contract bytecode (with 0x prefix)
+ * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
+ * @param {string} data.compilerVersion - Full compiler version string
+ * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {number|null} [data.optimizationRuns] - Optimization runs (null = disabled, 200 = default)
+ * @param {string} data.sourceCode - Flattened source code
+ * @param {string} data.contractName - Contract name
+ * @param {Object} [data.libraries] - Map of library name to address (optional)
+ * @param {Object} [data.metadata] - Chain ID and contract address (optional)
+ * @returns {Promise} - Verification result
+ */
+export const verifySolidityFlattened = async (data) => {
+	if (!data.bytecode) {
+		throw new Error('Bytecode is required')
+	}
+
+	if (!isValidBytecode(data.bytecode)) {
+		throw new Error('Invalid bytecode format. Must start with 0x and contain only hex characters.')
+	}
+
+	if (!data.compilerVersion) {
+		throw new Error('Compiler version is required')
+	}
+
+	if (!data.sourceCode || !data.sourceCode.trim()) {
+		throw new Error('Source code is required')
+	}
+
+	if (!data.contractName || !data.contractName.trim()) {
+		throw new Error('Contract name is required')
+	}
+
+	const validBytecodeTypes = ['CREATION_INPUT', 'DEPLOYED_BYTECODE']
+	if (!validBytecodeTypes.includes(data.bytecodeType)) {
+		throw new Error(`Bytecode type must be one of: ${validBytecodeTypes.join(', ')}`)
+	}
+
+	try {
+		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-flattened-code`
+
+		const requestBody = {
+			bytecode: data.bytecode,
+			bytecodeType: data.bytecodeType,
+			compilerVersion: data.compilerVersion,
+			evmVersion: data.evmVersion || undefined,
+			optimizationRuns: data.optimizationRuns === null ? null : (data.optimizationRuns || 200),
+			sourceCode: data.sourceCode,
+			contractName: data.contractName,
+			libraries: data.libraries || {},
+			metadata: data.metadata || {}
+		}
+
+		console.log('Verification Request (Flattened):', requestBody)
+
+		const response = await $fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(requestBody)
+		})
+
+		console.log('Verification Response (Flattened):', response)
+
+		return response
+	} catch (error) {
+		console.error('Failed to verify contract (Solidity Flattened):', error)
+		console.error('Error details:', error.data || error.message)
+		throw error
+	}
+}
+
+/**
+ * Verify contract using Solidity Multi-Part (Multiple source files)
  * @param {Object} data - Verification data
  * @param {string} data.bytecode - Contract bytecode (with 0x prefix)
  * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
@@ -234,7 +309,74 @@ export const verifySolidityStandardJson = async (data) => {
 }
 
 /**
- * Verify contract using Vyper Multi-Part
+ * Verify contract using Vyper Flattened (Single flattened source file)
+ * @param {Object} data - Verification data
+ * @param {string} data.bytecode - Contract bytecode
+ * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
+ * @param {string} data.compilerVersion - Vyper compiler version
+ * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {string} data.sourceCode - Flattened source code
+ * @param {string} data.contractName - Contract name
+ * @param {Object} [data.interfaces] - Map of interface name to interface code (optional)
+ * @returns {Promise} - Verification result
+ */
+export const verifyVyperFlattened = async (data) => {
+	if (!data.bytecode) {
+		throw new Error('Bytecode is required')
+	}
+
+	if (!isValidBytecode(data.bytecode)) {
+		throw new Error('Invalid bytecode format')
+	}
+
+	if (!data.compilerVersion) {
+		throw new Error('Compiler version is required')
+	}
+
+	if (!data.sourceCode || !data.sourceCode.trim()) {
+		throw new Error('Source code is required')
+	}
+
+	if (!data.contractName || !data.contractName.trim()) {
+		throw new Error('Contract name is required')
+	}
+
+	try {
+		const url = `${useVerifierURL()}/api/v2/verifier/vyper/sources:verify-flattened-code`
+
+		const requestBody = {
+			bytecode: data.bytecode,
+			bytecodeType: data.bytecodeType,
+			compilerVersion: data.compilerVersion,
+			evmVersion: data.evmVersion || undefined,
+			sourceCode: data.sourceCode,
+			contractName: data.contractName,
+			interfaces: data.interfaces || {},
+			metadata: data.metadata || {}
+		}
+
+		console.log('Verification Request (Vyper Flattened):', requestBody)
+
+		const response = await $fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(requestBody)
+		})
+
+		console.log('Verification Response (Vyper Flattened):', response)
+
+		return response
+	} catch (error) {
+		console.error('Failed to verify contract (Vyper Flattened):', error)
+		console.error('Error details:', error.data || error.message)
+		throw error
+	}
+}
+
+/**
+ * Verify contract using Vyper Multi-Part (Multiple source files)
  * @param {Object} data - Verification data
  * @param {string} data.bytecode - Contract bytecode
  * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"

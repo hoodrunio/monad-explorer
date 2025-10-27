@@ -257,6 +257,9 @@ onMounted(() => {
 			</Flex>
 			<Flex direction="column" gap="6" :class="$style.tipsList">
 				<Text size="11" color="tertiary">
+					• Multi-Part: Upload multiple .sol files or a single flattened file
+				</Text>
+				<Text size="11" color="tertiary">
 					• For flattened contracts, include all dependencies in one file
 				</Text>
 				<Text size="11" color="tertiary">
