@@ -236,10 +236,10 @@ const matchTypeInfo = computed(() => {
 						<Text size="13" weight="600" color="primary">Compiler</Text>
 					</Flex>
 					<Flex direction="column" gap="6">
-						<Flex align="center" justify="between">
+						<Flex direction="column" gap="2">
 							<Text size="11" color="tertiary">Version</Text>
-							<Text size="11" weight="600" color="primary" family="mono">
-								{{ verificationSummary.compiler.substring(0, 12) }}...
+							<Text size="11" weight="600" color="primary" family="mono" :class="$style.truncate">
+								{{ verificationSummary.compiler }}
 							</Text>
 						</Flex>
 						<Flex align="center" justify="between">
@@ -274,7 +274,7 @@ const matchTypeInfo = computed(() => {
 				<!-- Source Files -->
 				<Flex direction="column" gap="12" :class="$style.summaryCard">
 					<Flex align="center" gap="8">
-						<Icon name="file" size="14" color="brand" />
+						<Icon name="code" size="14" color="brand" />
 						<Text size="13" weight="600" color="primary">Source</Text>
 					</Flex>
 					<Flex direction="column" gap="6">
@@ -293,7 +293,7 @@ const matchTypeInfo = computed(() => {
 			<!-- Validation Messages -->
 			<Flex v-if="!verificationStore.isFormValid" direction="column" gap="8" :class="$style.warningCard">
 				<Flex align="center" gap="8">
-					<Icon name="alert-triangle" size="14" color="orange" />
+					<Icon name="danger" size="14" color="orange" />
 					<Text size="12" weight="600" color="primary">Incomplete Information</Text>
 				</Flex>
 				<Text size="11" color="tertiary">
@@ -371,7 +371,7 @@ const matchTypeInfo = computed(() => {
 
 .summaryGrid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	grid-template-columns: repeat(2, 1fr);
 	gap: 12px;
 }
 
@@ -380,6 +380,14 @@ const matchTypeInfo = computed(() => {
 	background: var(--op-3);
 	border: 1px solid var(--border);
 	border-radius: 10px;
+	min-width: 0;
+}
+
+.truncate {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 100%;
 }
 
 .warningCard {
@@ -389,6 +397,12 @@ const matchTypeInfo = computed(() => {
 	border-radius: 10px;
 }
 
+@media (max-width: 1024px) {
+	.summaryGrid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
 @media (max-width: 768px) {
 	.container {
 		padding: 16px;
@@ -396,6 +410,17 @@ const matchTypeInfo = computed(() => {
 
 	.summaryGrid {
 		grid-template-columns: 1fr;
+	}
+
+	.successCard,
+	.errorCard {
+		padding: 16px;
+	}
+
+	.successIcon,
+	.errorIcon {
+		width: 40px;
+		height: 40px;
 	}
 }
 </style>

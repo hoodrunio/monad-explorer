@@ -9,11 +9,11 @@ import { useVerificationStore } from "@/store/verification.store"
 const verificationStore = useVerificationStore()
 
 const steps = [
-	{ id: 1, title: 'Contract Info', description: 'Basic contract details' },
-	{ id: 2, title: 'Compiler', description: 'Select compiler version' },
-	{ id: 3, title: 'Settings', description: 'Optimization & EVM version' },
-	{ id: 4, title: 'Source Code', description: 'Upload or paste source' },
-	{ id: 5, title: 'Verify', description: 'Review and submit' }
+	{ id: 1, title: 'Contract', shortTitle: 'Info', description: 'Basic contract details' },
+	{ id: 2, title: 'Compiler', shortTitle: 'Compiler', description: 'Select version' },
+	{ id: 3, title: 'Settings', shortTitle: 'Config', description: 'Optimization' },
+	{ id: 4, title: 'Source', shortTitle: 'Source', description: 'Upload code' },
+	{ id: 5, title: 'Review', shortTitle: 'Submit', description: 'Verify' }
 ]
 
 const getStepStatus = (stepId) => {
@@ -228,18 +228,24 @@ const goToStep = (stepId) => {
 }
 
 .stepInfo {
-	min-width: 120px;
+	min-width: 80px;
+	max-width: 120px;
+	flex-shrink: 0;
 }
 
 .stepDescription {
 	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .connector {
 	flex: 1;
+	min-width: 20px;
 	height: 2px;
 	background: var(--op-10);
-	margin: 0 12px;
+	margin: 0 8px;
 	transition: background 0.3s ease;
 	position: relative;
 	top: -18px;
@@ -282,13 +288,38 @@ const goToStep = (stepId) => {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
 	.stepInfo {
-		min-width: 100px;
+		min-width: 70px;
+		max-width: 90px;
 	}
 
+	.connector {
+		margin: 0 6px;
+		min-width: 15px;
+	}
+}
+
+@media (max-width: 900px) {
 	.stepDescription {
 		display: none;
+	}
+
+	.stepInfo {
+		min-width: 60px;
+		max-width: 80px;
+	}
+
+	.stepCircle {
+		min-width: 32px;
+		min-height: 32px;
+		width: 32px;
+		height: 32px;
+	}
+
+	.connector {
+		margin: 0 4px;
+		min-width: 10px;
 	}
 }
 

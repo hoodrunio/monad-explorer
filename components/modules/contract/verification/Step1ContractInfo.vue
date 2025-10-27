@@ -21,13 +21,13 @@ const methods = [
 		value: 'solidity-multi-part',
 		label: 'Solidity (Flattened)',
 		description: 'Single flattened source file',
-		icon: 'code'
+		icon: 'solidity'
 	},
 	{
 		value: 'solidity-standard-json',
 		label: 'Solidity (Standard JSON)',
 		description: 'Hardhat/Foundry output',
-		icon: 'file-code'
+		icon: 'code'
 	},
 	{
 		value: 'vyper-multi-part',
