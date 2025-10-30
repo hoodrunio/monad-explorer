@@ -190,7 +190,7 @@ onMounted(() => {
 					• You can find this in your Hardhat/Foundry config or contract metadata
 				</Text>
 				<Text size="11" color="tertiary">
-					• Most recent contracts use v0.8.x versions
+					• Most recent contracts use v0.8.x (Solidity) and v0.4.x (Vyper) versions
 				</Text>
 			</Flex>
 		</Flex>
