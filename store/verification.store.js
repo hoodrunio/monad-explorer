@@ -8,12 +8,12 @@ export const useVerificationStore = defineStore("verification", () => {
 	// Form state
 	const verificationMethod = ref('solidity-multi-part') // 'solidity-multi-part', 'solidity-standard-json', 'vyper-multi-part', 'vyper-standard-json', 'sourcify'
 	const contractAddress = ref('')
-	const bytecode = ref('')
-	const bytecodeType = ref('DEPLOYED_BYTECODE') // 'CREATION_INPUT' or 'DEPLOYED_BYTECODE'
 	const compilerVersion = ref('')
 	const evmVersion = ref('cancun')
 	const optimizationEnabled = ref(true)
 	const optimizationRuns = ref(200)
+	const licenseType = ref('none')
+	const autodetectConstructorArgs = ref(true)
 	const sourceFiles = ref({})
 	const libraries = ref({})
 	const constructorArguments = ref('')
@@ -41,8 +41,8 @@ export const useVerificationStore = defineStore("verification", () => {
 
 		// Basic validation
 		if (!contractAddress.value) missing.push('Contract Address')
-		if (!bytecode.value) missing.push('Bytecode')
 		if (!compilerVersion.value) missing.push('Compiler Version')
+		if (!licenseType.value) missing.push('License Type')
 
 		// Method-specific validation
 		if (verificationMethod.value === 'solidity-flattened' ||
@@ -96,16 +96,16 @@ export const useVerificationStore = defineStore("verification", () => {
 		contractAddress.value = address
 	}
 
-	const setBytecode = (code) => {
-		bytecode.value = code
-	}
-
-	const setBytecodeType = (type) => {
-		bytecodeType.value = type
-	}
-
 	const setCompilerVersion = (version) => {
 		compilerVersion.value = version
+	}
+
+	const setLicenseType = (license) => {
+		licenseType.value = license
+	}
+
+	const setAutodetectConstructorArgs = (autodetect) => {
+		autodetectConstructorArgs.value = autodetect
 	}
 
 	const setEvmVersion = (version) => {
@@ -241,12 +241,12 @@ export const useVerificationStore = defineStore("verification", () => {
 
 	const resetForm = () => {
 		contractAddress.value = ''
-		bytecode.value = ''
-		bytecodeType.value = 'DEPLOYED_BYTECODE'
 		compilerVersion.value = ''
 		evmVersion.value = 'cancun'
 		optimizationEnabled.value = true
 		optimizationRuns.value = 200
+		licenseType.value = 'none'
+		autodetectConstructorArgs.value = true
 		resetSourceData()
 		currentStep.value = 1
 		clearVerificationResult()
@@ -320,12 +320,12 @@ export const useVerificationStore = defineStore("verification", () => {
 		// State
 		verificationMethod,
 		contractAddress,
-		bytecode,
-		bytecodeType,
 		compilerVersion,
 		evmVersion,
 		optimizationEnabled,
 		optimizationRuns,
+		licenseType,
+		autodetectConstructorArgs,
 		sourceFiles,
 		libraries,
 		interfaces,
@@ -349,10 +349,10 @@ export const useVerificationStore = defineStore("verification", () => {
 		// Actions
 		setVerificationMethod,
 		setContractAddress,
-		setBytecode,
-		setBytecodeType,
 		setCompilerVersion,
 		setEvmVersion,
+		setLicenseType,
+		setAutodetectConstructorArgs,
 		setOptimizationEnabled,
 		setOptimizationRuns,
 		addSourceFile,

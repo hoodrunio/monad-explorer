@@ -14,6 +14,7 @@ import {
 	verifySolidityStandardJson,
 	verifyVyperFlattened,
 	verifyVyperMultiPart,
+	verifySourcify,
 	parseVerificationError,
 	formatMatchType
 } from "@/services/api/verifier"
@@ -22,7 +23,6 @@ import {
 import { splitAddress } from "@/services/utils"
 
 const verificationStore = useVerificationStore()
-const route = useRoute()
 
 const isSubmitting = ref(false)
 const showResetDialog = ref(false)
@@ -49,16 +49,15 @@ const handleVerify = async () => {
 	try {
 		let result
 
-		const verificationData = {
-			bytecode: verificationStore.bytecode,
-			bytecodeType: verificationStore.bytecodeType,
+		// Base verification data with new API format (snake_case)
+		const contractAddress = verificationStore.contractAddress
+		const baseData = {
 			compilerVersion: verificationStore.compilerVersion,
+			licenseType: verificationStore.licenseType,
 			evmVersion: verificationStore.evmVersion,
 			optimizationRuns: verificationStore.optimizationEnabled ? verificationStore.optimizationRuns : null,
-			metadata: {
-				chainId: route.query.chainId || '1',
-				contractAddress: verificationStore.contractAddress
-			}
+			constructorArgs: verificationStore.constructorArguments || undefined,
+			autodetectConstructorArgs: verificationStore.autodetectConstructorArgs
 		}
 
 		if (verificationStore.verificationMethod === 'solidity-flattened') {
@@ -67,21 +66,26 @@ const handleVerify = async () => {
 			const sourceCode = verificationStore.sourceFiles[firstFileName]
 			const contractName = firstFileName.replace('.sol', '')
 
-			result = await verifySolidityFlattened({
-				...verificationData,
+			result = await verifySolidityFlattened(contractAddress, {
+				...baseData,
 				sourceCode: sourceCode,
 				contractName: contractName,
 				libraries: verificationStore.libraries
 			})
 		} else if (verificationStore.verificationMethod === 'solidity-multi-part') {
-			result = await verifySolidityMultiPart({
-				...verificationData,
+			result = await verifySolidityMultiPart(contractAddress, {
+				...baseData,
 				sourceFiles: verificationStore.sourceFiles,
 				libraries: verificationStore.libraries
 			})
 		} else if (verificationStore.verificationMethod === 'solidity-standard-json') {
-			result = await verifySolidityStandardJson({
-				...verificationData,
+			// For standard JSON, we need to extract contract name
+			const firstFileName = Object.keys(verificationStore.sourceFiles)[0] || 'Contract'
+			const contractName = firstFileName.replace('.sol', '')
+
+			result = await verifySolidityStandardJson(contractAddress, {
+				...baseData,
+				contractName: contractName,
 				input: verificationStore.standardJsonInput
 			})
 		} else if (verificationStore.verificationMethod === 'vyper-flattened') {
@@ -90,17 +94,21 @@ const handleVerify = async () => {
 			const sourceCode = verificationStore.sourceFiles[firstFileName]
 			const contractName = firstFileName.replace('.vy', '')
 
-			result = await verifyVyperFlattened({
-				...verificationData,
+			result = await verifyVyperFlattened(contractAddress, {
+				...baseData,
 				sourceCode: sourceCode,
 				contractName: contractName,
 				interfaces: verificationStore.interfaces
 			})
 		} else if (verificationStore.verificationMethod === 'vyper-multi-part') {
-			result = await verifyVyperMultiPart({
-				...verificationData,
+			result = await verifyVyperMultiPart(contractAddress, {
+				...baseData,
 				sourceFiles: verificationStore.sourceFiles,
 				interfaces: verificationStore.interfaces
+			})
+		} else if (verificationStore.verificationMethod === 'sourcify') {
+			result = await verifySourcify(contractAddress, {
+				files: verificationStore.sourceFiles
 			})
 		}
 

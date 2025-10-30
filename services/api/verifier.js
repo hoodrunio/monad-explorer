@@ -31,15 +31,6 @@ export const fetchContractBytecode = async (address) => {
 	}
 }
 
-/**
- * Validate bytecode format
- * @param {string} bytecode - Bytecode to validate
- * @returns {boolean} - True if valid bytecode format
- */
-const isValidBytecode = (bytecode) => {
-	if (!bytecode || typeof bytecode !== 'string') return false
-	return /^0x[a-fA-F0-9]+$/.test(bytecode)
-}
 
 /**
  * Get verification configuration (compiler versions, EVM versions, etc.)
@@ -73,29 +64,30 @@ export const fetchVerificationConfig = () => {
 
 /**
  * Verify contract using Solidity Flattened (Single flattened source file)
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode (with 0x prefix)
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Full compiler version string
- * @param {string} [data.evmVersion] - EVM version (optional)
- * @param {number|null} [data.optimizationRuns] - Optimization runs (null = disabled, 200 = default)
+ * @param {string} data.licenseType - License type identifier
  * @param {string} data.sourceCode - Flattened source code
  * @param {string} data.contractName - Contract name
+ * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {number} [data.optimizationRuns] - Optimization runs (number or null)
  * @param {Object} [data.libraries] - Map of library name to address (optional)
- * @param {Object} [data.metadata] - Chain ID and contract address (optional)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifySolidityFlattened = async (data) => {
-	if (!data.bytecode) {
-		throw new Error('Bytecode is required')
-	}
-
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format. Must start with 0x and contain only hex characters.')
+export const verifySolidityFlattened = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
+	}
+
+	if (!data.licenseType) {
+		throw new Error('License type is required')
 	}
 
 	if (!data.sourceCode || !data.sourceCode.trim()) {
@@ -106,24 +98,20 @@ export const verifySolidityFlattened = async (data) => {
 		throw new Error('Contract name is required')
 	}
 
-	const validBytecodeTypes = ['CREATION_INPUT', 'DEPLOYED_BYTECODE']
-	if (!validBytecodeTypes.includes(data.bytecodeType)) {
-		throw new Error(`Bytecode type must be one of: ${validBytecodeTypes.join(', ')}`)
-	}
-
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-flattened-code`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/flattened-code`
 
 		const requestBody = {
-			bytecode: data.bytecode,
-			bytecodeType: data.bytecodeType,
-			compilerVersion: data.compilerVersion,
-			evmVersion: data.evmVersion || undefined,
-			optimizationRuns: data.optimizationRuns === null ? null : (data.optimizationRuns || 200),
-			sourceCode: data.sourceCode,
-			contractName: data.contractName,
-			libraries: data.libraries || {},
-			metadata: data.metadata || {}
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType,
+			source_code: data.sourceCode,
+			contract_name: data.contractName,
+			is_optimization_enabled: data.optimizationRuns !== null && data.optimizationRuns !== undefined,
+			optimization_runs: data.optimizationRuns || undefined,
+			evm_version: data.evmVersion || undefined,
+			autodetect_constructor_args: data.autodetectConstructorArgs !== undefined ? data.autodetectConstructorArgs : true,
+			constructor_args: data.constructorArgs || undefined,
+			libraries: data.libraries || undefined
 		}
 
 		console.log('Verification Request (Flattened):', requestBody)
@@ -148,64 +136,83 @@ export const verifySolidityFlattened = async (data) => {
 
 /**
  * Verify contract using Solidity Multi-Part (Multiple source files)
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode (with 0x prefix)
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Full compiler version string
- * @param {string} [data.evmVersion] - EVM version (optional)
- * @param {number|null} [data.optimizationRuns] - Optimization runs (null = disabled, 200 = default)
+ * @param {string} data.licenseType - License type identifier
  * @param {Object} data.sourceFiles - Map of filename to source code
+ * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {number} [data.optimizationRuns] - Optimization runs (number or null)
  * @param {Object} [data.libraries] - Map of library name to address (optional)
- * @param {Object} [data.metadata] - Chain ID and contract address (optional)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifySolidityMultiPart = async (data) => {
-	if (!data.bytecode) {
-		throw new Error('Bytecode is required')
-	}
-
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format. Must start with 0x and contain only hex characters.')
+export const verifySolidityMultiPart = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
 	}
 
+	if (!data.licenseType) {
+		throw new Error('License type is required')
+	}
+
 	if (!data.sourceFiles || Object.keys(data.sourceFiles).length === 0) {
 		throw new Error('At least one source file is required')
 	}
 
-	const validBytecodeTypes = ['CREATION_INPUT', 'DEPLOYED_BYTECODE']
-	if (!validBytecodeTypes.includes(data.bytecodeType)) {
-		throw new Error(`Bytecode type must be one of: ${validBytecodeTypes.join(', ')}`)
-	}
-
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-multi-part`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/multi-part`
 
-		const requestBody = {
-			bytecode: data.bytecode,
-			bytecodeType: data.bytecodeType,
-			compilerVersion: data.compilerVersion,
-			evmVersion: data.evmVersion || undefined,
-			optimizationRuns: data.optimizationRuns === null ? null : (data.optimizationRuns || 200),
-			sourceFiles: data.sourceFiles,
-			libraries: data.libraries || {},
-			metadata: data.metadata || {}
+		const formData = new FormData()
+
+		formData.append('compiler_version', data.compilerVersion)
+		formData.append('license_type', data.licenseType)
+
+		if (data.evmVersion) {
+			formData.append('evm_version', data.evmVersion)
 		}
 
-		console.log('Verification Request:', requestBody)
+		formData.append('is_optimization_enabled', data.optimizationRuns !== null && data.optimizationRuns !== undefined ? 'true' : 'false')
+
+		if (data.optimizationRuns !== null && data.optimizationRuns !== undefined) {
+			formData.append('optimization_runs', data.optimizationRuns.toString())
+		}
+
+		if (data.libraries && Object.keys(data.libraries).length > 0) {
+			formData.append('libraries', JSON.stringify(data.libraries))
+		}
+
+		if (data.autodetectConstructorArgs !== undefined) {
+			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
+		}
+
+		if (data.constructorArgs) {
+			formData.append('constructor_args', data.constructorArgs)
+		}
+
+		// Add source files
+		Object.entries(data.sourceFiles).forEach(([filename, content]) => {
+			const blob = new Blob([content], { type: 'text/plain' })
+			formData.append('files', blob, filename)
+		})
+
+		console.log('Verification Request (Multi-Part):', {
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType,
+			files: Object.keys(data.sourceFiles)
+		})
 
 		const response = await $fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(requestBody)
+			body: formData
 		})
 
-		console.log('Verification Response:', response)
+		console.log('Verification Response (Multi-Part):', response)
 
 		return response
 	} catch (error) {
@@ -217,24 +224,31 @@ export const verifySolidityMultiPart = async (data) => {
 
 /**
  * Verify contract using Solidity Standard JSON
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Compiler version
+ * @param {string} data.licenseType - License type identifier
+ * @param {string} data.contractName - Contract name
  * @param {string} data.input - Standard JSON input (stringified)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifySolidityStandardJson = async (data) => {
-	if (!data.bytecode) {
-		throw new Error('Bytecode is required')
-	}
-
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format')
+export const verifySolidityStandardJson = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
+	}
+
+	if (!data.licenseType) {
+		throw new Error('License type is required')
+	}
+
+	if (!data.contractName) {
+		throw new Error('Contract name is required')
 	}
 
 	if (!data.input) {
@@ -249,24 +263,35 @@ export const verifySolidityStandardJson = async (data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-standard-json`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/standard-input`
 
-		const requestBody = {
-			bytecode: data.bytecode,
-			bytecodeType: data.bytecodeType,
-			compilerVersion: data.compilerVersion,
-			input: data.input,
-			metadata: data.metadata || {}
+		const formData = new FormData()
+
+		formData.append('compiler_version', data.compilerVersion)
+		formData.append('license_type', data.licenseType)
+		formData.append('contract_name', data.contractName)
+
+		// Add standard JSON input as a file
+		const jsonBlob = new Blob([data.input], { type: 'application/json' })
+		formData.append('files', jsonBlob, 'standard-input.json')
+
+		if (data.autodetectConstructorArgs !== undefined) {
+			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
 		}
 
-		console.log('Verification Request (Standard JSON):', requestBody)
+		if (data.constructorArgs) {
+			formData.append('constructor_args', data.constructorArgs)
+		}
+
+		console.log('Verification Request (Standard JSON):', {
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType,
+			contract_name: data.contractName
+		})
 
 		const response = await $fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(requestBody)
+			body: formData
 		})
 
 		console.log('Verification Response (Standard JSON):', response)
@@ -281,27 +306,29 @@ export const verifySolidityStandardJson = async (data) => {
 
 /**
  * Verify contract using Vyper Flattened (Single flattened source file)
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Vyper compiler version
- * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {string} data.licenseType - License type identifier
  * @param {string} data.sourceCode - Flattened source code
  * @param {string} data.contractName - Contract name
+ * @param {string} [data.evmVersion] - EVM version (optional)
  * @param {Object} [data.interfaces] - Map of interface name to interface code (optional)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifyVyperFlattened = async (data) => {
-	if (!data.bytecode) {
-		throw new Error('Bytecode is required')
-	}
-
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format')
+export const verifyVyperFlattened = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
+	}
+
+	if (!data.licenseType) {
+		throw new Error('License type is required')
 	}
 
 	if (!data.sourceCode || !data.sourceCode.trim()) {
@@ -313,17 +340,16 @@ export const verifyVyperFlattened = async (data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-flattened-code`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-code`
 
 		const requestBody = {
-			bytecode: data.bytecode,
-			bytecodeType: data.bytecodeType,
-			compilerVersion: data.compilerVersion,
-			evmVersion: data.evmVersion || undefined,
-			sourceCode: data.sourceCode,
-			contractName: data.contractName,
-			interfaces: data.interfaces || {},
-			metadata: data.metadata || {}
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType,
+			source_code: data.sourceCode,
+			contract_name: data.contractName,
+			evm_version: data.evmVersion || undefined,
+			autodetect_constructor_args: data.autodetectConstructorArgs !== undefined ? data.autodetectConstructorArgs : true,
+			constructor_args: data.constructorArgs || undefined
 		}
 
 		console.log('Verification Request (Vyper Flattened):', requestBody)
@@ -348,26 +374,28 @@ export const verifyVyperFlattened = async (data) => {
 
 /**
  * Verify contract using Vyper Multi-Part (Multiple source files)
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Vyper compiler version
- * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {string} data.licenseType - License type identifier
  * @param {Object} data.sourceFiles - Map of filename to source code
+ * @param {string} [data.evmVersion] - EVM version (optional)
  * @param {Object} [data.interfaces] - Map of interface name to interface code (optional)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifyVyperMultiPart = async (data) => {
-	if (!data.bytecode) {
-		throw new Error('Bytecode is required')
-	}
-
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format')
+export const verifyVyperMultiPart = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
+	}
+
+	if (!data.licenseType) {
+		throw new Error('License type is required')
 	}
 
 	if (!data.sourceFiles || Object.keys(data.sourceFiles).length === 0) {
@@ -375,29 +403,52 @@ export const verifyVyperMultiPart = async (data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-multi-part`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-multi-part`
 
-		const requestBody = {
-			bytecode: data.bytecode,
-			bytecodeType: data.bytecodeType,
-			compilerVersion: data.compilerVersion,
-			evmVersion: data.evmVersion || undefined,
-			sourceFiles: data.sourceFiles,
-			interfaces: data.interfaces || {},
-			metadata: data.metadata || {}
+		const formData = new FormData()
+
+		formData.append('compiler_version', data.compilerVersion)
+		formData.append('license_type', data.licenseType)
+
+		if (data.evmVersion) {
+			formData.append('evm_version', data.evmVersion)
 		}
 
-		console.log('Verification Request (Vyper):', requestBody)
+		if (data.autodetectConstructorArgs !== undefined) {
+			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
+		}
+
+		if (data.constructorArgs) {
+			formData.append('constructor_args', data.constructorArgs)
+		}
+
+		// Add source files
+		Object.entries(data.sourceFiles).forEach(([filename, content]) => {
+			const blob = new Blob([content], { type: 'text/plain' })
+			formData.append('files', blob, filename)
+		})
+
+		// Add interface files if provided
+		if (data.interfaces && Object.keys(data.interfaces).length > 0) {
+			Object.entries(data.interfaces).forEach(([filename, content]) => {
+				const blob = new Blob([content], { type: 'text/plain' })
+				formData.append('interfaces', blob, filename)
+			})
+		}
+
+		console.log('Verification Request (Vyper Multi-Part):', {
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType,
+			files: Object.keys(data.sourceFiles),
+			interfaces: data.interfaces ? Object.keys(data.interfaces) : []
+		})
 
 		const response = await $fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(requestBody)
+			body: formData
 		})
 
-		console.log('Verification Response (Vyper):', response)
+		console.log('Verification Response (Vyper Multi-Part):', response)
 
 		return response
 	} catch (error) {
@@ -409,26 +460,34 @@ export const verifyVyperMultiPart = async (data) => {
 
 /**
  * Verify contract using Vyper Standard JSON
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.bytecode - Contract bytecode
- * @param {string} data.bytecodeType - "CREATION_INPUT" or "DEPLOYED_BYTECODE"
  * @param {string} data.compilerVersion - Vyper compiler version
+ * @param {string} data.licenseType - License type identifier
  * @param {string} data.input - Standard JSON input (stringified)
+ * @param {string} [data.evmVersion] - EVM version (optional)
+ * @param {string} [data.constructorArgs] - Constructor arguments hex (optional)
+ * @param {boolean} [data.autodetectConstructorArgs] - Auto-detect constructor args (optional)
  * @returns {Promise} - Verification result
  */
-export const verifyVyperStandardJson = async (data) => {
-	if (!isValidBytecode(data.bytecode)) {
-		throw new Error('Invalid bytecode format')
+export const verifyVyperStandardJson = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.compilerVersion) {
 		throw new Error('Compiler version is required')
 	}
 
+	if (!data.licenseType) {
+		throw new Error('License type is required')
+	}
+
 	if (!data.input) {
 		throw new Error('Standard JSON input is required')
 	}
 
+	// Validate JSON input
 	try {
 		JSON.parse(data.input)
 	} catch (e) {
@@ -436,44 +495,60 @@ export const verifyVyperStandardJson = async (data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-standard-json`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-standard-input`
+
+		const formData = new FormData()
+
+		formData.append('compiler_version', data.compilerVersion)
+		formData.append('license_type', data.licenseType)
+
+		if (data.evmVersion) {
+			formData.append('evm_version', data.evmVersion)
+		}
+
+		// Add standard JSON input as a file
+		const jsonBlob = new Blob([data.input], { type: 'application/json' })
+		formData.append('files', jsonBlob, 'standard-input.json')
+
+		if (data.autodetectConstructorArgs !== undefined) {
+			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
+		}
+
+		if (data.constructorArgs) {
+			formData.append('constructor_args', data.constructorArgs)
+		}
+
+		console.log('Verification Request (Vyper Standard JSON):', {
+			compiler_version: data.compilerVersion,
+			license_type: data.licenseType
+		})
 
 		const response = await $fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				bytecode: data.bytecode,
-				bytecodeType: data.bytecodeType,
-				compilerVersion: data.compilerVersion,
-				input: data.input
-			})
+			body: formData
 		})
+
+		console.log('Verification Response (Vyper Standard JSON):', response)
 
 		return response
 	} catch (error) {
 		console.error('Failed to verify contract (Vyper Standard JSON):', error)
+		console.error('Error details:', error.data || error.message)
 		throw error
 	}
 }
 
 /**
  * Verify contract via Sourcify
+ * @param {string} contractAddress - Contract address
  * @param {Object} data - Verification data
- * @param {string} data.address - Contract address
- * @param {string} data.chain - Chain ID as string
  * @param {Object} data.files - Map of filename to file content
- * @param {number} [data.chosenContract] - Index of chosen contract if multiple (optional)
+ * @param {number} [data.chosenContractIndex] - Index of chosen contract if multiple (optional)
  * @returns {Promise} - Verification result
  */
-export const verifySourcify = async (data) => {
-	if (!data.address || !/^0x[a-fA-F0-9]{40}$/.test(data.address)) {
-		throw new Error('Invalid contract address format')
-	}
-
-	if (!data.chain) {
-		throw new Error('Chain ID is required')
+export const verifySourcify = async (contractAddress, data) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
 	}
 
 	if (!data.files || Object.keys(data.files).length === 0) {
@@ -481,24 +556,36 @@ export const verifySourcify = async (data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/verifier/sourcify/sources:verify`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/sourcify`
+
+		const formData = new FormData()
+
+		// Add source files
+		Object.entries(data.files).forEach(([filename, content]) => {
+			const blob = new Blob([content], { type: 'text/plain' })
+			formData.append('files', blob, filename)
+		})
+
+		if (data.chosenContractIndex !== undefined) {
+			formData.append('chosen_contract_index', data.chosenContractIndex.toString())
+		}
+
+		console.log('Verification Request (Sourcify):', {
+			files: Object.keys(data.files),
+			chosen_contract_index: data.chosenContractIndex
+		})
 
 		const response = await $fetch(url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				address: data.address,
-				chain: data.chain,
-				files: data.files,
-				chosenContract: data.chosenContract !== undefined ? data.chosenContract : undefined
-			})
+			body: formData
 		})
+
+		console.log('Verification Response (Sourcify):', response)
 
 		return response
 	} catch (error) {
 		console.error('Failed to verify contract (Sourcify):', error)
+		console.error('Error details:', error.data || error.message)
 		throw error
 	}
 }
