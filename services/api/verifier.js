@@ -1,5 +1,5 @@
 /** Contract Verification API Services */
-import { useVerifierURL, useBlockscoutURL } from "@/services/config"
+import { useBlockscoutURL } from "@/services/config"
 
 /**
  * Fetch contract bytecode from Blockscout API
@@ -42,16 +42,16 @@ const isValidBytecode = (bytecode) => {
 }
 
 /**
- * Get available Solidity compiler versions
- * @returns {Promise} - API response with compiler versions
+ * Get verification configuration (compiler versions, EVM versions, etc.)
+ * @returns {Promise} - API response with all verification config
  */
-export const fetchSolidityVersions = () => {
+export const fetchVerificationConfig = () => {
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/solidity/versions`
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/verification/config`
 
 		return useFetch(url, {
-			key: 'solidity-compiler-versions',
-			// Cache for 1 hour since versions don't change frequently
+			key: 'verification-config',
+			// Cache for 1 hour since config doesn't change frequently
 			getCachedData: (key) => {
 				const data = useNuxtData(key)
 				if (!data.data.value) return null
@@ -66,36 +66,7 @@ export const fetchSolidityVersions = () => {
 			}
 		})
 	} catch (error) {
-		console.error('Failed to fetch Solidity versions:', error)
-		throw error
-	}
-}
-
-/**
- * Get available Vyper compiler versions
- * @returns {Promise} - API response with compiler versions
- */
-export const fetchVyperVersions = () => {
-	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/vyper/versions`
-
-		return useFetch(url, {
-			key: 'vyper-compiler-versions',
-			getCachedData: (key) => {
-				const data = useNuxtData(key)
-				if (!data.data.value) return null
-
-				const expirationDate = new Date(data.data.value.timestamp)
-				expirationDate.setTime(expirationDate.getTime() + 60 * 60 * 1000) // 1 hour
-
-				const isExpired = expirationDate.getTime() < Date.now()
-				if (isExpired) return null
-
-				return data.data.value
-			}
-		})
-	} catch (error) {
-		console.error('Failed to fetch Vyper versions:', error)
+		console.error('Failed to fetch verification config:', error)
 		throw error
 	}
 }
@@ -141,7 +112,7 @@ export const verifySolidityFlattened = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-flattened-code`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-flattened-code`
 
 		const requestBody = {
 			bytecode: data.bytecode,
@@ -211,7 +182,7 @@ export const verifySolidityMultiPart = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-multi-part`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-multi-part`
 
 		const requestBody = {
 			bytecode: data.bytecode,
@@ -278,7 +249,7 @@ export const verifySolidityStandardJson = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/solidity/sources:verify-standard-json`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/solidity/sources:verify-standard-json`
 
 		const requestBody = {
 			bytecode: data.bytecode,
@@ -342,7 +313,7 @@ export const verifyVyperFlattened = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/vyper/sources:verify-flattened-code`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-flattened-code`
 
 		const requestBody = {
 			bytecode: data.bytecode,
@@ -404,7 +375,7 @@ export const verifyVyperMultiPart = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/vyper/sources:verify-multi-part`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-multi-part`
 
 		const requestBody = {
 			bytecode: data.bytecode,
@@ -465,7 +436,7 @@ export const verifyVyperStandardJson = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/vyper/sources:verify-standard-json`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/vyper/sources:verify-standard-json`
 
 		const response = await $fetch(url, {
 			method: 'POST',
@@ -510,7 +481,7 @@ export const verifySourcify = async (data) => {
 	}
 
 	try {
-		const url = `${useVerifierURL()}/api/v2/verifier/sourcify/sources:verify`
+		const url = `${useBlockscoutURL()}/api/v2/verifier/sourcify/sources:verify`
 
 		const response = await $fetch(url, {
 			method: 'POST',
@@ -538,7 +509,7 @@ export const verifySourcify = async (data) => {
  */
 export const checkVerifierHealth = async () => {
 	try {
-		const url = `${useVerifierURL()}/health`
+		const url = `${useBlockscoutURL()}/health`
 
 		const response = await $fetch(url, {
 			method: 'GET'
@@ -551,27 +522,6 @@ export const checkVerifierHealth = async () => {
 	}
 }
 
-/**
- * Get EVM version options
- * @returns {Array} - List of EVM versions
- */
-export const getEvmVersions = () => {
-	return [
-		{ value: 'homestead', label: 'Homestead' },
-		{ value: 'tangerineWhistle', label: 'Tangerine Whistle' },
-		{ value: 'spuriousDragon', label: 'Spurious Dragon' },
-		{ value: 'byzantium', label: 'Byzantium' },
-		{ value: 'constantinople', label: 'Constantinople' },
-		{ value: 'petersburg', label: 'Petersburg' },
-		{ value: 'istanbul', label: 'Istanbul' },
-		{ value: 'berlin', label: 'Berlin' },
-		{ value: 'london', label: 'London' },
-		{ value: 'paris', label: 'Paris' },
-		{ value: 'shanghai', label: 'Shanghai' },
-		{ value: 'prague', label: 'Prague' },
-		{ value: 'cancun', label: 'Cancun' }
-	]
-}
 
 /**
  * Get bytecode type options

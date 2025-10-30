@@ -8,7 +8,7 @@ import Spinner from "@/components/ui/Spinner.vue"
 import { useVerificationStore } from "@/store/verification.store"
 
 /** API */
-import { fetchSolidityVersions, fetchVyperVersions } from "@/services/api/verifier"
+import { fetchVerificationConfig } from "@/services/api/verifier"
 
 const verificationStore = useVerificationStore()
 
@@ -25,10 +25,12 @@ const isVyperMethod = computed(() => {
 })
 
 const availableVersions = computed(() => {
+	if (!verificationStore.verificationConfig) return []
+
 	if (isSolidityMethod.value) {
-		return verificationStore.solidityVersions
+		return verificationStore.verificationConfig.solidity_compiler_versions || []
 	} else if (isVyperMethod.value) {
-		return verificationStore.vyperVersions
+		return verificationStore.verificationConfig.vyper_compiler_versions || []
 	}
 	return []
 })
@@ -48,26 +50,23 @@ const displayedVersions = computed(() => {
 })
 
 const loadCompilerVersions = async () => {
+	// Skip if config is already loaded
+	if (verificationStore.verificationConfig) {
+		return
+	}
+
 	isLoadingVersions.value = true
 	versionsError.value = null
 
 	try {
-		if (isSolidityMethod.value && verificationStore.solidityVersions.length === 0) {
-			const { data, error } = await fetchSolidityVersions()
-			if (error.value) throw error.value
-			if (data.value?.compilerVersions) {
-				verificationStore.setSolidityVersions(data.value.compilerVersions)
-			}
-		} else if (isVyperMethod.value && verificationStore.vyperVersions.length === 0) {
-			const { data, error } = await fetchVyperVersions()
-			if (error.value) throw error.value
-			if (data.value?.compilerVersions) {
-				verificationStore.setVyperVersions(data.value.compilerVersions)
-			}
+		const { data, error } = await fetchVerificationConfig()
+		if (error.value) throw error.value
+		if (data.value) {
+			verificationStore.setVerificationConfig(data.value)
 		}
 	} catch (error) {
-		versionsError.value = 'Failed to load compiler versions. Please check your verifier API URL.'
-		console.error('Failed to load compiler versions:', error)
+		versionsError.value = 'Failed to load verification config. Please check your API URL.'
+		console.error('Failed to load verification config:', error)
 	} finally {
 		isLoadingVersions.value = false
 	}
@@ -77,13 +76,8 @@ const selectVersion = (version) => {
 	verificationStore.setCompilerVersion(version)
 }
 
-// Load versions on mount
+// Load config on mount
 onMounted(() => {
-	loadCompilerVersions()
-})
-
-// Reload when method changes
-watch(() => verificationStore.verificationMethod, () => {
 	loadCompilerVersions()
 })
 </script>

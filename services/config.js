@@ -71,11 +71,6 @@ export const nodeStatsURL = "https://node-stats.monad.io/v1"
 export const validatorAnalyticsURL = "https://analytics.monad.io/v1"
 export const quoteServiceURL = "https://quote.monad.io/v1"
 
-export const useVerifierURL = () => {
-	const config = useRuntimeConfig()
-	return config.public.verifierApiUrl || ''
-}
-
 export const useBlockscoutURL = () => {
 	// Blockscout API base URL
 	const config = useRuntimeConfig()

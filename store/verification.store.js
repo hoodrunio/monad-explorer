@@ -28,10 +28,9 @@ export const useVerificationStore = defineStore("verification", () => {
 	const verificationError = ref(null)
 	const currentStep = ref(1) // Multi-step form: 1 = Method, 2 = Compiler, 3 = Settings, 4 = Source Code, 5 = Submit
 
-	// Compiler versions cache
-	const solidityVersions = ref([])
-	const vyperVersions = ref([])
-	const versionsLoading = ref(false)
+	// Verification config cache
+	const verificationConfig = ref(null)
+	const configLoading = ref(false)
 
 	// Verification history (stored in localStorage)
 	const verificationHistory = ref([])
@@ -198,16 +197,12 @@ export const useVerificationStore = defineStore("verification", () => {
 		}
 	}
 
-	const setSolidityVersions = (versions) => {
-		solidityVersions.value = versions
+	const setVerificationConfig = (config) => {
+		verificationConfig.value = config
 	}
 
-	const setVyperVersions = (versions) => {
-		vyperVersions.value = versions
-	}
-
-	const setVersionsLoading = (loading) => {
-		versionsLoading.value = loading
+	const setConfigLoading = (loading) => {
+		configLoading.value = loading
 	}
 
 	const startVerification = () => {
@@ -340,9 +335,8 @@ export const useVerificationStore = defineStore("verification", () => {
 		verificationResult,
 		verificationError,
 		currentStep,
-		solidityVersions,
-		vyperVersions,
-		versionsLoading,
+		verificationConfig,
+		configLoading,
 		verificationHistory,
 
 		// Computed
@@ -373,9 +367,8 @@ export const useVerificationStore = defineStore("verification", () => {
 		setCurrentStep,
 		nextStep,
 		previousStep,
-		setSolidityVersions,
-		setVyperVersions,
-		setVersionsLoading,
+		setVerificationConfig,
+		setConfigLoading,
 		startVerification,
 		setVerificationResult,
 		setVerificationError,

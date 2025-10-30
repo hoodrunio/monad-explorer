@@ -7,15 +7,36 @@ import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 /** Store */
 import { useVerificationStore } from "@/store/verification.store"
 
-/** API */
-import { getEvmVersions } from "@/services/api/verifier"
-
 const verificationStore = useVerificationStore()
 
-const evmVersions = getEvmVersions()
+const isSolidityMethod = computed(() => {
+	return verificationStore.verificationMethod.includes('solidity')
+})
+
+const isVyperMethod = computed(() => {
+	return verificationStore.verificationMethod.includes('vyper')
+})
+
+const evmVersions = computed(() => {
+	if (!verificationStore.verificationConfig) return []
+
+	// Get appropriate EVM versions based on method
+	let versions = []
+	if (isSolidityMethod.value) {
+		versions = verificationStore.verificationConfig.solidity_evm_versions || []
+	} else if (isVyperMethod.value) {
+		versions = verificationStore.verificationConfig.vyper_evm_versions || []
+	}
+
+	// Transform to {value, label} format
+	return versions.map(v => ({
+		value: v,
+		label: v.charAt(0).toUpperCase() + v.slice(1)
+	}))
+})
 
 const selectedEvmVersion = computed(() => {
-	return evmVersions.find(v => v.value === verificationStore.evmVersion)
+	return evmVersions.value.find(v => v.value === verificationStore.evmVersion)
 })
 
 const optimizationPresets = [
@@ -79,6 +100,9 @@ const setOptimizationPreset = (runs) => {
 							<Text size="12" weight="500" color="primary">{{ version.label }}</Text>
 						</Flex>
 					</DropdownItem>
+					<Flex v-if="evmVersions.length === 0" align="center" justify="center" :style="{ padding: '16px' }">
+						<Text size="12" color="tertiary">Loading EVM versions...</Text>
+					</Flex>
 				</template>
 			</Dropdown>
 		</Flex>
