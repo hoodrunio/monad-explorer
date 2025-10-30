@@ -68,6 +68,20 @@ const handleFileUpload = (event) => {
 	event.target.value = ''
 }
 
+const handleJsonFileUpload = (event) => {
+	const file = event.target.files?.[0]
+	if (!file) return
+
+	const reader = new FileReader()
+	reader.onload = (e) => {
+		verificationStore.setStandardJsonInput(e.target.result)
+	}
+	reader.readAsText(file)
+
+	// Reset input
+	event.target.value = ''
+}
+
 // Set first file as active on mount
 onMounted(() => {
 	if (sourceFilesList.value.length > 0 && !activeFile.value) {
@@ -90,10 +104,16 @@ onMounted(() => {
 		<Flex v-if="isStandardJson" direction="column" gap="12">
 			<Flex align="center" justify="between">
 				<Text size="13" weight="600" color="secondary">Standard JSON Input</Text>
-				<Button type="tertiary" size="mini">
+				<label :class="$style.uploadButton">
+					<input
+						type="file"
+						accept=".json"
+						@change="handleJsonFileUpload"
+						:class="$style.fileInput"
+					/>
 					<Icon name="upload" size="12" color="tertiary" />
-					Load from File
-				</Button>
+					<Text size="12" weight="600" color="tertiary">Load from File</Text>
+				</label>
 			</Flex>
 
 			<div :class="$style.jsonEditor">
