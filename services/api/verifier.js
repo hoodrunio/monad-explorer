@@ -2,6 +2,18 @@
 import { useBlockscoutURL } from "@/services/config"
 
 /**
+ * Validate that Blockscout API URL is configured
+ * @throws {Error} If Blockscout URL is not configured
+ */
+const validateBlockscoutURL = () => {
+	const url = useBlockscoutURL()
+	if (!url) {
+		throw new Error('Contract verification is not available at the moment.')
+	}
+	return url
+}
+
+/**
  * Fetch contract bytecode from Blockscout API
  * @param {string} address - Contract address
  * @returns {Promise} - Contract data with bytecode
@@ -99,7 +111,8 @@ export const verifySolidityFlattened = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/flattened-code`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/flattened-code`
 
 		const requestBody = {
 			compiler_version: data.compilerVersion,
@@ -166,7 +179,8 @@ export const verifySolidityMultiPart = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/multi-part`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/multi-part`
 
 		const formData = new FormData()
 
@@ -263,7 +277,8 @@ export const verifySolidityStandardJson = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/standard-input`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/standard-input`
 
 		const formData = new FormData()
 
@@ -340,7 +355,8 @@ export const verifyVyperFlattened = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-code`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-code`
 
 		const requestBody = {
 			compiler_version: data.compilerVersion,
@@ -403,7 +419,8 @@ export const verifyVyperMultiPart = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-multi-part`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-multi-part`
 
 		const formData = new FormData()
 
@@ -495,7 +512,8 @@ export const verifyVyperStandardJson = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-standard-input`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-standard-input`
 
 		const formData = new FormData()
 
@@ -556,7 +574,8 @@ export const verifySourcify = async (contractAddress, data) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/sourcify`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/sourcify`
 
 		const formData = new FormData()
 
@@ -597,22 +616,41 @@ export const verifySourcify = async (contractAddress, data) => {
  * @param {string} contractAddress - Contract address
  * @param {Object} options - Polling options
  * @param {number} [options.maxAttempts=30] - Maximum polling attempts
- * @param {number} [options.intervalMs=2000] - Interval between attempts in milliseconds
+ * @param {number} [options.intervalMs=2000] - Initial interval between attempts in milliseconds
+ * @param {boolean} [options.useExponentialBackoff=true] - Use exponential backoff for retries
+ * @param {number} [options.maxIntervalMs=10000] - Maximum interval for exponential backoff
  * @param {Function} [options.onAttempt] - Callback for each polling attempt
  * @returns {Promise} - Contract verification result
  */
 export const pollVerificationStatus = async (contractAddress, options = {}) => {
-	const { maxAttempts = 30, intervalMs = 2000, onAttempt } = options
+	const {
+		maxAttempts = 30,
+		intervalMs = 2000,
+		useExponentialBackoff = true,
+		maxIntervalMs = 10000,
+		onAttempt
+	} = options
 
 	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
 		throw new Error('Valid contract address is required')
 	}
 
 	let attempts = 0
+	let currentInterval = intervalMs
+
+	const calculateBackoff = (attempt) => {
+		if (!useExponentialBackoff) {
+			return intervalMs
+		}
+		// Exponential backoff: 2s, 4s, 6s, 8s, 10s (max)
+		const backoff = Math.min(intervalMs * (1 + attempt * 0.5), maxIntervalMs)
+		return backoff
+	}
 
 	const checkStatus = async () => {
 		try {
-			const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+			const baseUrl = validateBlockscoutURL()
+			const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
 
 			const response = await $fetch(url, {
 				method: 'GET'
@@ -636,6 +674,12 @@ export const pollVerificationStatus = async (contractAddress, options = {}) => {
 				}
 			}
 
+			// Check for verification errors in response
+			// Some APIs return verification_status or similar field
+			if (response.verification_status === 'FAILED' || response.verification_status === 'ERROR') {
+				throw new Error(response.verification_error || 'Verification failed on the server')
+			}
+
 			// Not verified yet
 			attempts++
 
@@ -648,16 +692,22 @@ export const pollVerificationStatus = async (contractAddress, options = {}) => {
 				throw new Error(`Verification timeout after ${attempts} attempts. The contract may still be processing.`)
 			}
 
-			console.log(`Verification in progress... (attempt ${attempts}/${maxAttempts})`)
+			// Calculate next interval with backoff
+			currentInterval = calculateBackoff(attempts)
 
-			// Wait before next attempt
-			await new Promise(resolve => setTimeout(resolve, intervalMs))
+			console.log(`Verification in progress... (attempt ${attempts}/${maxAttempts}, next check in ${currentInterval}ms)`)
+
+			// Wait before next attempt with backoff
+			await new Promise(resolve => setTimeout(resolve, currentInterval))
 
 			// Recursive call
 			return await checkStatus()
 		} catch (error) {
-			// If it's our timeout error, rethrow it
-			if (error.message && error.message.includes('Verification timeout')) {
+			// If it's our timeout error or verification failed error, rethrow it
+			if (error.message && (
+				error.message.includes('Verification timeout') ||
+				error.message.includes('Verification failed on the server')
+			)) {
 				throw error
 			}
 
@@ -670,8 +720,11 @@ export const pollVerificationStatus = async (contractAddress, options = {}) => {
 
 			console.log(`Error checking status, retrying... (attempt ${attempts}/${maxAttempts})`)
 
-			// Wait before retry
-			await new Promise(resolve => setTimeout(resolve, intervalMs))
+			// Calculate backoff for error retry
+			currentInterval = calculateBackoff(attempts)
+
+			// Wait before retry with backoff
+			await new Promise(resolve => setTimeout(resolve, currentInterval))
 
 			return await checkStatus()
 		}
@@ -691,7 +744,8 @@ export const checkContractVerification = async (contractAddress) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+		const baseUrl = validateBlockscoutURL()
+		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
 
 		const response = await $fetch(url, {
 			method: 'GET'

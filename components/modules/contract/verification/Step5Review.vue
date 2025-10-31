@@ -14,6 +14,7 @@ import {
 	verifySolidityStandardJson,
 	verifyVyperFlattened,
 	verifyVyperMultiPart,
+	verifyVyperStandardJson,
 	verifySourcify,
 	pollVerificationStatus,
 	checkContractVerification,
@@ -110,6 +111,11 @@ const handleVerify = async () => {
 				...baseData,
 				sourceFiles: verificationStore.sourceFiles,
 				interfaces: verificationStore.interfaces
+			})
+		} else if (verificationStore.verificationMethod === 'vyper-standard-json') {
+			submitResponse = await verifyVyperStandardJson(contractAddress, {
+				...baseData,
+				input: verificationStore.standardJsonInput
 			})
 		} else if (verificationStore.verificationMethod === 'sourcify') {
 			submitResponse = await verifySourcify(contractAddress, {
