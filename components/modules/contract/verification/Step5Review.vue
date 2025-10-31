@@ -15,6 +15,7 @@ import {
 	verifyVyperFlattened,
 	verifyVyperMultiPart,
 	verifySourcify,
+	pollVerificationStatus,
 	parseVerificationError,
 	formatMatchType
 } from "@/services/api/verifier"
@@ -47,7 +48,7 @@ const handleVerify = async () => {
 	verificationStore.startVerification()
 
 	try {
-		let result
+		let submitResponse
 
 		// Base verification data with new API format (snake_case)
 		const contractAddress = verificationStore.contractAddress
@@ -60,20 +61,21 @@ const handleVerify = async () => {
 			autodetectConstructorArgs: verificationStore.autodetectConstructorArgs
 		}
 
+		// Submit verification request
 		if (verificationStore.verificationMethod === 'solidity-flattened') {
 			// Get first source file for flattened
 			const firstFileName = Object.keys(verificationStore.sourceFiles)[0]
 			const sourceCode = verificationStore.sourceFiles[firstFileName]
 			const contractName = firstFileName.replace('.sol', '')
 
-			result = await verifySolidityFlattened(contractAddress, {
+			submitResponse = await verifySolidityFlattened(contractAddress, {
 				...baseData,
 				sourceCode: sourceCode,
 				contractName: contractName,
 				libraries: verificationStore.libraries
 			})
 		} else if (verificationStore.verificationMethod === 'solidity-multi-part') {
-			result = await verifySolidityMultiPart(contractAddress, {
+			submitResponse = await verifySolidityMultiPart(contractAddress, {
 				...baseData,
 				sourceFiles: verificationStore.sourceFiles,
 				libraries: verificationStore.libraries
@@ -83,7 +85,7 @@ const handleVerify = async () => {
 			const firstFileName = Object.keys(verificationStore.sourceFiles)[0] || 'Contract'
 			const contractName = firstFileName.replace('.sol', '')
 
-			result = await verifySolidityStandardJson(contractAddress, {
+			submitResponse = await verifySolidityStandardJson(contractAddress, {
 				...baseData,
 				contractName: contractName,
 				input: verificationStore.standardJsonInput
@@ -94,25 +96,45 @@ const handleVerify = async () => {
 			const sourceCode = verificationStore.sourceFiles[firstFileName]
 			const contractName = firstFileName.replace('.vy', '')
 
-			result = await verifyVyperFlattened(contractAddress, {
+			submitResponse = await verifyVyperFlattened(contractAddress, {
 				...baseData,
 				sourceCode: sourceCode,
 				contractName: contractName,
 				interfaces: verificationStore.interfaces
 			})
 		} else if (verificationStore.verificationMethod === 'vyper-multi-part') {
-			result = await verifyVyperMultiPart(contractAddress, {
+			submitResponse = await verifyVyperMultiPart(contractAddress, {
 				...baseData,
 				sourceFiles: verificationStore.sourceFiles,
 				interfaces: verificationStore.interfaces
 			})
 		} else if (verificationStore.verificationMethod === 'sourcify') {
-			result = await verifySourcify(contractAddress, {
+			submitResponse = await verifySourcify(contractAddress, {
 				files: verificationStore.sourceFiles
 			})
 		}
 
-		verificationStore.setVerificationResult(result)
+		// Check if response indicates async verification (message: 'Smart-contract verification started')
+		if (submitResponse?.message && submitResponse.message.includes('verification started')) {
+			console.log('Verification started, polling for result...')
+
+			// Start polling state
+			verificationStore.startPolling()
+
+			// Poll for verification status
+			const result = await pollVerificationStatus(contractAddress, {
+				maxAttempts: 30,
+				intervalMs: 2000,
+				onAttempt: (attempt, maxAttempts) => {
+					verificationStore.updatePollingAttempt(attempt)
+				}
+			})
+
+			verificationStore.setVerificationResult(result)
+		} else {
+			// Synchronous verification or already has result
+			verificationStore.setVerificationResult(submitResponse)
+		}
 	} catch (error) {
 		const errorMessage = parseVerificationError(error)
 		verificationStore.setVerificationError(errorMessage)
@@ -375,6 +397,22 @@ const cancelReset = () => {
 				<Icon name="shield-check" size="16" color="primary" />
 				{{ isSubmitting ? 'Verifying Contract...' : 'Submit Verification' }}
 			</Button>
+
+			<!-- Polling Progress -->
+			<Flex
+				v-if="verificationStore.isPolling"
+				direction="column"
+				gap="8"
+				:class="$style.pollingCard"
+			>
+				<Flex align="center" gap="8">
+					<div :class="$style.spinner"></div>
+					<Text size="13" weight="600" color="primary">Checking verification status...</Text>
+				</Flex>
+				<Text size="11" color="tertiary">
+					Attempt {{ verificationStore.pollingAttempt }} of 30 - The contract is being verified, please wait...
+				</Text>
+			</Flex>
 		</Flex>
 
 		<!-- Reset Confirmation Dialog -->
@@ -474,6 +512,28 @@ const cancelReset = () => {
 .missingFieldsList {
 	padding-left: 8px;
 	margin-top: 4px;
+}
+
+.pollingCard {
+	padding: 16px;
+	background: rgba(59, 130, 246, 0.05);
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	border-radius: 10px;
+}
+
+.spinner {
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(59, 130, 246, 0.2);
+	border-top-color: var(--brand);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 @media (max-width: 1024px) {

@@ -273,7 +273,7 @@ export const verifySolidityStandardJson = async (contractAddress, data) => {
 
 		// Add standard JSON input as a file
 		const jsonBlob = new Blob([data.input], { type: 'application/json' })
-		formData.append('files', jsonBlob, 'standard-input.json')
+		formData.append('files[0]', jsonBlob, 'standard-input.json')
 
 		if (data.autodetectConstructorArgs !== undefined) {
 			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
@@ -508,7 +508,7 @@ export const verifyVyperStandardJson = async (contractAddress, data) => {
 
 		// Add standard JSON input as a file
 		const jsonBlob = new Blob([data.input], { type: 'application/json' })
-		formData.append('files', jsonBlob, 'standard-input.json')
+		formData.append('files[0]', jsonBlob, 'standard-input.json')
 
 		if (data.autodetectConstructorArgs !== undefined) {
 			formData.append('autodetect_constructor_args', data.autodetectConstructorArgs ? 'true' : 'false')
@@ -588,6 +588,94 @@ export const verifySourcify = async (contractAddress, data) => {
 		console.error('Error details:', error.data || error.message)
 		throw error
 	}
+}
+
+/**
+ * Poll contract verification status by checking if contract is verified
+ * @param {string} contractAddress - Contract address
+ * @param {Object} options - Polling options
+ * @param {number} [options.maxAttempts=30] - Maximum polling attempts
+ * @param {number} [options.intervalMs=2000] - Interval between attempts in milliseconds
+ * @param {Function} [options.onAttempt] - Callback for each polling attempt
+ * @returns {Promise} - Contract verification result
+ */
+export const pollVerificationStatus = async (contractAddress, options = {}) => {
+	const { maxAttempts = 30, intervalMs = 2000, onAttempt } = options
+
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
+	}
+
+	let attempts = 0
+
+	const checkStatus = async () => {
+		try {
+			const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+
+			const response = await $fetch(url, {
+				method: 'GET'
+			})
+
+			// Check if contract is verified
+			if (response.is_verified) {
+				console.log('Contract verified successfully:', response)
+				return {
+					status: 'SUCCESS',
+					source: {
+						contractName: response.name,
+						fileName: response.file_path,
+						compilerVersion: response.compiler_version,
+						matchType: response.is_fully_verified ? 'FULL' : (response.is_partially_verified ? 'PARTIAL' : 'FULL'),
+						verifiedAt: response.verified_at,
+						language: response.language,
+						licenseType: response.license_type
+					},
+					data: response
+				}
+			}
+
+			// Not verified yet
+			attempts++
+
+			// Call onAttempt callback if provided
+			if (onAttempt) {
+				onAttempt(attempts, maxAttempts)
+			}
+
+			if (attempts >= maxAttempts) {
+				throw new Error(`Verification timeout after ${attempts} attempts. The contract may still be processing.`)
+			}
+
+			console.log(`Verification in progress... (attempt ${attempts}/${maxAttempts})`)
+
+			// Wait before next attempt
+			await new Promise(resolve => setTimeout(resolve, intervalMs))
+
+			// Recursive call
+			return await checkStatus()
+		} catch (error) {
+			// If it's our timeout error, rethrow it
+			if (error.message && error.message.includes('Verification timeout')) {
+				throw error
+			}
+
+			// For other errors, check if we should retry
+			attempts++
+
+			if (attempts >= maxAttempts) {
+				throw new Error('Failed to check verification status: ' + (error.message || 'Unknown error'))
+			}
+
+			console.log(`Error checking status, retrying... (attempt ${attempts}/${maxAttempts})`)
+
+			// Wait before retry
+			await new Promise(resolve => setTimeout(resolve, intervalMs))
+
+			return await checkStatus()
+		}
+	}
+
+	return await checkStatus()
 }
 
 /**

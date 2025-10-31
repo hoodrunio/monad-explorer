@@ -24,6 +24,8 @@ export const useVerificationStore = defineStore("verification", () => {
 
 	// UI state
 	const isVerifying = ref(false)
+	const isPolling = ref(false)
+	const pollingAttempt = ref(0)
 	const verificationResult = ref(null)
 	const verificationError = ref(null)
 	const currentStep = ref(1) // Multi-step form: 1 = Method, 2 = Compiler, 3 = Settings, 4 = Source Code, 5 = Submit
@@ -207,13 +209,29 @@ export const useVerificationStore = defineStore("verification", () => {
 
 	const startVerification = () => {
 		isVerifying.value = true
+		isPolling.value = false
+		pollingAttempt.value = 0
 		verificationResult.value = null
 		verificationError.value = null
+	}
+
+	const startPolling = () => {
+		isPolling.value = true
+		pollingAttempt.value = 0
+	}
+
+	const updatePollingAttempt = (attempt) => {
+		pollingAttempt.value = attempt
+	}
+
+	const stopPolling = () => {
+		isPolling.value = false
 	}
 
 	const setVerificationResult = (result) => {
 		verificationResult.value = result
 		isVerifying.value = false
+		isPolling.value = false
 
 		// Add to history
 		if (result) {
@@ -232,6 +250,7 @@ export const useVerificationStore = defineStore("verification", () => {
 	const setVerificationError = (error) => {
 		verificationError.value = error
 		isVerifying.value = false
+		isPolling.value = false
 	}
 
 	const clearVerificationResult = () => {
@@ -332,6 +351,8 @@ export const useVerificationStore = defineStore("verification", () => {
 		constructorArguments,
 		standardJsonInput,
 		isVerifying,
+		isPolling,
+		pollingAttempt,
 		verificationResult,
 		verificationError,
 		currentStep,
@@ -370,6 +391,9 @@ export const useVerificationStore = defineStore("verification", () => {
 		setVerificationConfig,
 		setConfigLoading,
 		startVerification,
+		startPolling,
+		updatePollingAttempt,
+		stopPolling,
 		setVerificationResult,
 		setVerificationError,
 		clearVerificationResult,
