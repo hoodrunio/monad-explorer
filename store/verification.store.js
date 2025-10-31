@@ -41,8 +41,18 @@ export const useVerificationStore = defineStore("verification", () => {
 	const missingFields = computed(() => {
 		const missing = []
 
-		// Basic validation
+		// Contract address is always required
 		if (!contractAddress.value) missing.push('Contract Address')
+
+		// Sourcify extracts everything from metadata.json, only needs files
+		if (verificationMethod.value === 'sourcify') {
+			if (Object.keys(sourceFiles.value).length === 0) {
+				missing.push('Source Files (including metadata.json)')
+			}
+			return missing
+		}
+
+		// All other methods need compiler version and license
 		if (!compilerVersion.value) missing.push('Compiler Version')
 		if (!licenseType.value) missing.push('License Type')
 
@@ -59,12 +69,6 @@ export const useVerificationStore = defineStore("verification", () => {
 		if (verificationMethod.value === 'solidity-standard-json' || verificationMethod.value === 'vyper-standard-json') {
 			if (!standardJsonInput.value.trim()) {
 				missing.push('Standard JSON Input')
-			}
-		}
-
-		if (verificationMethod.value === 'sourcify') {
-			if (Object.keys(sourceFiles.value).length === 0) {
-				missing.push('Source Files')
 			}
 		}
 

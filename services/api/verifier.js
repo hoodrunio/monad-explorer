@@ -195,10 +195,10 @@ export const verifySolidityMultiPart = async (contractAddress, data) => {
 			formData.append('constructor_args', data.constructorArgs)
 		}
 
-		// Add source files
-		Object.entries(data.sourceFiles).forEach(([filename, content]) => {
+		// Add source files with indexed keys (files[0], files[1], etc.)
+		Object.entries(data.sourceFiles).forEach(([filename, content], index) => {
 			const blob = new Blob([content], { type: 'text/plain' })
-			formData.append('files', blob, filename)
+			formData.append(`files[${index}]`, blob, filename)
 		})
 
 		console.log('Verification Request (Multi-Part):', {
@@ -422,17 +422,17 @@ export const verifyVyperMultiPart = async (contractAddress, data) => {
 			formData.append('constructor_args', data.constructorArgs)
 		}
 
-		// Add source files
-		Object.entries(data.sourceFiles).forEach(([filename, content]) => {
+		// Add source files with indexed keys (files[0], files[1], etc.)
+		Object.entries(data.sourceFiles).forEach(([filename, content], index) => {
 			const blob = new Blob([content], { type: 'text/plain' })
-			formData.append('files', blob, filename)
+			formData.append(`files[${index}]`, blob, filename)
 		})
 
-		// Add interface files if provided
+		// Add interface files if provided with indexed keys (interfaces[0], interfaces[1], etc.)
 		if (data.interfaces && Object.keys(data.interfaces).length > 0) {
-			Object.entries(data.interfaces).forEach(([filename, content]) => {
+			Object.entries(data.interfaces).forEach(([filename, content], index) => {
 				const blob = new Blob([content], { type: 'text/plain' })
-				formData.append('interfaces', blob, filename)
+				formData.append(`interfaces[${index}]`, blob, filename)
 			})
 		}
 
@@ -560,10 +560,12 @@ export const verifySourcify = async (contractAddress, data) => {
 
 		const formData = new FormData()
 
-		// Add source files
-		Object.entries(data.files).forEach(([filename, content]) => {
-			const blob = new Blob([content], { type: 'text/plain' })
-			formData.append('files', blob, filename)
+		// Add source files with indexed keys (files[0], files[1], etc.)
+		Object.entries(data.files).forEach(([filename, content], index) => {
+			// Use application/json for JSON files (metadata), text/plain for source files
+			const contentType = filename.endsWith('.json') ? 'application/json' : 'text/plain'
+			const blob = new Blob([content], { type: contentType })
+			formData.append(`files[${index}]`, blob, filename)
 		})
 
 		if (data.chosenContractIndex !== undefined) {
@@ -676,6 +678,48 @@ export const pollVerificationStatus = async (contractAddress, options = {}) => {
 	}
 
 	return await checkStatus()
+}
+
+/**
+ * Check if contract is already verified
+ * @param {string} contractAddress - Contract address
+ * @returns {Promise<Object>} - { isVerified: boolean, contractData?: Object }
+ */
+export const checkContractVerification = async (contractAddress) => {
+	if (!contractAddress || !/^0x[a-fA-F0-9]{40}$/i.test(contractAddress)) {
+		throw new Error('Valid contract address is required')
+	}
+
+	try {
+		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+
+		const response = await $fetch(url, {
+			method: 'GET'
+		})
+
+		return {
+			isVerified: response.is_verified || false,
+			isFullyVerified: response.is_fully_verified || false,
+			isPartiallyVerified: response.is_partially_verified || false,
+			contractData: response.is_verified ? {
+				name: response.name,
+				compilerVersion: response.compiler_version,
+				evmVersion: response.evm_version,
+				optimization: response.optimization_enabled,
+				optimizationRuns: response.optimization_runs,
+				verifiedAt: response.verified_at,
+				language: response.language,
+				licenseType: response.license_type
+			} : null
+		}
+	} catch (error) {
+		// If contract not found or other error, assume not verified
+		console.error('Failed to check contract verification status:', error)
+		return {
+			isVerified: false,
+			contractData: null
+		}
+	}
 }
 
 /**

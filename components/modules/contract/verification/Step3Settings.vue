@@ -17,6 +17,20 @@ const isVyperMethod = computed(() => {
 	return verificationStore.verificationMethod.includes('vyper')
 })
 
+const isStandardJson = computed(() => {
+	return verificationStore.verificationMethod.includes('standard-json')
+})
+
+const showEvmVersion = computed(() => {
+	// Solidity Standard JSON has EVM version in the JSON itself, don't show UI
+	if (verificationStore.verificationMethod === 'solidity-standard-json') {
+		return false
+	}
+	// Vyper Standard JSON needs EVM version as parameter
+	// Other methods also need it
+	return true
+})
+
 const evmVersions = computed(() => {
 	if (!verificationStore.verificationConfig) return []
 
@@ -94,12 +108,16 @@ const setOptimizationPreset = (runs) => {
 		<Flex direction="column" gap="8">
 			<Text size="16" weight="600" color="primary">Compiler Settings</Text>
 			<Text size="13" color="tertiary">
-				Configure optimization and EVM version settings
+				{{
+					verificationStore.verificationMethod === 'solidity-standard-json'
+						? 'Configure license and optimization settings (EVM version is read from JSON)'
+						: 'Configure optimization and EVM version settings'
+				}}
 			</Text>
 		</Flex>
 
 		<!-- EVM Version -->
-		<Flex direction="column" gap="12">
+		<Flex v-if="showEvmVersion" direction="column" gap="12">
 			<Text size="13" weight="600" color="secondary">EVM Version</Text>
 			<Text size="11" color="tertiary">
 				The Ethereum Virtual Machine version used during compilation
@@ -293,10 +311,13 @@ const setOptimizationPreset = (runs) => {
 				<Text size="11" color="tertiary">
 					• License type is required for all contract verifications
 				</Text>
-				<Text size="11" color="tertiary">
+				<Text v-if="verificationStore.verificationMethod === 'solidity-standard-json'" size="11" color="tertiary">
+					• For Standard JSON: EVM version, optimization settings, and libraries are read from the JSON input
+				</Text>
+				<Text v-else size="11" color="tertiary">
 					• Optimization settings must exactly match those used during compilation
 				</Text>
-				<Text size="11" color="tertiary">
+				<Text v-if="verificationStore.verificationMethod !== 'solidity-standard-json'" size="11" color="tertiary">
 					• Default optimization is 200 runs for most Hardhat projects
 				</Text>
 				<Text size="11" color="tertiary">

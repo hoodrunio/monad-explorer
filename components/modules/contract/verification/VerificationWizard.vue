@@ -10,13 +10,26 @@ const verificationStore = useVerificationStore()
 
 const showResetDialog = ref(false)
 
-const steps = [
+// All steps
+const allSteps = [
 	{ id: 1, title: 'Contract', shortTitle: 'Info', description: 'Basic contract details' },
 	{ id: 2, title: 'Compiler', shortTitle: 'Compiler', description: 'Select version' },
 	{ id: 3, title: 'Settings', shortTitle: 'Config', description: 'Optimization' },
 	{ id: 4, title: 'Source', shortTitle: 'Source', description: 'Upload code' },
 	{ id: 5, title: 'Review', shortTitle: 'Submit', description: 'Verify' }
 ]
+
+// Sourcify only needs: Contract Info → Source Files → Review
+const sourcifySteps = [
+	{ id: 1, title: 'Contract', shortTitle: 'Info', description: 'Basic contract details' },
+	{ id: 4, title: 'Source', shortTitle: 'Source', description: 'Upload files' },
+	{ id: 5, title: 'Review', shortTitle: 'Submit', description: 'Verify' }
+]
+
+// Dynamically show steps based on verification method
+const steps = computed(() => {
+	return verificationStore.verificationMethod === 'sourcify' ? sourcifySteps : allSteps
+})
 
 const getStepStatus = (stepId) => {
 	if (stepId < verificationStore.currentStep) return 'completed'
@@ -42,6 +55,31 @@ const confirmReset = () => {
 
 const cancelReset = () => {
 	showResetDialog.value = false
+}
+
+// Custom navigation for Sourcify (skip steps 2 and 3)
+const handleNext = () => {
+	if (verificationStore.verificationMethod === 'sourcify') {
+		if (verificationStore.currentStep === 1) {
+			verificationStore.setCurrentStep(4) // Skip to source code
+		} else if (verificationStore.currentStep === 4) {
+			verificationStore.setCurrentStep(5) // Go to review
+		}
+	} else {
+		verificationStore.nextStep()
+	}
+}
+
+const handlePrevious = () => {
+	if (verificationStore.verificationMethod === 'sourcify') {
+		if (verificationStore.currentStep === 5) {
+			verificationStore.setCurrentStep(4) // Back to source code
+		} else if (verificationStore.currentStep === 4) {
+			verificationStore.setCurrentStep(1) // Back to contract info
+		}
+	} else {
+		verificationStore.previousStep()
+	}
 }
 </script>
 
@@ -116,16 +154,16 @@ const cancelReset = () => {
 			<Flex direction="column" gap="8" :class="$style.mobileProgress">
 				<Flex align="center" justify="between">
 					<Text size="12" weight="600" color="primary">
-						{{ steps[verificationStore.currentStep - 1]?.title }}
+						{{ steps.find(s => s.id === verificationStore.currentStep)?.title }}
 					</Text>
 					<Text size="11" color="tertiary">
-						Step {{ verificationStore.currentStep }} of {{ steps.length }}
+						Step {{ steps.findIndex(s => s.id === verificationStore.currentStep) + 1 }} of {{ steps.length }}
 					</Text>
 				</Flex>
 				<div :class="$style.progressBar">
 					<div
 						:class="$style.progressFill"
-						:style="{ width: `${(verificationStore.currentStep / steps.length) * 100}%` }"
+						:style="{ width: `${((steps.findIndex(s => s.id === verificationStore.currentStep) + 1) / steps.length) * 100}%` }"
 					/>
 				</div>
 			</Flex>
@@ -142,7 +180,7 @@ const cancelReset = () => {
 				v-if="verificationStore.currentStep > 1"
 				type="secondary"
 				size="medium"
-				@click="verificationStore.previousStep"
+				@click="handlePrevious"
 			>
 				<Icon name="arrow-left" size="14" color="secondary" />
 				Previous
@@ -162,7 +200,7 @@ const cancelReset = () => {
 					v-if="verificationStore.currentStep < 5"
 					type="primary"
 					size="medium"
-					@click="verificationStore.nextStep"
+					@click="handleNext"
 				>
 					Next
 					<Icon name="arrow-right" size="14" color="primary" />

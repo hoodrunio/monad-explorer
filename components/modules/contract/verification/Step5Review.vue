@@ -16,6 +16,7 @@ import {
 	verifyVyperMultiPart,
 	verifySourcify,
 	pollVerificationStatus,
+	checkContractVerification,
 	parseVerificationError,
 	formatMatchType
 } from "@/services/api/verifier"
@@ -27,6 +28,8 @@ const verificationStore = useVerificationStore()
 
 const isSubmitting = ref(false)
 const showResetDialog = ref(false)
+const isCheckingVerification = ref(false)
+const alreadyVerified = ref(null) // { isVerified: boolean, contractData?: Object }
 
 const verificationSummary = computed(() => {
 	return {
@@ -114,8 +117,29 @@ const handleVerify = async () => {
 			})
 		}
 
+		// Check if contract is already verified
+		if (submitResponse?.message && submitResponse.message.toLowerCase().includes('already verified')) {
+			console.log('Contract is already verified, fetching details...')
+
+			// Fetch the actual verification details
+			const verificationDetails = await checkContractVerification(contractAddress)
+
+			verificationStore.setVerificationResult({
+				status: 'SUCCESS',
+				message: 'Contract is already verified',
+				source: {
+					contractName: verificationDetails.contractData?.name,
+					compilerVersion: verificationDetails.contractData?.compilerVersion,
+					matchType: verificationDetails.isFullyVerified ? 'FULL' : (verificationDetails.isPartiallyVerified ? 'PARTIAL' : 'FULL'),
+					verifiedAt: verificationDetails.contractData?.verifiedAt,
+					language: verificationDetails.contractData?.language,
+					licenseType: verificationDetails.contractData?.licenseType
+				},
+				alreadyVerified: true
+			})
+		}
 		// Check if response indicates async verification (message: 'Smart-contract verification started')
-		if (submitResponse?.message && submitResponse.message.includes('verification started')) {
+		else if (submitResponse?.message && submitResponse.message.includes('verification started')) {
 			console.log('Verification started, polling for result...')
 
 			// Start polling state
@@ -125,7 +149,7 @@ const handleVerify = async () => {
 			const result = await pollVerificationStatus(contractAddress, {
 				maxAttempts: 30,
 				intervalMs: 2000,
-				onAttempt: (attempt, maxAttempts) => {
+				onAttempt: (attempt) => {
 					verificationStore.updatePollingAttempt(attempt)
 				}
 			})
@@ -160,10 +184,108 @@ const confirmReset = () => {
 const cancelReset = () => {
 	showResetDialog.value = false
 }
+
+// Check if contract is already verified when component mounts
+onMounted(async () => {
+	if (verificationStore.contractAddress) {
+		isCheckingVerification.value = true
+		try {
+			const result = await checkContractVerification(verificationStore.contractAddress)
+			alreadyVerified.value = result
+		} catch (error) {
+			console.error('Failed to check contract verification:', error)
+			alreadyVerified.value = { isVerified: false, contractData: null }
+		} finally {
+			isCheckingVerification.value = false
+		}
+	}
+})
+
+// Watch for contract address changes
+watch(() => verificationStore.contractAddress, async (newAddress) => {
+	if (newAddress && verificationStore.currentStep === 5) {
+		isCheckingVerification.value = true
+		try {
+			const result = await checkContractVerification(newAddress)
+			alreadyVerified.value = result
+		} catch (error) {
+			console.error('Failed to check contract verification:', error)
+			alreadyVerified.value = { isVerified: false, contractData: null }
+		} finally {
+			isCheckingVerification.value = false
+		}
+	}
+})
 </script>
 
 <template>
 	<Flex direction="column" gap="24" :class="$style.container">
+		<!-- Already Verified Warning -->
+		<Flex
+			v-if="alreadyVerified?.isVerified && !verificationStore.hasVerificationResult"
+			direction="column"
+			gap="16"
+			:class="$style.alreadyVerifiedCard"
+		>
+			<Flex align="center" gap="12">
+				<div :class="$style.iconWrapper">
+					<Icon name="check-circle" size="24" color="green" />
+				</div>
+				<Flex direction="column" gap="4">
+					<Text size="14" weight="600" color="primary">Contract Already Verified</Text>
+					<Text size="12" color="tertiary">
+						This contract has already been verified on the blockchain
+					</Text>
+				</Flex>
+			</Flex>
+
+			<!-- Verification Details -->
+			<Flex direction="column" gap="12" :class="$style.verifiedDetails">
+				<Flex align="center" justify="between">
+					<Text size="12" weight="600" color="secondary">Contract Name</Text>
+					<Text size="12" color="primary">{{ alreadyVerified.contractData?.name || 'N/A' }}</Text>
+				</Flex>
+				<Flex align="center" justify="between">
+					<Text size="12" weight="600" color="secondary">Compiler Version</Text>
+					<Text size="12" color="primary">{{ alreadyVerified.contractData?.compilerVersion || 'N/A' }}</Text>
+				</Flex>
+				<Flex align="center" justify="between">
+					<Text size="12" weight="600" color="secondary">Language</Text>
+					<Text size="12" color="primary">{{ alreadyVerified.contractData?.language || 'N/A' }}</Text>
+				</Flex>
+				<Flex align="center" justify="between">
+					<Text size="12" weight="600" color="secondary">Verified At</Text>
+					<Text size="12" color="primary">
+						{{ alreadyVerified.contractData?.verifiedAt ? new Date(alreadyVerified.contractData.verifiedAt).toLocaleString() : 'N/A' }}
+					</Text>
+				</Flex>
+				<Flex align="center" justify="between">
+					<Text size="12" weight="600" color="secondary">Match Type</Text>
+					<Badge :type="alreadyVerified.isFullyVerified ? 'success' : 'warning'">
+						{{ alreadyVerified.isFullyVerified ? 'Full Match' : 'Partial Match' }}
+					</Badge>
+				</Flex>
+			</Flex>
+
+			<Flex align="center" gap="8" :class="$style.warningInfo">
+				<Icon name="info" size="14" color="orange" />
+				<Text size="11" color="tertiary">
+					You can still proceed to verify with different settings if needed, but the contract is already accessible as verified.
+				</Text>
+			</Flex>
+		</Flex>
+
+		<!-- Checking Status -->
+		<Flex
+			v-if="isCheckingVerification"
+			align="center"
+			gap="12"
+			:class="$style.checkingCard"
+		>
+			<div :class="$style.spinner"></div>
+			<Text size="13" weight="600" color="primary">Checking contract verification status...</Text>
+		</Flex>
+
 		<!-- Verification Result -->
 		<Flex v-if="verificationStore.hasVerificationResult" direction="column" gap="20">
 			<!-- Success -->
@@ -178,9 +300,15 @@ const cancelReset = () => {
 						<Icon name="check" size="24" color="white" />
 					</div>
 					<Flex direction="column" gap="4">
-						<Text size="16" weight="600" color="primary">Verification Successful!</Text>
+						<Text size="16" weight="600" color="primary">
+							{{ verificationStore.verificationResult?.alreadyVerified ? 'Contract Already Verified!' : 'Verification Successful!' }}
+						</Text>
 						<Text size="12" color="secondary">
-							Your contract has been successfully verified
+							{{
+								verificationStore.verificationResult?.alreadyVerified
+									? 'This contract was already verified on the blockchain'
+									: 'Your contract has been successfully verified'
+							}}
 						</Text>
 					</Flex>
 				</Flex>
@@ -518,6 +646,34 @@ const cancelReset = () => {
 	padding: 16px;
 	background: rgba(59, 130, 246, 0.05);
 	border: 1px solid rgba(59, 130, 246, 0.3);
+	border-radius: 10px;
+}
+
+.alreadyVerifiedCard {
+	padding: 24px;
+	background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.02) 100%);
+	border: 2px solid rgba(34, 197, 94, 0.3);
+	border-radius: 12px;
+}
+
+.verifiedDetails {
+	padding: 16px;
+	background: var(--card-background);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+}
+
+.warningInfo {
+	padding: 12px;
+	background: rgba(251, 146, 60, 0.05);
+	border: 1px solid rgba(251, 146, 60, 0.2);
+	border-radius: 8px;
+}
+
+.checkingCard {
+	padding: 16px;
+	background: var(--op-3);
+	border: 1px solid var(--border);
 	border-radius: 10px;
 }
 
