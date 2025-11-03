@@ -98,21 +98,44 @@ export const getValidatorInfoBySecp = async (secp) => {
 
 /**
  * Merge GitHub validator data with backend validator data
+ * Priority: github.name → infrastructure.validator_name → Validator #ID → validator_id
  */
 export const mergeValidatorData = (backendValidator, githubData) => {
-  if (!githubData) return backendValidator
-  
+  if (!backendValidator) return null
+
+  // Compute display name with proper fallback priority
+  let displayName
+
+  if (githubData?.name) {
+    // Priority 1: GitHub name
+    displayName = githubData.name
+  } else if (backendValidator.infrastructure?.validator_name &&
+             backendValidator.infrastructure.validator_name !== 'unknown') {
+    // Priority 2: Infrastructure validator name
+    displayName = backendValidator.infrastructure.validator_name
+  } else if (backendValidator.staking?.precompile_validator_id) {
+    // Priority 3: Validator #<precompile_validator_id>
+    displayName = `Validator #${backendValidator.staking.precompile_validator_id}`
+  } else {
+    // Priority 4: Short hex of validator_id
+    const validatorId = backendValidator.validator_id
+    if (validatorId && validatorId.length > 16) {
+      displayName = `${validatorId.slice(0, 8)} ••• ${validatorId.slice(-8)}`
+    } else {
+      displayName = validatorId || 'Unknown'
+    }
+  }
+
   return {
     ...backendValidator,
-    github: githubData,
-    // Prefer GitHub data for display name if available
-    displayName: githubData.name || backendValidator.infrastructure?.validator_name || backendValidator.validator_id,
+    github: githubData || null,
+    displayName,
     // Enhanced logo URL - prefer GitHub logo over keybase
-    logoUrl: githubData.logo || backendValidator.keybase?.logo_url || null,
+    logoUrl: githubData?.logo || backendValidator.keybase?.logo_url || null,
     // Additional GitHub fields
-    description: githubData.description,
-    website: githubData.website,
-    twitter: githubData.x
+    description: githubData?.description || null,
+    website: githubData?.website || null,
+    twitter: githubData?.x || null
   }
 }
 

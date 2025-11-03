@@ -170,21 +170,58 @@ export const isDataStale = (lastUpdate, thresholdSeconds = 10) => {
 
 /**
  * Format validator name with fallback
- * @param {string} validatorName - Validator name from API
- * @param {string} author - Author address as fallback
+ * Priority: github.name → infrastructure.validator_name → Validator #ID → short hex
+ * @param {object|string} validator - Validator object or validator name string
+ * @param {string} fallbackId - Fallback ID (validator_id or author address)
  * @returns {string} Formatted name
  */
-export const formatValidatorName = (validatorName, author) => {
-	if (validatorName && validatorName !== "unknown") {
-		return validatorName
+export const formatValidatorName = (validator, fallbackId) => {
+	// Handle legacy string input (backward compatibility)
+	if (typeof validator === 'string') {
+		const validatorName = validator
+		if (validatorName && validatorName !== "unknown") {
+			return validatorName
+		}
+		// Fallback to shortened ID
+		if (fallbackId && fallbackId.length > 14) {
+			return `${fallbackId.slice(0, 8)}...${fallbackId.slice(-6)}`
+		}
+		return fallbackId || "Unknown"
 	}
 
-	// Shorten author address to first 8 and last 6 characters
-	if (author && author.length > 14) {
-		return `${author.slice(0, 8)}...${author.slice(-6)}`
+	// Handle validator object
+	if (validator && typeof validator === 'object') {
+		// Priority 1: GitHub name
+		if (validator.github?.name) {
+			return validator.github.name
+		}
+
+		// Priority 2: Infrastructure validator name
+		if (validator.infrastructure?.validator_name &&
+		    validator.infrastructure.validator_name !== "unknown") {
+			return validator.infrastructure.validator_name
+		}
+
+		// Priority 3: displayName if already computed
+		if (validator.displayName && validator.displayName !== "unknown") {
+			return validator.displayName
+		}
+
+		// Priority 4: Validator #<precompile_validator_id>
+		if (validator.staking?.precompile_validator_id) {
+			return `Validator #${validator.staking.precompile_validator_id}`
+		}
+
+		// Priority 5: Short hex of validator_id
+		const validatorId = validator.validator_id || fallbackId
+		if (validatorId && validatorId.length > 16) {
+			return `${validatorId.slice(0, 8)} ••• ${validatorId.slice(-8)}`
+		}
+
+		return validatorId || "Unknown"
 	}
 
-	return author || "Unknown"
+	return "Unknown"
 }
 
 /**

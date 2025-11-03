@@ -237,13 +237,35 @@ const validatorLogoUrl = computed(() => {
 
 const validatorInfo = computed(() => {
 	const github = props.validator?.github
-	const validatorName = props.validator?.displayName || props.validator?.infrastructure?.validator_name || 'unknown'
-	
-	// If name is unknown, use precompile_validator_id or fallback to short hex
-	const displayName = validatorName !== 'unknown' 
-		? validatorName 
-		: `Validator #${props.validator?.staking?.precompile_validator_id || shortHex(props.validator?.validator_id || '')}`
-	
+	let displayName
+
+	// Priority 1: Use already computed displayName from mergeValidatorData
+	if (props.validator?.displayName && props.validator.displayName !== 'unknown') {
+		displayName = props.validator.displayName
+	}
+	// Priority 2: GitHub name
+	else if (github?.name) {
+		displayName = github.name
+	}
+	// Priority 3: Infrastructure validator name
+	else if (props.validator?.infrastructure?.validator_name &&
+	         props.validator.infrastructure.validator_name !== 'unknown') {
+		displayName = props.validator.infrastructure.validator_name
+	}
+	// Priority 4: Validator #<precompile_validator_id>
+	else if (props.validator?.staking?.precompile_validator_id) {
+		displayName = `Validator #${props.validator.staking.precompile_validator_id}`
+	}
+	// Priority 5: Short hex of validator_id
+	else {
+		const validatorId = props.validator?.validator_id
+		if (validatorId && validatorId.length > 16) {
+			displayName = `${validatorId.slice(0, 8)} ••• ${validatorId.slice(-8)}`
+		} else {
+			displayName = validatorId || 'Unknown'
+		}
+	}
+
 	return {
 		name: displayName,
 		description: github?.description || null,

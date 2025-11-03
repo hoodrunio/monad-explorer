@@ -87,11 +87,34 @@ watch(
 )
 
 const validatorName = computed(() => {
-	return (
-		validator.value?.infrastructure?.validator_name ||
-		validatorInfrastructure.value?.data?.location?.validatorName ||
-		shortHex(route.params.id)
-	)
+	// Priority 1: Use already computed displayName from mergeValidatorData
+	if (validator.value?.displayName && validator.value.displayName !== 'unknown') {
+		return validator.value.displayName
+	}
+
+	// Priority 2: GitHub name
+	if (validator.value?.github?.name) {
+		return validator.value.github.name
+	}
+
+	// Priority 3: Infrastructure validator name
+	if (validator.value?.infrastructure?.validator_name &&
+	    validator.value.infrastructure.validator_name !== 'unknown') {
+		return validator.value.infrastructure.validator_name
+	}
+
+	// Priority 4: Infrastructure from separate call
+	if (validatorInfrastructure.value?.data?.location?.validatorName) {
+		return validatorInfrastructure.value.data.location.validatorName
+	}
+
+	// Priority 5: Validator #<precompile_validator_id>
+	if (validator.value?.staking?.precompile_validator_id) {
+		return `Validator #${validator.value.staking.precompile_validator_id}`
+	}
+
+	// Priority 6: Short hex of validator_id
+	return shortHex(route.params.id)
 })
 
 
