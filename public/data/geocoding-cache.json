@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-09-15T14:48:28.310Z",
-  "totalLocations": 89,
+  "generatedAt": "2025-11-03T23:00:33.479Z",
+  "totalLocations": 94,
   "source": "nominatim",
   "locations": {
     "Falkenstein, Germany": [
@@ -359,6 +359,26 @@
     "New Orleans, United States": [
       -90.0730259,
       29.9559145
+    ],
+    "Istanbul, Turkey": [
+      28.9758715,
+      41.006381
+    ],
+    "Šiauliai, Lithuania": [
+      23.3157775,
+      55.9340823
+    ],
+    "Vancouver, Canada": [
+      -123.113952,
+      49.2608724
+    ],
+    "Miami, United States": [
+      -80.1935973,
+      25.7741566
+    ],
+    "Leihgestern, Germany": [
+      8.6785724,
+      50.5283664
     ]
   }
 }
