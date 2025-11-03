@@ -109,14 +109,14 @@ const getBadgeType = (rank) => {
 
 				<!-- Validator Info -->
 				<Flex align="center" gap="8" :class="$style.validator_cell">
-					<ValidatorLogo 
+					<ValidatorLogo
 						:identity="validator.validatorId"
-						:name="validator.validatorName"
+						:name="validator.displayName || validator.validatorName"
 						size="small"
 					/>
 					<Flex direction="column" gap="2">
 						<Text size="13" weight="600" color="primary">
-							{{ validator.validatorName || shortHex(validator.validatorId) }}
+							{{ validator.displayName || validator.validatorName || `Validator #${validator.staking?.precompile_validator_id}` || shortHex(validator.validatorId) }}
 						</Text>
 						<Flex align="center" gap="4">
 							<Text size="11" color="tertiary">

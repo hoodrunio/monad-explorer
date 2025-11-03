@@ -168,6 +168,11 @@ const networkLinks = reactive([
 const isToolsLinkCollapsed = ref(false)
 const toolsLinks = reactive([
 	{
+		icon: "shield-check",
+		name: "Verify Contract",
+		path: "/verify-contract",
+	},
+	{
 		icon: "download",
 		name: "Export Data",
 		callback: () => {

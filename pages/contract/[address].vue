@@ -122,6 +122,16 @@ const handleViewRawData = () => {
 				</Flex>
 
 				<Flex align="center" gap="12">
+					<Button
+						v-if="!isVerified"
+						:link="`/verify-contract?address=${route.params.address}`"
+						type="primary"
+						size="mini"
+					>
+						<Icon name="shield-check" size="12" color="primary" />
+						Verify Contract
+					</Button>
+
 					<Button @click="handleEnrichContract" type="secondary" size="mini" :disabled="isEnriching">
 						<Icon name="refresh" size="12" color="primary" />
 						{{ isEnriching ? 'Enriching...' : 'Enrich' }}
@@ -139,8 +149,53 @@ const handleViewRawData = () => {
 									View Raw Data
 								</Flex>
 							</DropdownItem>
+							<DropdownItem :link="`/verify-contract?address=${route.params.address}`">
+								<Flex align="center" gap="8">
+									<Icon name="shield-check" size="12" color="secondary" />
+									Verify Contract
+								</Flex>
+							</DropdownItem>
 						</template>
 					</Dropdown>
+				</Flex>
+			</Flex>
+
+			<!-- Verification CTA (for unverified contracts) -->
+			<Flex v-if="!isVerified" direction="column" gap="12" :class="$style.verifyCta">
+				<Flex align="center" gap="12">
+					<div :class="$style.verifyIcon">
+						<Icon name="shield-check" size="24" color="white" />
+					</div>
+					<Flex direction="column" gap="4">
+						<Text size="14" weight="600" color="primary">Contract Not Verified</Text>
+						<Text size="12" color="tertiary">
+							Verify your contract to enable source code viewing and improve transparency
+						</Text>
+					</Flex>
+				</Flex>
+				<Button
+					:link="`/verify-contract?address=${route.params.address}`"
+					type="primary"
+					size="medium"
+					wide
+				>
+					<Icon name="shield-check" size="14" color="primary" />
+					Verify This Contract
+				</Button>
+			</Flex>
+
+			<!-- Verified Success Banner -->
+			<Flex v-else direction="column" gap="12" :class="$style.verifiedBanner">
+				<Flex align="center" gap="12">
+					<div :class="$style.verifiedIcon">
+						<Icon name="check" size="20" color="white" />
+					</div>
+					<Flex direction="column" gap="4">
+						<Text size="14" weight="600" color="primary">Contract Verified</Text>
+						<Text size="12" color="tertiary">
+							This contract's source code has been verified and is publicly available
+						</Text>
+					</Flex>
 				</Flex>
 			</Flex>
 
@@ -293,5 +348,67 @@ const handleViewRawData = () => {
 
 .empty {
 	min-height: 300px;
+}
+
+.verifyCta {
+	padding: 24px;
+	background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
+	border: 2px solid rgba(59, 130, 246, 0.3);
+	border-radius: 12px;
+	position: relative;
+	overflow: hidden;
+}
+
+.verifyCta::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--brand), var(--blue));
+}
+
+.verifyIcon {
+	width: 48px;
+	height: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--brand);
+	border-radius: 12px;
+	flex-shrink: 0;
+	box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.verifiedBanner {
+	padding: 20px 24px;
+	background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+	border: 2px solid rgba(34, 197, 94, 0.3);
+	border-radius: 12px;
+	position: relative;
+	overflow: hidden;
+}
+
+.verifiedBanner::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--green), #10b981);
+}
+
+.verifiedIcon {
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--green);
+	border-radius: 50%;
+	flex-shrink: 0;
+	box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 </style>

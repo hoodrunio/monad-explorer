@@ -11,7 +11,7 @@ import { Redis } from '@upstash/redis'
 
 const GITHUB_API_BASE = 'https://api.github.com'
 const VALIDATOR_INFO_REPO = 'monad-developers/validator-info'
-const TESTNET_FOLDER = 'testnet-2'
+const TESTNET_FOLDER = 'testnet'
 
 // Redis keys for persistent caching
 const REDIS_KEYS = {

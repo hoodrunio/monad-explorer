@@ -80,12 +80,13 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		// Private keys (only available on server-side)
 		githubToken: process.env.GITHUB_TOKEN || '',
-
+		blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
 		// Public keys (exposed to client-side)
 		public: {
 			AMP: process.env.AMP,
 			SENTRY_DSN: process.env.SENTRY_DSN,
 			WALLET_CONNECT_PROJECT_ID: process.env.WALLET_CONNECT_PROJECT_ID || '',
+			blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
 			version: "1.16.0",
 		},
 	},

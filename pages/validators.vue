@@ -121,10 +121,31 @@ const getValidators = async () => {
 			const validatorsList = data.value.data.map(v => {
 				const totalBlockOpportunities = v.details?.total_block_opportunities || 0
 				const blockProposalRatio = v.metrics?.block_proposal_ratio || 0
-				
+
 				// Prefer GitHub name/logo when available
 				const githubData = githubMap instanceof Map ? githubMap.get(v.validator_id) : null
-				const preferredName = githubData?.name || v.infrastructure?.validator_name || 'unknown'
+
+				// Compute display name with proper fallback priority
+				let preferredName
+				if (githubData?.name) {
+					// Priority 1: GitHub name
+					preferredName = githubData.name
+				} else if (v.infrastructure?.validator_name && v.infrastructure.validator_name !== 'unknown') {
+					// Priority 2: Infrastructure validator name
+					preferredName = v.infrastructure.validator_name
+				} else if (v.staking?.precompile_validator_id) {
+					// Priority 3: Validator #<precompile_validator_id>
+					preferredName = `Validator #${v.staking.precompile_validator_id}`
+				} else {
+					// Priority 4: Short hex of validator_id
+					const validatorId = v.validator_id
+					if (validatorId && validatorId.length > 16) {
+						preferredName = `${validatorId.slice(0, 8)} ••• ${validatorId.slice(-8)}`
+					} else {
+						preferredName = validatorId || 'Unknown'
+					}
+				}
+
 				const preferredLogo = githubData?.logo || v.keybase?.logo_url || v.logoUrl || null
 				
 				// Use block proposal ratio as uptime score; if no opportunities, show null
