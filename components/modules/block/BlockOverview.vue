@@ -217,10 +217,18 @@ const getTransactions = async (params = null) => {
 		transactions.value = txs.map(tx => ({
 			...tx,
 			// Map EVM fields to expected format
+			hash: tx.hash,
 			status: tx.status === "ok" ? "success" : "failed",
+			// Extract addresses from nested objects - map to expected field names
+			from: tx.from?.hash || tx.from,
+			to: tx.to?.hash || tx.to,
+			fromAddress: tx.from?.hash || tx.from,
+			toAddress: tx.to?.hash || tx.to,
+			value: tx.value,
 			gas_used: tx.gas_used,
 			gas_wanted: tx.gas_limit || tx.gas_used,
 			fee: tx.fee?.value || "0",
+			method: tx.method,
 			// For EVM, derive message types from transaction data
 			message_types: tx.method ? [tx.method] : ["Transfer"],
 		}))
