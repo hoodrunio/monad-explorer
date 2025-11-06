@@ -1,28 +1,12 @@
 /**
- * Contracts List API Endpoint
+ * Smart Contracts List API Endpoint
  * GET /api/contracts
- * 
- * List up to 100 contracts with optional filters.
+ *
+ * List verified smart contracts with cursor-based pagination.
+ * Migrated to new Indexer API.
  */
 
-import { useExplorerURL } from "@/services/config"
-
-/**
- * Validate Ethereum address format
- */
-function isValidAddress(address) {
-	if (!address || typeof address !== 'string') return false
-	return /^0x[a-fA-F0-9]{40}$/i.test(address)
-}
-
-/**
- * Validate date string (ISO-8601)
- */
-function isValidDate(dateString) {
-	if (!dateString) return false
-	const date = new Date(dateString)
-	return !isNaN(date.getTime())
-}
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Create standardized API response
@@ -56,111 +40,70 @@ export default defineEventHandler(async (event) => {
 			})
 		}
 
-		// Parse query parameters
+		// Parse query parameters for new API
 		const query = getQuery(event)
-		
-		// Boolean parameters
-		const isVerified = query.isVerified === 'true' ? true : (query.isVerified === 'false' ? false : null)
-		const hasSourceCode = query.hasSourceCode === 'true' ? true : (query.hasSourceCode === 'false' ? false : null)
-		
-		// Date parameters
-		const createdAfter = query.createdAfter
-		const createdBefore = query.createdBefore
-		
-		// Address parameter
-		const creator = query.creator
-		
-		// Ordering parameters
-		const orderBy = query.orderBy || 'createdAt'
-		const orderDirection = query.orderDirection || 'desc'
 
-		// Validate date parameters
-		if (createdAfter && !isValidDate(createdAfter)) {
+		// New API parameters
+		const q = query.q || query.search // Search query
+		const filter = query.filter // Language filter: vyper | solidity | yul
+		const items_count = query.items_count ? parseInt(query.items_count) : 50
+		const smart_contract_id = query.smart_contract_id ? parseInt(query.smart_contract_id) : null
+
+		// Validate items_count
+		if (isNaN(items_count) || items_count < 1 || items_count > 100) {
 			return createApiResponse(
 				false,
-				'Invalid createdAfter date format',
+				'Invalid items_count parameter',
 				null,
 				{},
 				{
-					code: 'INVALID_DATE_FORMAT',
-					message: 'createdAfter must be a valid ISO-8601 date string',
+					code: 'INVALID_ITEMS_COUNT',
+					message: 'items_count must be between 1 and 100',
 					statusCode: 400
 				}
 			)
 		}
 
-		if (createdBefore && !isValidDate(createdBefore)) {
+		// Validate filter if provided
+		const validFilters = ['vyper', 'solidity', 'yul']
+		if (filter && !validFilters.includes(filter.toLowerCase())) {
 			return createApiResponse(
 				false,
-				'Invalid createdBefore date format',
+				'Invalid filter parameter',
 				null,
 				{},
 				{
-					code: 'INVALID_DATE_FORMAT',
-					message: 'createdBefore must be a valid ISO-8601 date string',
+					code: 'INVALID_FILTER',
+					message: `filter must be one of: ${validFilters.join(', ')}`,
 					statusCode: 400
 				}
 			)
 		}
 
-		// Validate creator address
-		if (creator && !isValidAddress(creator)) {
+		// Validate smart_contract_id if provided
+		if (smart_contract_id !== null && (isNaN(smart_contract_id) || smart_contract_id < 1)) {
 			return createApiResponse(
 				false,
-				'Invalid creator address format',
+				'Invalid smart_contract_id parameter',
 				null,
 				{},
 				{
-					code: 'INVALID_CREATOR_ADDRESS',
-					message: 'Creator must be a valid Ethereum address (0x + 40 hex characters)',
+					code: 'INVALID_CURSOR',
+					message: 'smart_contract_id must be a positive integer',
 					statusCode: 400
 				}
 			)
 		}
 
-		// Validate ordering parameters
-		const validOrderBy = ['createdAt', 'address', 'creator', 'isVerified']
-		if (!validOrderBy.includes(orderBy)) {
-			return createApiResponse(
-				false,
-				'Invalid orderBy parameter',
-				null,
-				{},
-				{
-					code: 'INVALID_ORDER_BY',
-					message: `orderBy must be one of: ${validOrderBy.join(', ')}`,
-					statusCode: 400
-				}
-			)
-		}
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/smart-contracts`)
 
-		const validOrderDirection = ['asc', 'desc']
-		if (!validOrderDirection.includes(orderDirection)) {
-			return createApiResponse(
-				false,
-				'Invalid orderDirection parameter',
-				null,
-				{},
-				{
-					code: 'INVALID_ORDER_DIRECTION',
-					message: 'orderDirection must be either "asc" or "desc"',
-					statusCode: 400
-				}
-			)
-		}
-
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/contracts`)
-		
 		// Add query parameters
-		if (isVerified !== null) apiUrl.searchParams.append('isVerified', isVerified.toString())
-		if (hasSourceCode !== null) apiUrl.searchParams.append('hasSourceCode', hasSourceCode.toString())
-		if (createdAfter) apiUrl.searchParams.append('createdAfter', createdAfter)
-		if (createdBefore) apiUrl.searchParams.append('createdBefore', createdBefore)
-		if (creator) apiUrl.searchParams.append('creator', creator)
-		apiUrl.searchParams.append('orderBy', orderBy)
-		apiUrl.searchParams.append('orderDirection', orderDirection)
+		apiUrl.searchParams.append('items_count', items_count.toString())
+		if (q) apiUrl.searchParams.append('q', q)
+		if (filter) apiUrl.searchParams.append('filter', filter.toLowerCase())
+		if (smart_contract_id) apiUrl.searchParams.append('smart_contract_id', smart_contract_id.toString())
 
 		// Make request to external API
 		const response = await $fetch(apiUrl.href, {
@@ -177,10 +120,11 @@ export default defineEventHandler(async (event) => {
 		setResponseHeader(event, 'Content-Type', 'application/json')
 
 		// Return the response from the external API
+		// New API returns: { items: [...], next_page_params: {...} }
 		return response
 
 	} catch (error) {
-		console.error('Contracts list API error:', error)
+		console.error('Smart contracts list API error:', error)
 
 		// Handle different error types
 		if (error.statusCode === 429) {
@@ -202,13 +146,14 @@ export default defineEventHandler(async (event) => {
 		setResponseStatus(event, 500)
 		return createApiResponse(
 			false,
-			'Failed to fetch contracts list',
+			'Failed to fetch smart contracts list',
 			null,
 			{},
 			{
 				code: 'INTERNAL_SERVER_ERROR',
-				message: 'An internal server error occurred while fetching contracts list',
-				statusCode: 500
+				message: 'An internal server error occurred while fetching smart contracts list',
+				statusCode: 500,
+				details: process.env.NODE_ENV === 'development' ? error.message : undefined
 			}
 		)
 	}

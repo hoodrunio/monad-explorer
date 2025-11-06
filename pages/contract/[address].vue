@@ -9,7 +9,7 @@ import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import { splitAddress, comma } from "@/services/utils"
 
 /** API */
-import { fetchContract, enrichContract } from "@/services/api/contract"
+import { fetchContract } from "@/services/api/contract"
 
 const route = useRoute()
 const router = useRouter()
@@ -28,8 +28,8 @@ if (!isValidAddress(route.params.address)) {
 	})
 }
 
-// Fetch contract data
-const { data: contractData, pending, error, refresh } = await fetchContract(route.params.address, { includeMetadata: true })
+// Fetch contract data (new API includes all data automatically)
+const { data: contractData, pending, error, refresh } = await fetchContract(route.params.address)
 
 // Handle error states
 if (error.value) {
@@ -38,9 +38,6 @@ if (error.value) {
 		statusMessage: error.value.statusMessage || 'Contract not found'
 	})
 }
-
-// Reactive state
-const isEnriching = ref(false)
 
 // SEO
 useHead({
@@ -71,29 +68,22 @@ useHead({
 	],
 })
 
-// Computed properties
-const contract = computed(() => contractData.value?.data)
-const metadata = computed(() => contract.value?.metadata)
+// Computed properties - Updated for new API structure
+const contract = computed(() => contractData.value)
 
-const contractType = computed(() => metadata.value?.contractType || 'Unknown')
-const isToken = computed(() => metadata.value?.isToken || false)
-const isProxied = computed(() => metadata.value?.isProxied || false)
+// New API provides these fields directly
+const contractLanguage = computed(() => contract.value?.language || 'Unknown')
+const isToken = computed(() => {
+	// Check if ABI has token methods
+	const abi = contract.value?.abi
+	if (!abi) return false
+	const abiString = typeof abi === 'string' ? abi : JSON.stringify(abi)
+	return abiString.includes('transfer') && abiString.includes('balanceOf')
+})
+const isProxied = computed(() => !!(contract.value?.minimalProxyAddress))
 const isVerified = computed(() => contract.value?.isVerified || false)
-
-// Handle contract enrichment
-const handleEnrichContract = async () => {
-	isEnriching.value = true
-	try {
-		await enrichContract(route.params.address, { priority: 5 })
-		// Refresh data after a delay to allow processing
-		setTimeout(() => {
-			refresh()
-		}, 2000)
-	} catch (error) {
-		console.error('Failed to enrich contract:', error)
-	}
-	isEnriching.value = false
-}
+const isFullyVerified = computed(() => contract.value?.isFullyVerified || false)
+const creationStatus = computed(() => contract.value?.creationStatus || 'unknown')
 
 // Copy address to clipboard
 const copyAddress = () => {
@@ -109,7 +99,7 @@ const handleViewRawData = () => {
 <template>
 	<Flex direction="column" gap="4">
 		<Skeleton v-if="pending" />
-		
+
 		<template v-else-if="contractData">
 			<!-- Header -->
 			<Flex align="center" justify="between" :class="$style.header">
@@ -132,11 +122,6 @@ const handleViewRawData = () => {
 						Verify Contract
 					</Button>
 
-					<Button @click="handleEnrichContract" type="secondary" size="mini" :disabled="isEnriching">
-						<Icon name="refresh" size="12" color="primary" />
-						{{ isEnriching ? 'Enriching...' : 'Enrich' }}
-					</Button>
-
 					<Dropdown>
 						<Button type="secondary" size="mini">
 							<Icon name="dots" size="16" color="primary" />
@@ -147,6 +132,12 @@ const handleViewRawData = () => {
 								<Flex align="center" gap="8">
 									<Icon name="code" size="12" color="secondary" />
 									View Raw Data
+								</Flex>
+							</DropdownItem>
+							<DropdownItem @click="refresh">
+								<Flex align="center" gap="8">
+									<Icon name="refresh" size="12" color="secondary" />
+									Refresh
 								</Flex>
 							</DropdownItem>
 							<DropdownItem :link="`/verify-contract?address=${route.params.address}`">
@@ -191,7 +182,11 @@ const handleViewRawData = () => {
 						<Icon name="check" size="20" color="white" />
 					</div>
 					<Flex direction="column" gap="4">
-						<Text size="14" weight="600" color="primary">Contract Verified</Text>
+						<Flex align="center" gap="8">
+							<Text size="14" weight="600" color="primary">Contract Verified</Text>
+							<Badge v-if="isFullyVerified" type="green">Fully Verified</Badge>
+							<Badge v-else-if="contract?.isPartiallyVerified" type="orange">Partially Verified</Badge>
+						</Flex>
 						<Text size="12" color="tertiary">
 							This contract's source code has been verified and is publicly available
 						</Text>
@@ -204,18 +199,18 @@ const handleViewRawData = () => {
 				<!-- Basic Info -->
 				<Flex direction="column" gap="16" :class="$style.card">
 					<Text size="12" weight="600" color="primary">Contract Information</Text>
-					
+
 					<Flex direction="column" gap="12">
 						<Flex align="center" justify="between">
-							<Text size="11" color="tertiary">Type</Text>
-							<Badge :type="contractType === 'Token' ? 'green' : contractType === 'Proxy' ? 'orange' : 'gray'">
-								{{ contractType }}
+							<Text size="11" color="tertiary">Language</Text>
+							<Badge :type="contractLanguage === 'solidity' ? 'blue' : contractLanguage === 'vyper' ? 'purple' : 'gray'">
+								{{ contractLanguage }}
 							</Badge>
 						</Flex>
 
 						<Flex align="center" justify="between" v-if="isToken">
-							<Text size="11" color="tertiary">Token Type</Text>
-							<Badge type="blue">{{ metadata?.tokenType || 'Unknown' }}</Badge>
+							<Text size="11" color="tertiary">Type</Text>
+							<Badge type="green">Token Contract</Badge>
 						</Flex>
 
 						<Flex align="center" justify="between">
@@ -225,16 +220,23 @@ const handleViewRawData = () => {
 							</Badge>
 						</Flex>
 
+						<Flex align="center" justify="between" v-if="contract?.verifiedAt">
+							<Text size="11" color="tertiary">Verified At</Text>
+							<Text size="11" color="secondary">
+								{{ new Date(contract.verifiedAt).toLocaleDateString() }}
+							</Text>
+						</Flex>
+
 						<Flex align="center" justify="between" v-if="isProxied">
 							<Text size="11" color="tertiary">Proxy</Text>
 							<Badge type="orange">Proxied</Badge>
 						</Flex>
 
-						<Flex align="center" justify="between" v-if="metadata?.implementationAddress">
+						<Flex align="center" justify="between" v-if="contract?.minimalProxyAddress">
 							<Text size="11" color="tertiary">Implementation</Text>
 							<Flex align="center" gap="4">
-								<Text size="11" color="secondary">{{ splitAddress(metadata.implementationAddress) }}</Text>
-								<CopyButton :text="metadata.implementationAddress" size="10" />
+								<Text size="11" color="secondary">{{ splitAddress(contract.minimalProxyAddress) }}</Text>
+								<CopyButton :text="contract.minimalProxyAddress" size="10" />
 							</Flex>
 						</Flex>
 					</Flex>
@@ -243,61 +245,75 @@ const handleViewRawData = () => {
 				<!-- Contract Status -->
 				<Flex direction="column" gap="16" :class="$style.card">
 					<Text size="12" weight="600" color="primary">Contract Status</Text>
-					
+
 					<Flex direction="column" gap="12">
 						<Flex align="center" justify="between">
-							<Text size="11" color="tertiary">Exists</Text>
-							<Badge :type="metadata?.contractExists ? 'green' : 'red'">
-								{{ metadata?.contractExists ? 'Yes' : 'No' }}
+							<Text size="11" color="tertiary">Creation Status</Text>
+							<Badge :type="creationStatus === 'success' ? 'green' : creationStatus === 'failed' ? 'red' : 'gray'">
+								{{ creationStatus }}
 							</Badge>
 						</Flex>
 
-						<Flex align="center" justify="between">
+						<Flex align="center" justify="between" v-if="contract?.deployedBytecode">
 							<Text size="11" color="tertiary">Has Bytecode</Text>
-							<Badge :type="metadata?.runtimeBytecode ? 'green' : 'red'">
-								{{ metadata?.runtimeBytecode ? 'Yes' : 'No' }}
-							</Badge>
+							<Badge type="green">Yes</Badge>
+						</Flex>
+
+						<Flex align="center" justify="between" v-if="contract?.isChangedBytecode">
+							<Text size="11" color="tertiary">Bytecode Changed</Text>
+							<Badge type="orange">Yes</Badge>
 						</Flex>
 					</Flex>
 				</Flex>
 
-				<!-- Creation Info -->
-				<Flex direction="column" gap="16" :class="$style.card" v-if="contract">
-					<Text size="12" weight="600" color="primary">Creation Details</Text>
-					
+				<!-- Compilation Info -->
+				<Flex direction="column" gap="16" :class="$style.card" v-if="contract?.compilerVersion">
+					<Text size="12" weight="600" color="primary">Compilation Details</Text>
+
 					<Flex direction="column" gap="12">
-						<Flex align="center" justify="between" v-if="contract.createdAt">
-							<Text size="11" color="tertiary">Created At</Text>
-							<Text size="11" color="secondary">
-								{{ new Date(contract.createdAt).toLocaleDateString() }}
+						<Flex align="center" justify="between">
+							<Text size="11" color="tertiary">Compiler</Text>
+							<Text size="11" color="secondary" family="mono">
+								{{ contract.compilerVersion }}
 							</Text>
 						</Flex>
 
-						<Flex align="center" justify="between" v-if="contract.creator">
-							<Text size="11" color="tertiary">Creator</Text>
-							<Flex align="center" gap="4">
-								<Text size="11" color="secondary">{{ splitAddress(contract.creator) }}</Text>
-								<CopyButton :text="contract.creator" size="10" />
-							</Flex>
+						<Flex align="center" justify="between" v-if="contract?.evmVersion">
+							<Text size="11" color="tertiary">EVM Version</Text>
+							<Text size="11" color="secondary">{{ contract.evmVersion }}</Text>
 						</Flex>
 
-						<Flex align="center" justify="between" v-if="contract.creationTransaction">
-							<Text size="11" color="tertiary">Creation Tx</Text>
-							<Flex align="center" gap="4">
-								<Text size="11" color="secondary">{{ splitAddress(contract.creationTransaction) }}</Text>
-								<CopyButton :text="contract.creationTransaction" size="10" />
-							</Flex>
+						<Flex align="center" justify="between">
+							<Text size="11" color="tertiary">Optimization</Text>
+							<Badge :type="contract?.optimizationEnabled ? 'green' : 'gray'">
+								{{ contract?.optimizationEnabled ? 'Enabled' : 'Disabled' }}
+							</Badge>
+						</Flex>
+
+						<Flex align="center" justify="between" v-if="contract?.optimizationsRuns">
+							<Text size="11" color="tertiary">Runs</Text>
+							<Text size="11" color="secondary">{{ contract.optimizationsRuns }}</Text>
 						</Flex>
 					</Flex>
 				</Flex>
 			</Flex>
 
+			<!-- Source Code Section -->
+			<Flex direction="column" gap="16" :class="$style.card" v-if="contract?.sourceCode && isVerified">
+				<Text size="12" weight="600" color="primary">Source Code</Text>
+				<Flex :class="$style.code">
+					<Text size="10" color="tertiary" family="mono">
+						{{ contract.sourceCode.substring(0, 500) }}{{ contract.sourceCode.length > 500 ? '...' : '' }}
+					</Text>
+				</Flex>
+			</Flex>
+
 			<!-- Bytecode Section -->
-			<Flex direction="column" gap="16" :class="$style.card" v-if="metadata?.runtimeBytecode">
-				<Text size="12" weight="600" color="primary">Runtime Bytecode</Text>
+			<Flex direction="column" gap="16" :class="$style.card" v-if="contract?.deployedBytecode">
+				<Text size="12" weight="600" color="primary">Deployed Bytecode</Text>
 				<Flex :class="$style.bytecode">
 					<Text size="10" color="tertiary" family="mono">
-						{{ metadata.runtimeBytecode.substring(0, 200) }}...
+						{{ contract.deployedBytecode.substring(0, 200) }}...
 					</Text>
 				</Flex>
 			</Flex>
@@ -336,13 +352,14 @@ const handleViewRawData = () => {
 	border: 1px solid var(--border);
 }
 
+.code,
 .bytecode {
 	padding: 12px;
 	border-radius: 6px;
 	background: var(--code-background);
 	border: 1px solid var(--border);
 	word-break: break-all;
-	max-height: 200px;
+	max-height: 300px;
 	overflow-y: auto;
 }
 

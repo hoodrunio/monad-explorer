@@ -231,6 +231,78 @@ export const transformLog = (log) => {
 }
 
 /**
+ * Transform smart contract response from new API
+ * @param {object} contract - Contract data from API
+ * @returns {object} Transformed contract
+ */
+export const transformContract = (contract) => {
+	if (!contract) return null
+
+	return {
+		// Keep all original fields
+		...contract,
+
+		// Map snake_case to camelCase for component compatibility
+		address: contract.address_hash?.toLowerCase() || contract.address?.toLowerCase(),
+		addressHash: contract.address_hash?.toLowerCase(),
+
+		// Verification status
+		isVerified: contract.is_verified || false,
+		isFullyVerified: contract.is_fully_verified || false,
+		isPartiallyVerified: contract.is_partially_verified || false,
+		isChangedBytecode: contract.is_changed_bytecode || false,
+		verifiedAt: contract.verified_at,
+
+		// Verification sources
+		isVerifiedViaSourceify: contract.is_verified_via_sourcify || false,
+		isVerifiedViaEthBytecodeDb: contract.is_verified_via_eth_bytecode_db || false,
+		sourcifyRepoUrl: contract.sourcify_repo_url,
+
+		// Contract information
+		name: contract.name,
+		language: contract.language, // solidity | vyper | yul
+		compilerVersion: contract.compiler_version,
+		evmVersion: contract.evm_version,
+
+		// Optimization
+		optimizationEnabled: contract.optimization_enabled || false,
+		optimizationsRuns: parseNumericString(contract.optimizations_runs),
+
+		// Code
+		abi: contract.abi,
+		sourceCode: contract.source_code,
+		filePath: contract.file_path,
+		constructorArgs: contract.constructor_args,
+		decodedConstructorArgs: contract.decoded_constructor_args || [],
+		additionalSources: contract.additional_sources || [],
+
+		// Bytecode
+		deployedBytecode: contract.deployed_bytecode,
+		creationBytecode: contract.creation_bytecode,
+
+		// Compiler settings
+		compilerSettings: contract.compiler_settings,
+		externalLibraries: contract.external_libraries || [],
+
+		// Proxy information
+		minimalProxyAddress: contract.minimal_proxy_address_hash,
+		verifiedTwinAddress: contract.verified_twin_address_hash,
+
+		// Creation status
+		creationStatus: contract.creation_status, // success | failed | selfdestructed
+
+		// Additional features
+		canBeVisualizedViaSol2uml: contract.can_be_visualized_via_sol2uml || false,
+
+		// List-specific fields (for SmartContractForList schema)
+		coinBalance: contract.coin_balance,
+		hasConstructorArgs: contract.has_constructor_args,
+		transactionsCount: parseNumericString(contract.transactions_count),
+		marketCap: parseNumericString(contract.market_cap),
+	}
+}
+
+/**
  * Safely handle null/undefined values in API responses
  * @param {any} value - Value to check
  * @param {any} defaultValue - Default value if null/undefined

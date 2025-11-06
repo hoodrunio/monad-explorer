@@ -1,11 +1,12 @@
 /**
- * Contract Information API Endpoint
+ * Smart Contract Information API Endpoint
  * GET /api/contracts/:address
- * 
- * Fetch contract information with optional metadata and bytecode retrieval.
+ *
+ * Fetch smart contract information.
+ * Migrated to new Indexer API.
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
 
 		// Get address from route params
 		const address = getRouterParam(event, 'address')
-		
+
 		if (!isValidAddress(address)) {
 			return createApiResponse(
 				false,
@@ -64,36 +65,15 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Parse query parameters
-		const query = getQuery(event)
-		const includeMetadata = query.includeMetadata !== 'false' // Default true
-		const includeBytecode = query.includeBytecode === 'true' // Default false
-		const blockNumber = query.blockNumber ? parseInt(query.blockNumber) : null
+		// Normalize address to lowercase (required by new API)
+		const normalizedAddress = address.toLowerCase()
 
-		// Validate block number if provided
-		if (blockNumber !== null && (isNaN(blockNumber) || blockNumber < 0)) {
-			return createApiResponse(
-				false,
-				'Invalid block number',
-				null,
-				{},
-				{
-					code: 'INVALID_BLOCK_NUMBER',
-					message: 'Block number must be a non-negative integer',
-					statusCode: 400
-				}
-			)
-		}
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/smart-contracts/${normalizedAddress}`)
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/contracts/${address}`)
-		
-		apiUrl.searchParams.append('includeMetadata', includeMetadata.toString())
-		apiUrl.searchParams.append('includeBytecode', includeBytecode.toString())
-		if (blockNumber !== null) {
-			apiUrl.searchParams.append('blockNumber', blockNumber.toString())
-		}
+		// Note: New API automatically includes all data (metadata, bytecode, etc.)
+		// No need for includeMetadata or includeBytecode parameters
 
 		// Make request to external API
 		const response = await $fetch(apiUrl.href, {
@@ -104,28 +84,28 @@ export default defineEventHandler(async (event) => {
 		})
 
 		// Set response headers for caching
-		// Contract info can be cached longer for historical blocks
-		const cacheTime = blockNumber ? 3600 : 300 // 1 hour for historical, 5 min for latest
+		// Contract info can be cached longer as it doesn't change often
 		setResponseStatus(event, 200)
-		setResponseHeader(event, 'Cache-Control', `public, s-maxage=${cacheTime}, stale-while-revalidate=600`)
+		setResponseHeader(event, 'Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200')
 		setResponseHeader(event, 'Content-Type', 'application/json')
 
 		// Return the response from the external API
 		return response
 
 	} catch (error) {
-		console.error('Contract API error:', error)
+		console.error('Smart contract API error:', error)
 
 		// Handle different error types
 		if (error.statusCode === 404) {
+			setResponseStatus(event, 404)
 			return createApiResponse(
 				false,
-				'Address is not a contract',
+				'Contract not found',
 				null,
 				{},
 				{
-					code: 'NOT_A_CONTRACT',
-					message: 'The specified address is not a contract',
+					code: 'CONTRACT_NOT_FOUND',
+					message: 'The specified address is not a verified smart contract',
 					statusCode: 404
 				}
 			)
@@ -150,13 +130,14 @@ export default defineEventHandler(async (event) => {
 		setResponseStatus(event, 500)
 		return createApiResponse(
 			false,
-			'Failed to fetch contract information',
+			'Failed to fetch smart contract information',
 			null,
 			{},
 			{
 				code: 'INTERNAL_SERVER_ERROR',
-				message: 'An internal server error occurred while fetching contract information',
-				statusCode: 500
+				message: 'An internal server error occurred while fetching smart contract information',
+				statusCode: 500,
+				details: process.env.NODE_ENV === 'development' ? error.message : undefined
 			}
 		)
 	}

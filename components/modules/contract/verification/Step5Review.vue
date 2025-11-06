@@ -360,7 +360,12 @@ watch(() => verificationStore.contractAddress, async (newAddress) => {
 
 				<!-- Actions -->
 				<Flex align="center" gap="12">
-					<Button type="primary" size="medium" wide>
+					<Button
+						type="primary"
+						size="medium"
+						wide
+						:link="`/contract/${verificationStore.contractAddress}`"
+					>
 						<Icon name="eye" size="14" color="primary" />
 						View Contract
 					</Button>

@@ -1,5 +1,6 @@
-/** Contract API Services */
-import { useExplorerURL } from "@/services/config"
+/** Contract API Services - Migrated to Indexer API */
+import { useIndexerUrl } from "@/services/config"
+import { transformContract } from "@/services/utils/transforms"
 
 /**
  * Validate Ethereum address format
@@ -12,30 +13,27 @@ const isValidAddress = (address) => {
 }
 
 /**
- * Get contract information
+ * Get smart contract information
  * @param {string} address - Contract address
- * @param {Object} options - Query options
  * @returns {Promise} - API response
  */
-export const fetchContract = (address, {
-	includeMetadata = true,
-	includeBytecode = false,
-	blockNumber = null
-} = {}) => {
+export const fetchContract = (address) => {
 	const normalizedAddress = address?.toLowerCase()
 	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid contract address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts/${normalizedAddress}`)
-
-		if (includeMetadata !== undefined) url.searchParams.append("includeMetadata", includeMetadata.toString())
-		if (includeBytecode !== undefined) url.searchParams.append("includeBytecode", includeBytecode.toString())
-		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
+		const url = new URL(`${useIndexerUrl()}/smart-contracts/${normalizedAddress}`)
 
 		return useFetch(url.href, {
-			key: `contract-${address}-${includeMetadata}-${includeBytecode}-${blockNumber || 'latest'}`,
+			key: `contract-${normalizedAddress}`,
+			transform: (response) => {
+				if (response) {
+					return transformContract(response)
+				}
+				return response
+			}
 		})
 	} catch (error) {
 		console.error('Failed to fetch contract:', error)
@@ -44,127 +42,89 @@ export const fetchContract = (address, {
 }
 
 /**
- * Get contract metadata only
+ * Get smart contract information (client-side version)
  * @param {string} address - Contract address
- * @param {Object} options - Query options
  * @returns {Promise} - API response
  */
-export const fetchContractMetadata = (address, {
-	blockNumber = null,
-	includeAnalysis = true
-} = {}) => {
-	if (!isValidAddress(address)) {
+export const fetchContractClient = async (address) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid contract address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts/${address}/metadata`)
+		const url = new URL(`${useIndexerUrl()}/smart-contracts/${normalizedAddress}`)
 
-		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
-		if (includeAnalysis !== undefined) url.searchParams.append("includeAnalysis", includeAnalysis.toString())
-
-		return useFetch(url.href, {
-			key: `contract-metadata-${address}-${blockNumber || 'latest'}-${includeAnalysis}`,
-		})
+		const response = await $fetch(url.href)
+		return transformContract(response)
 	} catch (error) {
-		console.error('Failed to fetch contract metadata:', error)
+		console.error('Failed to fetch contract:', error)
 		throw error
 	}
 }
 
 /**
- * List contracts with filters
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * List smart contracts with filters
+ * @param {Object} params - Query params
+ * @param {string} params.q - Search query
+ * @param {string} params.filter - Filter by language: vyper | solidity | yul
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {number} params.smart_contract_id - Cursor for pagination
+ * @returns {Promise} - API response with cursor pagination
  */
-export const fetchContracts = ({
-	isVerified = null,
-	hasSourceCode = null,
-	createdAfter = null,
-	createdBefore = null,
-	creator = null,
-	orderBy = 'createdAt',
-	orderDirection = 'desc'
-} = {}) => {
+export const fetchSmartContracts = (params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts`)
+		const { q, filter, items_count = 50, smart_contract_id } = params
+		const url = new URL(`${useIndexerUrl()}/smart-contracts`)
 
-		if (isVerified !== null) url.searchParams.append("isVerified", isVerified.toString())
-		if (hasSourceCode !== null) url.searchParams.append("hasSourceCode", hasSourceCode.toString())
-		if (createdAfter) url.searchParams.append("createdAfter", createdAfter)
-		if (createdBefore) url.searchParams.append("createdBefore", createdBefore)
-		if (creator && isValidAddress(creator)) url.searchParams.append("creator", creator)
-		if (orderBy) url.searchParams.append("orderBy", orderBy)
-		if (orderDirection) url.searchParams.append("orderDirection", orderDirection)
+		url.searchParams.append("items_count", items_count)
+		if (q) url.searchParams.append("q", q)
+		if (filter) url.searchParams.append("filter", filter)
+		if (smart_contract_id) url.searchParams.append("smart_contract_id", smart_contract_id)
 
 		return useFetch(url.href, {
-			key: `contracts-list-${isVerified}-${hasSourceCode}-${orderBy}-${orderDirection}`,
+			key: `contracts-${q || 'all'}-${filter || 'all'}-${items_count}-${smart_contract_id || 'initial'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items.map(transformContract),
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			}
 		})
 	} catch (error) {
-		console.error('Failed to fetch contracts list:', error)
+		console.error('Failed to fetch smart contracts:', error)
 		throw error
 	}
 }
 
 /**
- * Queue manual metadata enrichment for a contract
- * @param {string} address - Contract address
- * @param {Object} options - Enrichment options
- * @returns {Promise} - API response
+ * Get global smart contracts counters/statistics
+ * @returns {Promise} - API response with counters
  */
-export const enrichContract = async (address, {
-	priority = 1,
-	forceRefresh = false
-} = {}) => {
-	if (!isValidAddress(address)) {
-		throw new Error('Invalid contract address format')
-	}
-
-	if (priority < 1 || priority > 10) {
-		throw new Error('Priority must be between 1 and 10')
-	}
-
+export const fetchSmartContractCounters = () => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts/${address}/enrich`)
+		const url = new URL(`${useIndexerUrl()}/smart-contracts/counters`)
 
-		const response = await $fetch(url.href, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				priority,
-				forceRefresh
-			})
+		return useFetch(url.href, {
+			key: 'smart-contracts-counters',
 		})
-
-		return response
 	} catch (error) {
-		console.error('Failed to enrich contract:', error)
+		console.error('Failed to fetch smart contract counters:', error)
 		throw error
 	}
 }
 
 /**
- * Get contract discovery information
- * @param {string} address - Contract address
- * @returns {Promise} - API response
+ * Get verified contracts only
+ * @param {Object} params - Query params
+ * @returns {Promise} - API response with verified contracts
  */
-export const fetchContractDiscoveryInfo = (address) => {
-	if (!isValidAddress(address)) {
-		throw new Error('Invalid contract address format')
-	}
-
-	try {
-		const url = new URL(`${useExplorerURL()}/api/contracts/${address}/discovery-info`)
-
-		return useFetch(url.href, {
-			key: `contract-discovery-${address}`,
-		})
-	} catch (error) {
-		console.error('Failed to fetch contract discovery info:', error)
-		throw error
-	}
+export const fetchVerifiedContracts = (params = {}) => {
+	// Note: New API returns only verified contracts by default
+	return fetchSmartContracts(params)
 }
 
 /**
@@ -179,24 +139,20 @@ export const isContract = async (address) => {
 	}
 
 	try {
-		const discoveryInfo = await fetchContractDiscoveryInfo(normalizedAddress)
-		return discoveryInfo.data?.value?.data?.existsOnChain === true
+		const contract = await fetchContractClient(normalizedAddress)
+		// If we get a valid response, it's a contract
+		// creation_status: "success" | "failed" | "selfdestructed"
+		return contract && contract.creationStatus !== undefined
 	} catch (error) {
-		// If discovery endpoint fails, try to fetch contract metadata
-		try {
-			const metadata = await fetchContractMetadata(normalizedAddress)
-			return metadata.data?.value?.data?.metadata?.contractExists === true
-		} catch (metadataError) {
-			console.error('Failed to check if address is contract:', error, metadataError)
-			return false
-		}
+		// If 404 or error, it's not a contract
+		return false
 	}
 }
 
 /**
- * Get contract type (Token, Proxy, etc.)
+ * Get contract language/type
  * @param {string} address - Contract address
- * @returns {Promise<string|null>} - Contract type or null
+ * @returns {Promise<string|null>} - Contract language (solidity | vyper | yul) or null
  */
 export const getContractType = async (address) => {
 	if (!isValidAddress(address)) {
@@ -204,8 +160,8 @@ export const getContractType = async (address) => {
 	}
 
 	try {
-		const metadata = await fetchContractMetadata(address)
-		return metadata.data?.value?.data?.metadata?.contractType || null
+		const contract = await fetchContractClient(address)
+		return contract?.language || null
 	} catch (error) {
 		console.error('Failed to get contract type:', error)
 		return null
@@ -214,8 +170,10 @@ export const getContractType = async (address) => {
 
 /**
  * Check if contract is a token
+ * Note: Token detection requires analyzing the ABI or using the tokens endpoint
+ * This is a simplified version that checks for common token methods
  * @param {string} address - Contract address
- * @returns {Promise<boolean>} - True if contract is a token
+ * @returns {Promise<boolean>} - True if contract appears to be a token
  */
 export const isTokenContract = async (address) => {
 	if (!isValidAddress(address)) {
@@ -223,8 +181,20 @@ export const isTokenContract = async (address) => {
 	}
 
 	try {
-		const metadata = await fetchContractMetadata(address)
-		return metadata.data?.value?.data?.metadata?.isToken === true
+		const contract = await fetchContractClient(address)
+
+		if (!contract?.abi) {
+			return false
+		}
+
+		// Check if ABI contains common token methods
+		const abiString = typeof contract.abi === 'string' ? contract.abi : JSON.stringify(contract.abi)
+		const hasTransfer = abiString.includes('transfer')
+		const hasBalanceOf = abiString.includes('balanceOf')
+		const hasTotalSupply = abiString.includes('totalSupply')
+
+		// If has at least 2 of these common token methods, likely a token
+		return [hasTransfer, hasBalanceOf, hasTotalSupply].filter(Boolean).length >= 2
 	} catch (error) {
 		console.error('Failed to check if contract is token:', error)
 		return false
@@ -232,9 +202,9 @@ export const isTokenContract = async (address) => {
 }
 
 /**
- * Check if contract is proxied
+ * Check if contract is a proxy
  * @param {string} address - Contract address
- * @returns {Promise<boolean>} - True if contract is proxied
+ * @returns {Promise<boolean>} - True if contract is a proxy
  */
 export const isProxiedContract = async (address) => {
 	if (!isValidAddress(address)) {
@@ -242,8 +212,9 @@ export const isProxiedContract = async (address) => {
 	}
 
 	try {
-		const metadata = await fetchContractMetadata(address)
-		return metadata.data?.value?.data?.metadata?.isProxied === true
+		const contract = await fetchContractClient(address)
+		// Check if has minimal proxy address
+		return !!(contract?.minimalProxyAddress)
 	} catch (error) {
 		console.error('Failed to check if contract is proxied:', error)
 		return false
@@ -261,14 +232,8 @@ export const getProxyImplementation = async (address) => {
 	}
 
 	try {
-		const metadata = await fetchContractMetadata(address)
-		const data = metadata.data?.value?.data?.metadata
-		
-		if (data?.isProxied) {
-			return data.implementationAddress || null
-		}
-		
-		return null
+		const contract = await fetchContractClient(address)
+		return contract?.minimalProxyAddress || null
 	} catch (error) {
 		console.error('Failed to get proxy implementation:', error)
 		return null
@@ -276,9 +241,9 @@ export const getProxyImplementation = async (address) => {
 }
 
 /**
- * Get contract overview (combines multiple endpoints)
+ * Get contract overview (for backward compatibility)
  * @param {string} address - Contract address
- * @returns {Promise} - Combined contract data
+ * @returns {Promise} - Contract data
  */
 export const fetchContractOverview = async (address) => {
 	if (!isValidAddress(address)) {
@@ -286,16 +251,11 @@ export const fetchContractOverview = async (address) => {
 	}
 
 	try {
-		// Fetch multiple endpoints in parallel
-		const [contractInfo, discoveryInfo] = await Promise.allSettled([
-			fetchContract(address, { includeMetadata: true, includeBytecode: false }),
-			fetchContractDiscoveryInfo(address)
-		])
+		const contract = await fetchContractClient(address)
 
 		return {
 			address,
-			contract: contractInfo.status === 'fulfilled' ? contractInfo.value : null,
-			discovery: discoveryInfo.status === 'fulfilled' ? discoveryInfo.value : null,
+			contract,
 			success: true
 		}
 	} catch (error) {
@@ -304,61 +264,71 @@ export const fetchContractOverview = async (address) => {
 	}
 }
 
+// DEPRECATED FUNCTIONS - No longer supported in new API
+// These are kept for backward compatibility but will return errors
+
 /**
- * Get verified contracts only
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * @deprecated - Metadata is now included in main contract response
+ * Use fetchContract() instead
  */
-export const fetchVerifiedContracts = (options = {}) => {
-	return fetchContracts({
-		...options,
-		isVerified: true
-	})
+export const fetchContractMetadata = (address) => {
+	console.warn('fetchContractMetadata is deprecated. Use fetchContract() instead - metadata is included in main response.')
+	return fetchContract(address)
 }
 
 /**
- * Get token contracts only
- * @param {Object} options - Query options
- * @returns {Promise} - API response with token contracts
+ * @deprecated - Contract enrichment is not supported in new API
  */
-export const fetchTokenContracts = async (options = {}) => {
+export const enrichContract = async (address) => {
+	console.warn('enrichContract is no longer supported in the new API.')
+	throw new Error('Contract enrichment is not supported in the new API')
+}
+
+/**
+ * @deprecated - Discovery info is not available in new API
+ */
+export const fetchContractDiscoveryInfo = (address) => {
+	console.warn('fetchContractDiscoveryInfo is no longer supported. Use fetchContract() instead.')
+	throw new Error('Contract discovery info is not available in the new API')
+}
+
+/**
+ * @deprecated - Token contracts should use the /tokens endpoint
+ * This function is kept for backward compatibility but may be slow
+ */
+export const fetchTokenContracts = async (params = {}) => {
+	console.warn('fetchTokenContracts is deprecated. Consider using the /tokens endpoint instead.')
+
 	try {
-		// Get all contracts and filter for tokens on client side
-		// This is a workaround since the API doesn't have a direct token filter
-		const contracts = await fetchContracts(options)
-		
-		if (contracts.data?.value?.data?.contracts) {
-			// Filter contracts that are tokens by checking metadata
+		const contracts = await fetchSmartContracts(params)
+
+		if (contracts.data?.value?.items) {
+			// Filter for token contracts (this will be slow)
 			const tokenContracts = []
-			
-			for (const contract of contracts.data.value.data.contracts) {
+
+			for (const contract of contracts.data.value.items) {
 				try {
 					const isToken = await isTokenContract(contract.address)
 					if (isToken) {
 						tokenContracts.push(contract)
 					}
 				} catch (error) {
-					// Continue with next contract if metadata fetch fails
 					continue
 				}
 			}
-			
+
 			return {
 				...contracts,
 				data: {
 					...contracts.data,
 					value: {
-						...contracts.data.value,
-						data: {
-							...contracts.data.value.data,
-							contracts: tokenContracts,
-							returned: tokenContracts.length
-						}
+						items: tokenContracts,
+						next_page_params: null // Can't properly handle pagination with filtering
 					}
 				}
 			}
 		}
-		
+
 		return contracts
 	} catch (error) {
 		console.error('Failed to fetch token contracts:', error)
