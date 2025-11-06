@@ -191,6 +191,24 @@ export const transformAddress = (address) => {
 }
 
 /**
+ * Transform address counters/stats response from new Indexer API
+ * @param {object} counters - Counters data from API
+ * @returns {object} Transformed counters
+ */
+export const transformAddressCounters = (counters) => {
+	if (!counters) return null
+
+	return {
+		...counters,
+		// Parse numeric strings to numbers for easier use in components
+		transactions_count: parseNumericString(counters.transactions_count) || 0,
+		token_transfers_count: parseNumericString(counters.token_transfers_count) || 0,
+		gas_usage_count: counters.gas_usage_count, // Keep as string for precision
+		validations_count: parseNumericString(counters.validations_count) || 0,
+	}
+}
+
+/**
  * Transform log/event response from new API
  * @param {object} log - Log data from API
  * @returns {object} Transformed log

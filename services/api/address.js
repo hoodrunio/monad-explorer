@@ -1,5 +1,6 @@
 /** Address API Services */
-import { useExplorerURL } from "@/services/config"
+import { useExplorerURL, useIndexerUrl } from "@/services/config"
+import { transformAddressCounters, transformTransaction } from "@/services/utils/transforms"
 
 /**
  * Validate Ethereum address format
@@ -13,29 +14,41 @@ const isValidAddress = (address) => {
 
 /**
  * Get transactions for an address (sent or received) - SSR version
+ * MIGRATED: Now uses new Indexer API with cursor pagination
  * @param {string} address - Ethereum address
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * @param {Object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.index - Transaction index cursor for pagination
+ * @param {string} params.filter - Filter transactions by direction: "to" or "from"
+ * @returns {Promise} - API response with cursor pagination
  */
-export const fetchAddressTransactions = (address, {
-	limit = 50,
-	offset = 0,
-	includeTokenTransfers = false
-} = {}) => {
+export const fetchAddressTransactions = (address, params = {}) => {
 	const normalizedAddress = address?.toLowerCase()
 	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/transactions`)
+		const { items_count = 50, block_number, index, filter } = params
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/transactions`)
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (index !== undefined) url.searchParams.append("index", index)
+		if (filter) url.searchParams.append("filter", filter)
 
 		return useFetch(url.href, {
-			key: `address-transactions-${address}-${limit}-${offset}-${includeTokenTransfers}`,
+			key: `address-transactions-${address}-${items_count}-${block_number || 'initial'}-${index || ''}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items.map(transformTransaction),
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
 		console.error('Failed to fetch address transactions:', error)
@@ -45,29 +58,39 @@ export const fetchAddressTransactions = (address, {
 
 /**
  * Get transactions for an address (sent or received) - Client-side version
+ * MIGRATED: Now uses new Indexer API with cursor pagination
  * @param {string} address - Ethereum address
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * @param {Object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.index - Transaction index cursor for pagination
+ * @param {string} params.filter - Filter transactions by direction: "to" or "from"
+ * @returns {Promise} - API response with cursor pagination
  */
-export const fetchAddressTransactionsClient = async (address, {
-	limit = 50,
-	offset = 0,
-	includeTokenTransfers = false
-} = {}) => {
+export const fetchAddressTransactionsClient = async (address, params = {}) => {
 	const normalizedAddress = address?.toLowerCase()
 	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/transactions`)
+		const { items_count = 50, block_number, index, filter } = params
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/transactions`)
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (index !== undefined) url.searchParams.append("index", index)
+		if (filter) url.searchParams.append("filter", filter)
 
 		const data = await $fetch(url.href)
-		return { data: { value: data } }
+
+		// Transform response to match expected format
+		const transformed = {
+			items: data.items ? data.items.map(transformTransaction) : [],
+			next_page_params: data.next_page_params || null,
+		}
+
+		return { data: { value: transformed } }
 	} catch (error) {
 		console.error('Failed to fetch address transactions:', error)
 		throw error
@@ -76,32 +99,45 @@ export const fetchAddressTransactionsClient = async (address, {
 
 /**
  * Get token transfers for an address
+ * MIGRATED: Now uses new Indexer API with cursor pagination and type filtering
  * @param {string} address - Ethereum address
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * @param {Object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.index - Transfer index cursor for pagination
+ * @param {string} params.token - Specific token address to filter (optional)
+ * @param {string} params.type - Token types: "ERC-20", "ERC-721", "ERC-1155" or comma-separated (optional)
+ * @param {string} params.filter - Filter transfers by direction: "to" or "from" (optional)
+ * @returns {Promise} - API response with cursor pagination
  */
-export const fetchAddressTokenTransfers = (address, {
-	tokenAddress = null,
-	limit = 50,
-	offset = 0
-} = {}) => {
-	if (!isValidAddress(address)) {
+export const fetchAddressTokenTransfers = (address, params = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
-	if (tokenAddress && !isValidAddress(tokenAddress)) {
-		throw new Error('Invalid token address format')
-	}
-
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${address}/token-transfers`)
+		const { items_count = 50, block_number, index, token, type, filter } = params
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/token-transfers`)
 
-		if (tokenAddress) url.searchParams.append("tokenAddress", tokenAddress)
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (index !== undefined) url.searchParams.append("index", index)
+		if (token) url.searchParams.append("token", token.toLowerCase())
+		if (type) url.searchParams.append("type", type) // e.g., "ERC-20,ERC-721,ERC-1155"
+		if (filter) url.searchParams.append("filter", filter)
 
 		return useFetch(url.href, {
-			key: `address-token-transfers-${address}-${tokenAddress || 'all'}-${limit}-${offset}`,
+			key: `address-token-transfers-${address}-${items_count}-${block_number || 'initial'}-${type || 'all'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
 		console.error('Failed to fetch address token transfers:', error)
@@ -111,11 +147,12 @@ export const fetchAddressTokenTransfers = (address, {
 
 /**
  * Get balances for an address - SSR version
+ * HYBRID: Tries new Indexer API first, falls back to old API if fails
  * @param {string} address - Ethereum address
  * @param {Object} options - Query options
  * @returns {Promise} - API response
  */
-export const fetchAddressBalance = (address, {
+export const fetchAddressBalance = async (address, {
 	tokenAddress = null,
 	includeNative = true,
 	includeMetadata = true,
@@ -124,7 +161,7 @@ export const fetchAddressBalance = (address, {
 } = {}) => {
 	const normalizedAddress = address?.toLowerCase()
 	const normalizedTokenAddress = tokenAddress?.toLowerCase()
-	
+
 	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
@@ -134,17 +171,36 @@ export const fetchAddressBalance = (address, {
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
+		// Try new Indexer API first
+		const newApiUrl = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}`)
 
-		if (normalizedTokenAddress) url.searchParams.append("tokenAddress", normalizedTokenAddress)
-		if (includeNative !== undefined) url.searchParams.append("includeNative", includeNative.toString())
-		if (includeMetadata !== undefined) url.searchParams.append("includeMetadata", includeMetadata.toString())
-		if (useCache !== undefined) url.searchParams.append("useCache", useCache.toString())
-		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
+		try {
+			const response = await $fetch(newApiUrl.href)
+			// Transform new API response to match old format
+			return {
+				data: ref({
+					data: {
+						nativeBalance: response.coin_balance || "0",
+						// Add other fields as needed from new API
+					}
+				})
+			}
+		} catch (newApiError) {
+			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
 
-		return useFetch(url.href, {
-			key: `address-balance-${address}-${tokenAddress || 'all'}-${blockNumber || 'latest'}`,
-		})
+			// Fallback to old API
+			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
+
+			if (normalizedTokenAddress) oldApiUrl.searchParams.append("tokenAddress", normalizedTokenAddress)
+			if (includeNative !== undefined) oldApiUrl.searchParams.append("includeNative", includeNative.toString())
+			if (includeMetadata !== undefined) oldApiUrl.searchParams.append("includeMetadata", includeMetadata.toString())
+			if (useCache !== undefined) oldApiUrl.searchParams.append("useCache", useCache.toString())
+			if (blockNumber) oldApiUrl.searchParams.append("blockNumber", blockNumber.toString())
+
+			return useFetch(oldApiUrl.href, {
+				key: `address-balance-${address}-${tokenAddress || 'all'}-${blockNumber || 'latest'}`,
+			})
+		}
 	} catch (error) {
 		console.error('Failed to fetch address balance:', error)
 		throw error
@@ -153,6 +209,7 @@ export const fetchAddressBalance = (address, {
 
 /**
  * Get balances for an address - Client-side version
+ * HYBRID: Tries new Indexer API first, falls back to old API if fails
  * @param {string} address - Ethereum address
  * @param {Object} options - Query options
  * @returns {Promise} - API response
@@ -164,7 +221,9 @@ export const fetchAddressBalanceClient = async (address, {
 	useCache = true,
 	blockNumber = null
 } = {}) => {
-	if (!isValidAddress(address)) {
+	const normalizedAddress = address?.toLowerCase()
+
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
@@ -173,16 +232,37 @@ export const fetchAddressBalanceClient = async (address, {
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${address}/balance`)
+		// Try new Indexer API first
+		const newApiUrl = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}`)
 
-		if (tokenAddress) url.searchParams.append("tokenAddress", tokenAddress)
-		if (includeNative !== undefined) url.searchParams.append("includeNative", includeNative.toString())
-		if (includeMetadata !== undefined) url.searchParams.append("includeMetadata", includeMetadata.toString())
-		if (useCache !== undefined) url.searchParams.append("useCache", useCache.toString())
-		if (blockNumber) url.searchParams.append("blockNumber", blockNumber.toString())
+		try {
+			const response = await $fetch(newApiUrl.href)
+			// Transform new API response to match old format
+			return {
+				data: {
+					value: {
+						data: {
+							nativeBalance: response.coin_balance || "0",
+							// Add other fields as needed from new API
+						}
+					}
+				}
+			}
+		} catch (newApiError) {
+			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
 
-		const data = await $fetch(url.href)
-		return { data: { value: data } }
+			// Fallback to old API
+			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
+
+			if (tokenAddress) oldApiUrl.searchParams.append("tokenAddress", tokenAddress)
+			if (includeNative !== undefined) oldApiUrl.searchParams.append("includeNative", includeNative.toString())
+			if (includeMetadata !== undefined) oldApiUrl.searchParams.append("includeMetadata", includeMetadata.toString())
+			if (useCache !== undefined) oldApiUrl.searchParams.append("useCache", useCache.toString())
+			if (blockNumber) oldApiUrl.searchParams.append("blockNumber", blockNumber.toString())
+
+			const data = await $fetch(oldApiUrl.href)
+			return { data: { value: data } }
+		}
 	} catch (error) {
 		console.error('Failed to fetch address balance:', error)
 		throw error
@@ -191,30 +271,44 @@ export const fetchAddressBalanceClient = async (address, {
 
 /**
  * Get internal transactions for an address
+ * MIGRATED: Now uses new Indexer API with cursor pagination
+ * NOTE: includeFailedCalls and maxDepth parameters removed from new API
  * @param {string} address - Ethereum address
- * @param {Object} options - Query options
- * @returns {Promise} - API response
+ * @param {Object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.transaction_index - Transaction index cursor
+ * @param {number} params.index - Internal transaction index cursor
+ * @param {string} params.filter - Filter by direction: "to" or "from" (optional)
+ * @returns {Promise} - API response with cursor pagination
  */
-export const fetchAddressInternalTransactions = (address, {
-	limit = 50,
-	offset = 0,
-	includeFailedCalls = false,
-	maxDepth = 10
-} = {}) => {
-	if (!isValidAddress(address)) {
+export const fetchAddressInternalTransactions = (address, params = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
 		throw new Error('Invalid address format')
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${address}/internal-transactions`)
+		const { items_count = 50, block_number, transaction_index, index, filter } = params
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/internal-transactions`)
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (includeFailedCalls) url.searchParams.append("includeFailedCalls", includeFailedCalls.toString())
-		if (maxDepth) url.searchParams.append("maxDepth", maxDepth.toString())
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (transaction_index !== undefined) url.searchParams.append("transaction_index", transaction_index)
+		if (index !== undefined) url.searchParams.append("index", index)
+		if (filter) url.searchParams.append("filter", filter)
 
 		return useFetch(url.href, {
-			key: `address-internal-transactions-${address}-${limit}-${offset}-${includeFailedCalls}`,
+			key: `address-internal-transactions-${address}-${items_count}-${block_number || 'initial'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
 		console.error('Failed to fetch address internal transactions:', error)
@@ -223,7 +317,8 @@ export const fetchAddressInternalTransactions = (address, {
 }
 
 /**
- * Get statistics for an address - SSR version
+ * Get statistics/counters for an address - SSR version
+ * MIGRATED: Now uses new Indexer API /counters endpoint
  * @param {string} address - Ethereum address
  * @returns {Promise} - API response
  */
@@ -234,19 +329,26 @@ export const fetchAddressStats = (address) => {
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/stats`)
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/counters`)
 
 		return useFetch(url.href, {
-			key: `address-stats-${address}`,
+			key: `address-counters-${address}`,
+			transform: (response) => {
+				if (response) {
+					return transformAddressCounters(response)
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		console.error('Failed to fetch address stats:', error)
+		console.error('Failed to fetch address counters:', error)
 		throw error
 	}
 }
 
 /**
- * Get statistics for an address - Client-side version
+ * Get statistics/counters for an address - Client-side version
+ * MIGRATED: Now uses new Indexer API /counters endpoint
  * @param {string} address - Ethereum address
  * @returns {Promise} - API response
  */
@@ -257,12 +359,13 @@ export const fetchAddressStatsClient = async (address) => {
 	}
 
 	try {
-		const url = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/stats`)
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/counters`)
 
 		const data = await $fetch(url.href)
-		return { data: { value: data } }
+		const transformed = transformAddressCounters(data)
+		return { data: { value: transformed } }
 	} catch (error) {
-		console.error('Failed to fetch address stats:', error)
+		console.error('Failed to fetch address counters:', error)
 		throw error
 	}
 }
@@ -342,6 +445,7 @@ export const fetchAddressTokenBalance = async (address, tokenAddress) => {
 
 /**
  * Check if address has any activity
+ * MIGRATED: Now uses new counters response format
  * @param {string} address - Ethereum address
  * @returns {Promise<boolean>} - True if address has transactions
  */
@@ -352,7 +456,9 @@ export const hasAddressActivity = async (address) => {
 
 	try {
 		const stats = await fetchAddressStats(address)
-		return stats.data?.value?.data?.stats?.transactionCount?.total > 0
+		// New API returns transactions_count directly at root level
+		const txCount = stats.data?.value?.transactions_count || 0
+		return txCount > 0
 	} catch (error) {
 		console.error('Failed to check address activity:', error)
 		return false
@@ -361,6 +467,7 @@ export const hasAddressActivity = async (address) => {
 
 /**
  * Get address overview (combines multiple endpoints) - SSR version
+ * MIGRATED: Partially migrated - balance uses OLD API, stats & transactions use NEW API
  * @param {string} address - Ethereum address
  * @returns {Promise} - Combined address data
  */
@@ -371,10 +478,11 @@ export const fetchAddressOverview = async (address) => {
 
 	try {
 		// Fetch multiple endpoints in parallel
+		// NOTE: Balance uses OLD API (backward compatibility), others use NEW Indexer API
 		const [balance, stats, recentTx] = await Promise.allSettled([
-			fetchAddressBalance(address, { includeNative: true, includeMetadata: true }),
-			fetchAddressStats(address),
-			fetchAddressTransactions(address, { limit: 5, includeTokenTransfers: true })
+			fetchAddressBalance(address, { includeNative: true, includeMetadata: true }), // OLD API
+			fetchAddressStats(address), // NEW API - counters
+			fetchAddressTransactions(address, { items_count: 5 }) // NEW API - cursor pagination
 		])
 
 		return {
@@ -392,6 +500,7 @@ export const fetchAddressOverview = async (address) => {
 
 /**
  * Get address overview (combines multiple endpoints) - Client-side version
+ * MIGRATED: Partially migrated - balance uses OLD API, stats & transactions use NEW API
  * @param {string} address - Ethereum address
  * @returns {Promise} - Combined address data
  */
@@ -402,10 +511,11 @@ export const fetchAddressOverviewClient = async (address) => {
 
 	try {
 		// Fetch multiple endpoints in parallel
+		// NOTE: Balance uses OLD API (backward compatibility), others use NEW Indexer API
 		const [balance, stats, recentTx] = await Promise.allSettled([
-			fetchAddressBalanceClient(address, { includeNative: true, includeMetadata: true }),
-			fetchAddressStatsClient(address),
-			fetchAddressTransactionsClient(address, { limit: 5, includeTokenTransfers: true })
+			fetchAddressBalanceClient(address, { includeNative: true, includeMetadata: true }), // OLD API
+			fetchAddressStatsClient(address), // NEW API - counters
+			fetchAddressTransactionsClient(address, { items_count: 5 }) // NEW API - cursor pagination
 		])
 
 		return {

@@ -1,12 +1,12 @@
 /**
  * Address Transactions API Endpoint
  * GET /api/addresses/:address/transactions
- * 
- * Retrieve transactions where the address is sender or recipient.
- * When includeTokenTransfers=true, enriches each transaction with runtime-parsed token transfers.
+ *
+ * MIGRATED: Now proxies to new Indexer API with cursor pagination
+ * Retrieves transactions where the address is sender or recipient.
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -65,20 +65,26 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Parse query parameters
+		// Parse query parameters (cursor-based pagination)
 		const query = getQuery(event)
-		const limit = Math.min(parseInt(query.limit) || 50, 100) // Cap at 100
-		const offset = Math.max(parseInt(query.offset) || 0, 0)
-		const includeTokenTransfers = query.includeTokenTransfers === 'true'
+		const items_count = Math.min(parseInt(query.items_count) || 50, 100) // Cap at 100
+		const block_number = query.block_number ? parseInt(query.block_number) : undefined
+		const index = query.index !== undefined ? parseInt(query.index) : undefined
+		const filter = query.filter // "to" or "from"
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/addresses/${address}/transactions`)
-		
-		apiUrl.searchParams.append('limit', limit.toString())
-		apiUrl.searchParams.append('offset', offset.toString())
-		if (includeTokenTransfers) {
-			apiUrl.searchParams.append('includeTokenTransfers', 'true')
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/addresses/${address.toLowerCase()}/transactions`)
+
+		apiUrl.searchParams.append('items_count', items_count.toString())
+		if (block_number) {
+			apiUrl.searchParams.append('block_number', block_number.toString())
+		}
+		if (index !== undefined) {
+			apiUrl.searchParams.append('index', index.toString())
+		}
+		if (filter) {
+			apiUrl.searchParams.append('filter', filter)
 		}
 
 		// Make request to external API
@@ -94,8 +100,8 @@ export default defineEventHandler(async (event) => {
 		setResponseHeader(event, 'Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300')
 		setResponseHeader(event, 'Content-Type', 'application/json')
 
-		// Return the response from the external API
-		// The external API should already be in the correct format
+		// Return the response from the new Indexer API
+		// New format: { items: [], next_page_params: { block_number, index, items_count } }
 		return response
 
 	} catch (error) {

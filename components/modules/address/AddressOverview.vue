@@ -87,15 +87,26 @@ const handleSelect = (tab) => {
 	}
 }
 
-/** Pagination */
-const page = ref(1)
-const handleNextCondition = ref(true)
+/** Pagination - Cursor-based */
+const nextPageParams = ref(null)
+const previousPages = ref([])
 const handleNext = () => {
-	page.value += 1
+	if (!nextPageParams.value) return
+
+	// Save current state before moving forward
+	previousPages.value.push({
+		transactions: [...transactions.value],
+		params: nextPageParams.value
+	})
+
+	getTransactions(nextPageParams.value)
 }
 const handlePrev = () => {
-	if (page.value === 1) return
-	page.value -= 1
+	if (previousPages.value.length === 0) return
+
+	const previousState = previousPages.value.pop()
+	transactions.value = previousState.transactions
+	nextPageParams.value = previousState.params
 }
 
 /** Sorting */
@@ -269,24 +280,24 @@ const resetFilters = (target, refetch) => {
 	}
 }
 
-const getTransactions = async () => {
+const getTransactions = async (params = null) => {
 	isRefetching.value = true
 
 	try {
-		const { data } = await fetchAddressTransactionsClient(props.address.hash, {
-			limit: 10,
-			offset: (page.value - 1) * 10,
-			includeTokenTransfers: true,
-		})
+		// Use provided params or default to initial load
+		const queryParams = params || { items_count: 10 }
 
-		// Process the response to match the expected format
-		if (data.value?.data?.transactions) {
-			let txs = data.value.data.transactions
+		const { data } = await fetchAddressTransactionsClient(props.address.hash, queryParams)
+
+		// New Indexer API returns { items: [], next_page_params: {} }
+		if (data.value?.items) {
+			let txs = data.value.items
+
 			// Apply status filters
 			if (Object.keys(filters.status).find((f) => filters.status[f])) {
 				const activeStatuses = Object.keys(filters.status).filter((f) => filters.status[f])
 				txs = txs.filter((tx) => {
-					const status = tx.status === 1 ? "success" : "failed"
+					const status = tx.status === "ok" ? "success" : "failed"
 					return activeStatuses.includes(status)
 				})
 			}
@@ -295,7 +306,7 @@ const getTransactions = async () => {
 			if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
 				const activeTypes = Object.keys(filters.message_type).filter((f) => filters.message_type[f])
 				txs = txs.filter((tx) => {
-					const txType = tx.isContractCreation ? "contract_creation" : 
+					const txType = tx.isContractCreation ? "contract_creation" :
 								   tx.isContractInteraction ? "contract_call" : "transfer"
 					return activeTypes.includes(txType)
 				})
@@ -303,28 +314,28 @@ const getTransactions = async () => {
 
 			transactions.value = txs.map(tx => ({
 				...tx,
-				// Map EVM fields to expected format
-				status: tx.status === 1 ? "success" : "failed",
-				gas_used: tx.gasUsed,
-				gas_wanted: tx.gas || tx.gasUsed,
-				fee: tx.transactionFee || "0",
-				message_types: tx.isContractCreation ? ["Contract Creation"] : 
+				// Map new Indexer API fields to expected format
+				status: tx.status === "ok" ? "success" : "failed",
+				gas_used: tx.gas_used || tx.gasUsed,
+				gas_wanted: tx.gas_limit || tx.gas,
+				fee: tx.fee || tx.transactionFee || "0",
+				message_types: tx.isContractCreation ? ["Contract Creation"] :
 							   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
-				// Fix time and block number mapping
-				time: tx.timestamp,  // API'dan gelen timestamp'i time olarak map et
-				height: tx.blockNumber, // API'dan gelen blockNumber'ı height olarak map et
+				time: tx.timestamp,
+				height: tx.block_number || tx.blockNumber,
 			}))
 
-			handleNextCondition.value = transactions.value.length < 10
+			// Update cursor pagination state
+			nextPageParams.value = data.value.next_page_params || null
 		} else {
 			transactions.value = []
-			handleNextCondition.value = true
+			nextPageParams.value = null
 		}
 
 		cacheStore.current.transactions = transactions.value
 	} catch (error) {
 		transactions.value = []
-		handleNextCondition.value = true
+		nextPageParams.value = null
 	}
 
 	isRefetching.value = false
@@ -351,7 +362,8 @@ const getAddressStats = async () => {
 	isLoadingStats.value = true
 	try {
 		const { data } = await fetchAddressStatsClient(props.address.hash)
-		addressStats.value = data.value?.data?.stats || null
+		// New Indexer API returns counters directly at root level
+		addressStats.value = data.value || null
 	} catch (error) {
 		addressStats.value = null
 	}
@@ -367,19 +379,22 @@ const nativeBalance = computed(() => {
 })
 
 const totalTransactions = computed(() => {
-	return addressStats.value?.transactionCount?.total || 0
+	// New Indexer API uses transactions_count instead of transactionCount.total
+	return addressStats.value?.transactions_count || 0
 })
 
 const isActive = computed(() => {
-	return addressStats.value?.isActive || false
+	// Determine activity based on transaction count
+	return (addressStats.value?.transactions_count || 0) > 0
 })
 
 /** Watchers */
 watch(
 	activeTab,
 	async () => {
-		page.value = 1
-		handleNextCondition.value = true
+		// Reset cursor pagination state
+		nextPageParams.value = null
+		previousPages.value = []
 
 		router.replace({
 			query: {
@@ -530,14 +545,7 @@ const handleViewRawAddress = () => {
 					<Flex direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Details</Text>
 
-						<Flex align="center" justify="between" v-if="addressStats?.firstTransactionDate">
-							<Text size="12" weight="600" color="tertiary"> First Activity</Text>
-							<Text size="12" weight="600" color="secondary"> {{ new Date(addressStats.firstTransactionDate).toLocaleDateString() }} </Text>
-						</Flex>
-						<Flex align="center" justify="between" v-if="addressStats?.lastTransactionDate">
-							<Text size="12" weight="600" color="tertiary"> Last Activity</Text>
-							<Text size="12" weight="600" color="secondary"> {{ new Date(addressStats.lastTransactionDate).toLocaleDateString() }} </Text>
-						</Flex>
+						<!-- NOTE: First/Last Activity dates removed - not available in new Indexer API -->
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary"> Total Transactions</Text>

@@ -80,11 +80,12 @@ export const search = async (query) => {
 						const hasActivity = await hasAddressActivity(normalizedQuery)
 						if (hasActivity) {
 							const { data } = await fetchAddressStatsClient(normalizedQuery)
+							// New Indexer API returns counters directly at root level
 							results.push({
 								type: "address",
-								result: { 
+								result: {
 									hash: normalizedQuery,
-									stats: data.value?.data?.stats || null
+									counters: data.value || null
 								},
 							})
 						}

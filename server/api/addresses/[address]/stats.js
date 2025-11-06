@@ -1,11 +1,12 @@
 /**
- * Address Statistics API Endpoint
+ * Address Statistics/Counters API Endpoint
  * GET /api/addresses/:address/stats
- * 
- * Return aggregate statistics for the address, including transaction counts and activity dates.
+ *
+ * MIGRATED: Now proxies to new Indexer API /counters endpoint
+ * Returns aggregate counters for the address including transaction counts.
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -64,9 +65,9 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/addresses/${address}/stats`)
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/addresses/${address.toLowerCase()}/counters`)
 
 		// Make request to external API
 		const response = await $fetch(apiUrl.href, {
@@ -77,12 +78,13 @@ export default defineEventHandler(async (event) => {
 		})
 
 		// Set response headers for caching
-		// Stats can be cached for a moderate time as they change relatively slowly
+		// Counters can be cached for a moderate time as they change relatively slowly
 		setResponseStatus(event, 200)
 		setResponseHeader(event, 'Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300')
 		setResponseHeader(event, 'Content-Type', 'application/json')
 
-		// Return the response from the external API
+		// Return the response from the new Indexer API
+		// New format: { transactions_count, token_transfers_count, gas_usage_count, validations_count }
 		return response
 
 	} catch (error) {
