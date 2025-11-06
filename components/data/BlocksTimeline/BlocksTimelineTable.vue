@@ -51,33 +51,33 @@ const getGasUsagePercent = (gasUsed, gasLimit) => {
 const handleSelectBlock = (b, isUser) => {
 	if (isUser) autoSelect.value = false
 
-	if (preview.block.number === b.number) return
+	if (preview.block.height === b.height) return
 
 	preview.block = b
 	getTransactionsByBlock()
 }
 
 const getTransactionsByBlock = async () => {
-	if (!preview.block.number) return
-	
+	if (!preview.block.height) return
+
 	preview.isLoadingTransactions = true
-	
+
 	try {
 		const { data } = await fetchBlockTransactions({
-			number: preview.block.number,
-			limit: 5,
-			includeTokenTransfers: false,
+			blockNumberOrHash: preview.block.height,
+			items_count: 5,
 		})
-		
+
 		// Process transactions to match expected format
-		preview.transactions = (data.value.data?.transactions || []).map(tx => ({
+		preview.transactions = (data.value?.items || []).map(tx => ({
 			...tx,
-			status: tx.status === 1 ? "success" : "failed",
+			status: tx.status === "ok" ? "success" : "failed",
 		}))
 	} catch (error) {
+		console.error("Error fetching block transactions:", error)
 		preview.transactions = []
 	}
-	
+
 	preview.isLoadingTransactions = false
 }
 

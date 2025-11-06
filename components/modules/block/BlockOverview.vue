@@ -42,6 +42,10 @@ const props = defineProps({
 	transactions: {
 		type: Array,
 	},
+	nextTxParams: {
+		type: Object,
+		default: null,
+	},
 })
 
 const lastBlock = computed(() => appStore.latestBlocks[0])
@@ -50,14 +54,27 @@ const lastBlock = computed(() => appStore.latestBlocks[0])
 
 const isLoading = ref(false)
 const transactions = ref([])
+const nextPageParams = ref(props.nextTxParams)
+const previousPages = ref([])
 
-const page = ref(1)
-const handleNext = () => {
-	page.value += 1
+const handleNext = async () => {
+	if (!nextPageParams.value) return
+
+	// Store current state for back navigation
+	previousPages.value.push({
+		transactions: [...transactions.value],
+		params: nextPageParams.value
+	})
+
+	await getTransactions(nextPageParams.value)
 }
+
 const handlePrev = () => {
-	if (page.value === 1) return
-	page.value -= 1
+	if (previousPages.value.length === 0) return
+
+	const previousState = previousPages.value.pop()
+	transactions.value = previousState.transactions
+	nextPageParams.value = previousState.params
 }
 
 /** Filters for EVM transactions */
@@ -154,7 +171,9 @@ const resetFilters = (target, refetch) => {
 // EVM block data helper functions
 const getGasUsagePercent = (gasUsed, gasLimit) => {
 	if (!gasLimit || gasLimit === "0") return 0
-	return (parseInt(gasUsed) / parseInt(gasLimit)) * 100
+	const used = parseFloat(gasUsed) || 0
+	const limit = parseFloat(gasLimit) || 1
+	return Math.min((used / limit) * 100, 100)
 }
 
 const formatGasValue = (value) => {
@@ -169,25 +188,28 @@ const formatMonValue = (value) => {
 	return monValue.toFixed(6)
 }
 
-const getTransactions = async () => {
+const getTransactions = async (params = null) => {
 	isLoading.value = true
 
 	try {
-		const { data } = await fetchBlockTransactions({
-			number: props.block.number,
-			limit: 10,
-			offset: (page.value - 1) * 10,
-			includeTokenTransfers: true,
-		})
+		const queryParams = params || {
+			blockNumberOrHash: props.block.height,
+			items_count: 20
+		}
+
+		const { data } = await fetchBlockTransactions(queryParams)
 
 		// Process transactions data to match display format
-		let txs = data.value.data?.transactions || []
-		
+		let txs = data.value?.items || []
+
+		// Update next page params
+		nextPageParams.value = data.value?.next_page_params || null
+
 		// Apply status filters
 		if (Object.keys(filters.status).find((f) => filters.status[f])) {
 			const activeStatuses = Object.keys(filters.status).filter((f) => filters.status[f])
 			txs = txs.filter((tx) => {
-				const status = tx.status === 1 ? "success" : "failed"
+				const status = tx.status === "ok" ? "success" : "failed"
 				return activeStatuses.includes(status)
 			})
 		}
@@ -195,18 +217,19 @@ const getTransactions = async () => {
 		transactions.value = txs.map(tx => ({
 			...tx,
 			// Map EVM fields to expected format
-			status: tx.status === 1 ? "success" : "failed",
-			gas_used: tx.gasUsed,
-			gas_wanted: tx.gas || tx.gasUsed, // Use gasUsed as fallback if gas limit not available
-			fee: tx.transactionFee || "0",
-			// For EVM, we don't have message_types, so we'll use a generic type
-			message_types: tx.isContractCreation ? ["Contract Creation"] : 
-						   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
+			status: tx.status === "ok" ? "success" : "failed",
+			gas_used: tx.gas_used,
+			gas_wanted: tx.gas_limit || tx.gas_used,
+			fee: tx.fee?.value || "0",
+			// For EVM, derive message types from transaction data
+			message_types: tx.method ? [tx.method] : ["Transfer"],
 		}))
 
 		cacheStore.current.transactions = transactions.value
 	} catch (error) {
+		console.error("Error fetching block transactions:", error)
 		transactions.value = []
+		nextPageParams.value = null
 	}
 
 	isLoading.value = false
@@ -218,12 +241,15 @@ onMounted(() => {
 	// Remove tab query logic since transactions are now in separate section
 })
 
-/** Refetch transactions */
+/** Refetch transactions when filters change */
 watch(
-	() => page.value,
+	() => filters.status,
 	() => {
+		// Reset pagination when filters change
+		previousPages.value = []
 		getTransactions()
 	},
+	{ deep: true }
 )
 
 const handleViewRawBlock = () => {
@@ -243,13 +269,13 @@ const handleViewRawTransactions = () => {
 			<Flex align="center" gap="8">
 				<Icon name="block" size="14" color="primary" />
 				<Text as="h1" size="13" weight="600" color="primary">
-					Block <Text color="secondary">{{ comma(block.number) }} </Text>
+					Block <Text color="secondary">{{ comma(block.height) }} </Text>
 				</Text>
-				<CopyButton :text="block.number" size="12" />
+				<CopyButton :text="block.height" size="12" />
 			</Flex>
 
 			<Flex align="center" gap="12">
-				<BookmarkButton type="block" :id="block.number" />
+				<BookmarkButton type="block" :id="block.height" />
 
 				<div class="divider_v" />
 
@@ -286,15 +312,15 @@ const handleViewRawTransactions = () => {
 
 							<Flex align="center" gap="6">
 								<Icon name="zap" size="12" color="secondary" />
-								<Text size="12" weight="600" color="primary"> 
-									{{ formatGasValue(block.gasUsed) }} gas
+								<Text size="12" weight="600" color="primary">
+									{{ formatGasValue(block.gas_used) }} gas
 								</Text>
 							</Flex>
 
 							<div v-for="dot in 5" class="dot" />
 
 							<Text size="12" weight="600" color="secondary" align="center">
-								{{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}% used
+								{{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}% used
 							</Text>
 						</Flex>
 					</Badge>
@@ -306,9 +332,9 @@ const handleViewRawTransactions = () => {
 						<BadgeValue :text="block.hash" />
 					</Flex>
 
-					<Flex v-if="block.parentHash" direction="column" gap="8" :class="$style.key_value">
+					<Flex v-if="block.parent_hash" direction="column" gap="8" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Parent Hash</Text>
-						<BadgeValue :text="block.parentHash" />
+						<BadgeValue :text="block.parent_hash" />
 					</Flex>
 
 					<Flex direction="column" gap="16">
@@ -316,27 +342,27 @@ const handleViewRawTransactions = () => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Transactions</Text>
-							<Text size="12" weight="600" color="secondary">{{ block.transactionCount }}</Text>
+							<Text size="12" weight="600" color="secondary">{{ block.transactions_count || block.tx_count }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Gas Used</Text>
 							<Flex align="center" gap="4">
-								<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gasUsed) }}</Text>
+								<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gas_used) }}</Text>
 								<Text size="12" weight="600" color="tertiary">
-									({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+									({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
 								</Text>
 							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Gas Limit</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gasLimit) }}</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.gas_limit) }}</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Base Fee</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.baseFeePerGas) }} wei</Text>
+							<Text size="12" weight="600" color="secondary">{{ formatGasValue(block.base_fee_per_gas) }} wei</Text>
 						</Flex>
 
 						<Flex align="center" justify="between">
@@ -347,24 +373,24 @@ const handleViewRawTransactions = () => {
 
 					<Flex align="center" gap="8">
 						<Button
-							@click="router.push(`/block/${block.number - 1}`)"
+							@click="router.push(`/block/${block.height - 1}`)"
 							wide
 							type="secondary"
 							size="mini"
-							:disabled="block.number === 0"
+							:disabled="block.height === 0"
 						>
 							<Icon name="arrow-redo-right" size="16" color="tertiary" :style="{ transform: 'scaleX(-1)' }" />
-							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to</Text> {{ comma(block.number - 1) }}</Text>
+							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to</Text> {{ comma(block.height - 1) }}</Text>
 						</Button>
 
 						<Button
-							@click="router.push(`/block/${block.number + 1}`)"
+							@click="router.push(`/block/${block.height + 1}`)"
 							wide
 							type="secondary"
 							size="mini"
-							:disabled="block.number === lastBlock?.number"
+							:disabled="block.height === lastBlock?.height"
 						>
-							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to </Text>{{ comma(block.number + 1) }}</Text>
+							<Text :class="$style.block_nav__txt"><Text color="secondary">Go to </Text>{{ comma(block.height + 1) }}</Text>
 							<Icon name="arrow-redo-right" size="16" color="tertiary" />
 						</Button>
 					</Flex>

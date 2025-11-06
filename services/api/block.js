@@ -1,145 +1,172 @@
-/** Services */
-import { useExplorerURL } from "@/services/config"
+/**
+ * Block API Service - New Indexer API (Blockscout-compatible)
+ * All endpoints use cursor-based pagination
+ */
 
-// Get latest blocks with basic data (for preview)
-export const fetchBlocks = ({ limit = 20, offset = 0, page = 1 } = {}) => {
+import { useIndexerUrl } from "@/services/config"
+import { transformBlock } from "@/services/utils/transforms"
+
+/**
+ * Get latest blocks with cursor-based pagination
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 20)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {string} params.type - Block type filter (block, uncle, reorg)
+ * @returns {Promise} Fetch promise with blocks data
+ */
+export const fetchBlocks = (params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks`)
+		const { items_count = 20, block_number, type } = params
+		const url = new URL(`${useIndexerUrl()}/blocks`)
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (page) url.searchParams.append("page", page)
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (type) url.searchParams.append("type", type)
 
 		return useFetch(url.href, {
-			key: `blocks-${page}-${limit}-${offset}`,
+			key: `blocks-${items_count}-${block_number || 'initial'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items.map(transformBlock),
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		// Error handling can be added here, e.g. return a default value or re-throw the error
-	}
-}
-
-// Get specific block details by number - SSR version
-export const fetchBlockByHeight = (number) => {
-	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks/${number}`)
-
-		return useFetch(encodeURI(url.href), {
-			key: "block_by_height",
-		})
-	} catch (error) {
-		// Error handling can be added here
-	}
-}
-
-// Get specific block details by number - Client-side version
-export const fetchBlockByHeightClient = async (number) => {
-	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks/${number}`)
-
-		const data = await $fetch(encodeURI(url.href))
-		return { data: { value: data } }
-	} catch (error) {
-		console.error('Failed to fetch block by height:', error)
+		console.error("Failed to fetch blocks:", error)
 		throw error
 	}
 }
 
-// Get all transactions in a block
-export const fetchBlockTransactions = ({ 
-	number, 
-	limit = 20, 
-	offset = 0, 
-	includeTokenTransfers = false 
-} = {}) => {
+/**
+ * Get specific block details by height or hash - SSR version
+ * @param {string|number} blockNumberOrHash - Block number or hash
+ * @returns {Promise} Fetch promise with block data
+ */
+export const fetchBlockByHeight = (blockNumberOrHash) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks/${number}/transactions`)
-
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+		const url = new URL(`${useIndexerUrl()}/blocks/${blockNumberOrHash}`)
 
 		return useFetch(url.href, {
-			key: "block_transactions",
+			key: `block-${blockNumberOrHash}`,
+			transform: (response) => transformBlock(response),
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch block by height:", error)
+		throw error
 	}
 }
 
-// Get all logs in a block (useful for debugging)
-export const fetchBlockLogs = ({ number, limit = 20, offset = 0 } = {}) => {
+/**
+ * Get specific block details by height or hash - Client-side version
+ * @param {string|number} blockNumberOrHash - Block number or hash
+ * @returns {Promise} Block data wrapped in standard format
+ */
+export const fetchBlockByHeightClient = async (blockNumberOrHash) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks/${number}/logs`)
+		const url = new URL(`${useIndexerUrl()}/blocks/${blockNumberOrHash}`)
+		const data = await $fetch(url.href)
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-
-		return useFetch(url.href, {
-			key: "block_logs",
-		})
+		return {
+			data: {
+				value: transformBlock(data)
+			}
+		}
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch block by height (client):", error)
+		throw error
 	}
 }
 
-// Legacy: Get block events (maps to logs for EVM compatibility)
-export const fetchBlockEvents = ({ height, limit = 20, offset = 0 } = {}) => {
+/**
+ * Get all transactions in a block with cursor-based pagination
+ * @param {object} params - Query parameters
+ * @param {string|number} params.blockNumberOrHash - Block number or hash
+ * @param {number} params.items_count - Number of items per page
+ * @param {number} params.index - Transaction index cursor for pagination
+ * @returns {Promise} Fetch promise with transactions data
+ */
+export const fetchBlockTransactions = (params = {}) => {
 	try {
-		// For EVM, events are called logs
-		const url = new URL(`${useExplorerURL()}/api/blocks/${height}/logs`)
+		const { blockNumberOrHash, items_count = 20, index } = params
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
+		if (!blockNumberOrHash) {
+			throw new Error("blockNumberOrHash is required")
+		}
+
+		const url = new URL(`${useIndexerUrl()}/blocks/${blockNumberOrHash}/transactions`)
+
+		url.searchParams.append("items_count", items_count)
+		if (index !== undefined) url.searchParams.append("index", index)
 
 		return useFetch(url.href, {
-			key: "block_events",
+			key: `block-txs-${blockNumberOrHash}-${items_count}-${index || 'initial'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch block transactions:", error)
+		throw error
 	}
 }
 
-// Legacy function for backward compatibility - maps to fetchBlockTransactions
-export const fetchTransactionsByBlock = ({ 
-	height, 
-	limit, 
-	offset, 
-	includeTokenTransfers = false 
-} = {}) => {
-	return fetchBlockTransactions({ 
-		number: height, 
-		limit, 
-		offset, 
-		includeTokenTransfers 
-	})
-}
-
-// Average block time (keeping for compatibility)
-export const fetchAvgBlockTime = ({ from }) => {
+/**
+ * Get block withdrawals (FUTURE - Ethereum PoS withdrawals)
+ * @param {object} params - Query parameters
+ * @param {string|number} params.blockNumberOrHash - Block number or hash
+ * @param {number} params.items_count - Number of items per page
+ * @returns {Promise} Fetch promise with withdrawals data
+ */
+export const fetchBlockWithdrawals = (params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/stats/avg_block_time`)
+		const { blockNumberOrHash, items_count = 20 } = params
 
-		if (from) url.searchParams.append("from", from)
+		if (!blockNumberOrHash) {
+			throw new Error("blockNumberOrHash is required")
+		}
+
+		const url = new URL(`${useIndexerUrl()}/blocks/${blockNumberOrHash}/withdrawals`)
+
+		url.searchParams.append("items_count", items_count)
 
 		return useFetch(url.href, {
-			key: "avg_block_time",
+			key: `block-withdrawals-${blockNumberOrHash}`,
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch block withdrawals:", error)
+		throw error
 	}
 }
 
-// Block blobs (keeping for compatibility with Celestia-based components)
-export const fetchBlockBlobs = ({ height, limit }) => {
+/**
+ * Get average block time from stats endpoint
+ * This is now part of the stats API
+ * @returns {Promise} Average block time data
+ */
+export const fetchAvgBlockTime = async () => {
 	try {
-		const url = new URL(`${useServerURL()}/block/${height}/blobs`)
+		const url = new URL(`${useIndexerUrl()}/stats`)
+		const data = await $fetch(url.href)
 
-		if (limit) url.searchParams.append("limit", limit)
-
-		return useFetch(url.href, {
-			key: "block_blobs",
-		})
+		return {
+			data: {
+				value: {
+					average_block_time: data.average_block_time,
+				}
+			}
+		}
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch average block time:", error)
+		throw error
 	}
 }

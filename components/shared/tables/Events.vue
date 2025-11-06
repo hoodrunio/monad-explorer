@@ -11,7 +11,7 @@ import { mon, splitAddress } from "@/services/utils"
 
 /** API */
 import { fetchTxEvents } from "@/services/api/tx"
-import { fetchBlockEvents } from "@/services/api/block"
+// Note: fetchBlockEvents removed in new Indexer API - logs are transaction-level only
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -58,17 +58,12 @@ const EventIconMapping = {
 const getEvents = async () => {
 	isLoading.value = true
 
-			try {
+	try {
 		if (props.block) {
-			// For EVM blocks, use number instead of height
-			const blockId = props.block.number || props.block.height
-			const { data } = await fetchBlockEvents({
-				height: blockId,
-				limit: 10,
-				offset: (page.value - 1) * 10,
-			})
-			events.value = data?.value?.data?.logs || []
-			totalEventsCount.value = data?.value?.meta?.totalCount || 0
+			// Logs are only available at transaction level
+			// Block events feature is disabled for now
+			events.value = []
+			totalEventsCount.value = 0
 		} else if (props.tx) {
 			// For EVM transactions, use decodedLogs directly from tx data
 			// instead of making additional API calls
@@ -76,8 +71,10 @@ const getEvents = async () => {
 			const endIndex = startIndex + 10
 			const decodedLogs = props.tx.decodedLogs || []
 			events.value = decodedLogs.slice(startIndex, endIndex)
+			totalEventsCount.value = decodedLogs.length
 		}
 	} catch (error) {
+		console.error("Error loading events:", error)
 		events.value = []
 	}
 
