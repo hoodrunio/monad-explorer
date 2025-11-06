@@ -94,24 +94,81 @@ export const transformBlock = (block) => {
 }
 
 /**
- * Transform transaction response from new API
+ * Transform transaction response from new API to component-compatible format
  * @param {object} tx - Transaction data from API
  * @returns {object} Transformed transaction
  */
 export const transformTransaction = (tx) => {
 	if (!tx) return null
 
+	// New Indexer API structure
 	return {
+		// Keep all original fields
 		...tx,
-		block_number: parseNumericString(tx.block_number) ||
-			parseNumericString(tx.block),
+
+		// Map new API fields to component-expected fields
+		hash: tx.hash,
+		blockNumber: parseNumericString(tx.block_number) || parseNumericString(tx.block) || 0,
+		block_number: parseNumericString(tx.block_number) || parseNumericString(tx.block) || 0,
 		timestamp: tx.timestamp,
-		value: tx.value, // Keep as string for precision
-		gas_used: tx.gas_used, // Keep as string
-		gas_price: tx.gas_price, // Keep as string
-		gas_limit: tx.gas_limit, // Keep as string
-		nonce: parseNumericString(tx.nonce),
-		position: parseNumericString(tx.position),
+
+		// - Original string format: "ok" or "error" (for list views)
+		// - Numeric format: 1 or 0 (for detail views)
+		status: tx.status, // Keep original "ok" or "error" string
+		statusCode: tx.status === "ok" ? 1 : 0, // Numeric version for backwards compatibility
+
+		// From/To addresses - Keep both object and string formats
+		from: tx.from, // Keep original object { hash, is_contract, ... }
+		to: tx.to, // Keep original object
+		fromAddress: tx.from?.hash || tx.from, // String version for backwards compatibility
+		toAddress: tx.to?.hash || tx.to || tx.created_contract?.hash, // String version
+
+		// Contract creation
+		isContractCreation: !!tx.created_contract,
+		isContractInteraction: !!(tx.to && tx.to.is_contract),
+		createdContract: tx.created_contract?.hash,
+
+		// Gas and value (keep as strings for precision)
+		value: tx.value || "0",
+		gasUsed: tx.gas_used || "0",
+		gas: tx.gas_limit || "0", // Map gas_limit to gas for component compatibility
+		gas_used: tx.gas_used || "0",
+		gas_limit: tx.gas_limit || "0",
+		gasPrice: tx.gas_price || "0",
+		gas_price: tx.gas_price || "0",
+		effectiveGasPrice: tx.gas_price || "0", // Same as gas_price in most cases
+
+		// Transaction fee (calculate or use from fee.value)
+		transactionFee: tx.fee?.value || "0",
+		fee: tx.fee?.value || "0",
+
+		// Transaction index/position
+		transactionIndex: parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
+		index: parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
+		position: parseNumericString(tx.position) || 0,
+		nonce: parseNumericString(tx.nonce) || 0,
+
+		// Method information
+		method: tx.method,
+		methodName: tx.method || "Unknown",
+		methodID: tx.raw_input?.slice(0, 10) || null, // First 10 chars (0x + 8 hex)
+
+		// Input data
+		input: tx.raw_input || "0x",
+
+		// Error handling
+		error: tx.revert_reason || null,
+		revertReason: tx.revert_reason || null,
+
+		// Token transfers and logs (already in correct format)
+		tokenTransfers: tx.token_transfers || [],
+		token_transfers: tx.token_transfers || [],
+		decodedLogs: tx.decoded_logs || [],
+		decoded_logs: tx.decoded_logs || [],
+
+		// Type information
+		type: tx.type || 0,
+		transaction_types: tx.transaction_types || [],
 	}
 }
 
@@ -130,6 +187,28 @@ export const transformAddress = (address) => {
 		transactions_count: parseNumericString(address.transactions_count) ||
 			parseNumericString(address.tx_count),
 		token_transfers_count: parseNumericString(address.token_transfers_count),
+	}
+}
+
+/**
+ * Transform log/event response from new API
+ * @param {object} log - Log data from API
+ * @returns {object} Transformed log
+ */
+export const transformLog = (log) => {
+	if (!log) return null
+
+	return {
+		...log,
+		// Map to component-expected fields
+		logIndex: log.index,
+		address: log.address?.hash || log.address,
+		eventSignature: log.decoded?.method_call || null,
+		eventName: log.decoded?.method_call?.split('(')[0] || null,
+		topics: log.topics || [],
+		data: log.data,
+		// Keep original structure for full data access
+		decoded: log.decoded,
 	}
 }
 

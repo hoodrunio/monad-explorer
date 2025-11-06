@@ -14,16 +14,15 @@ import { useTransactionMethods } from "@/composables/useTransactionMethods"
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
-import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 
 const route = useRoute()
 const router = useRouter()
 
 const transactions = ref([])
-const currentPage = ref(parseInt(route.query.page) || 1)
-const pageSize = ref(20)
-const totalTransactions = ref(0)
+const nextPageParams = ref(null)
+const previousPages = ref([])
 const isLoading = ref(false)
+const hasMore = computed(() => nextPageParams.value !== null)
 
 // Transaction method information
 const { batchGetMethodInfo } = useTransactionMethods()
@@ -37,61 +36,43 @@ const formatGasValue = (value) => {
 
 const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
-	// Convert wei to MON (divide by 10^18)
-	const monValue = parseInt(value) / Math.pow(10, 18)
+	const monValue = parseFloat(value) / Math.pow(10, 18)
 	return monValue.toFixed(6)
 }
 
 const getTransactionType = (tx) => {
-	if (tx.isContractCreation) return "Contract Creation"
-	if (tx.isContractInteraction) return "Contract Call"
-	if(tx.toAddress && tx.value !== "0") return "Mon Transfer"
-	if (tx.toAddress) return "Transfer"
+	if (tx.method === "createContract") return "Contract Creation"
+	if (tx.to?.is_contract) return "Contract Call"
+	if (tx.to && tx.value !== "0") return "Mon Transfer"
+	if (tx.to) return "Transfer"
 	return "Unknown"
-}
-
-// MessageTypeBadge için array format
-const getTransactionTypes = (tx) => {
-	return [getTransactionType(tx)]
 }
 
 // Get enhanced method name for a transaction
 const getEnhancedMethodName = (tx) => {
-	if (!tx.methodID) return null
-	
-	const methodInfo = methodInfoMap.value.get(tx.methodID)
-	return methodInfo?.methodName || tx.methodName || null
+	if (!tx.method) return null
+
+	const methodInfo = methodInfoMap.value.get(tx.method)
+	return methodInfo?.methodName || tx.method || null
 }
 
-// Check if transaction can be decoded
-const canDecodeTransaction = (tx) => {
-	if (!tx.methodID) return false
-	
-	const methodInfo = methodInfoMap.value.get(tx.methodID)
-	return methodInfo?.canDecode || false
-}
-
-
-
-const loadTransactions = async (page = 1) => {
+const loadTransactions = async (params = null) => {
 	isLoading.value = true
-	
+
 	try {
-		const { data, error } = await fetchTransactions({
-			limit: pageSize.value,
-			page: page,
-			offset: (page - 1) * pageSize.value
-		})
-		
+		const queryParams = params || { items_count: 20 }
+
+		const { data, error } = await fetchTransactions(queryParams)
+
 		if (error.value) {
+			console.error("Error fetching transactions:", error.value)
 			transactions.value = []
-			totalTransactions.value = 0
+			nextPageParams.value = null
 			methodInfoMap.value.clear()
-		} else if (data.value && data.value.data) {
-			transactions.value = data.value.data.transactions || []
-			totalTransactions.value = data.value.data.pagination?.total || transactions.value.length
-			currentPage.value = page
-			
+		} else if (data.value) {
+			transactions.value = data.value.items || []
+			nextPageParams.value = data.value.next_page_params || null
+
 			// Fetch method information for all transactions
 			if (transactions.value.length > 0) {
 				try {
@@ -103,63 +84,77 @@ const loadTransactions = async (page = 1) => {
 			}
 		} else {
 			transactions.value = []
-			totalTransactions.value = 0
+			nextPageParams.value = null
 			methodInfoMap.value.clear()
 		}
 	} catch (error) {
+		console.error("Failed to load transactions:", error)
 		transactions.value = []
-		totalTransactions.value = 0
+		nextPageParams.value = null
 		methodInfoMap.value.clear()
 	} finally {
 		isLoading.value = false
 	}
 }
 
-const handlePageChange = (page) => {
-	currentPage.value = page
-	router.push({ query: { page } })
-	loadTransactions(page)
-}
+const handleNext = async () => {
+	if (!hasMore.value) return
 
-const handleNext = () => {
-	if (currentPage.value * pageSize.value < totalTransactions.value) {
-		handlePageChange(currentPage.value + 1)
+	// Store current state for back navigation
+	previousPages.value.push({
+		transactions: [...transactions.value],
+		params: nextPageParams.value
+	})
+
+	await loadTransactions(nextPageParams.value)
+
+	// Update URL with cursor
+	if (nextPageParams.value?.block_number) {
+		router.push({ query: { cursor: `${nextPageParams.value.block_number}-${nextPageParams.value.index}` } })
 	}
 }
 
 const handlePrev = () => {
-	if (currentPage.value > 1) {
-		handlePageChange(currentPage.value - 1)
+	if (previousPages.value.length === 0) return
+
+	const previousState = previousPages.value.pop()
+	transactions.value = previousState.transactions
+	nextPageParams.value = previousState.params
+
+	// Update URL
+	const prevCursor = previousPages.value[previousPages.value.length - 1]?.params
+	if (prevCursor) {
+		router.push({ query: { cursor: `${prevCursor.block_number}-${prevCursor.index}` } })
+	} else {
+		router.push({ query: {} })
 	}
 }
 
-const handleFirst = () => {
-	if (currentPage.value > 1) {
-		handlePageChange(1)
-	}
+const handleFirst = async () => {
+	previousPages.value = []
+	await loadTransactions()
+	router.push({ query: {} })
 }
 
-const totalPages = computed(() => {
-	return Math.ceil(totalTransactions.value / pageSize.value)
-})
+const canGoPrev = computed(() => previousPages.value.length > 0)
+const currentPageNumber = computed(() => previousPages.value.length + 1)
 
 // Load transactions on mount
 onMounted(async () => {
 	await nextTick()
-	loadTransactions(currentPage.value)
-})
 
-// Watch for route changes
-watch(() => route.query.page, (newPage) => {
-	const page = parseInt(newPage) || 1
-	if (page !== currentPage.value) {
-		loadTransactions(page)
+	// Check if there's a cursor in URL for deep linking
+	const cursor = route.query.cursor
+	if (cursor) {
+		const [block_number, index] = cursor.split('-')
+		await loadTransactions({
+			items_count: 20,
+			block_number: parseInt(block_number),
+			index: parseInt(index)
+		})
+	} else {
+		await loadTransactions()
 	}
-}, { immediate: true })
-
-// Additional handler for page refresh
-onActivated(() => {
-	loadTransactions(currentPage.value)
 })
 
 useHead({
@@ -173,9 +168,8 @@ useHead({
 	meta: [
 		{
 			name: "description",
-			content: "Browse all transactions on the Monad network. View transaction details, gas usage, token transfers, and more.",
+			content: "Browse all transactions on the Monad network. View transaction details, gas usage, and status.",
 		},
-
 	],
 })
 </script>
@@ -195,13 +189,13 @@ useHead({
 			<Flex direction="column" gap="16">
 				<Flex align="center" justify="between">
 					<Flex align="center" gap="8">
-						<Icon name="tx" size="16" color="primary" />
+						<Icon name="zap" size="16" color="primary" />
 						<Text size="16" weight="600" color="primary">Transactions</Text>
 					</Flex>
-					
+
 					<Flex align="center" gap="8">
 						<Text size="13" weight="600" color="secondary">
-							{{ totalTransactions.toLocaleString() }} total transactions
+							Page {{ currentPageNumber }}
 						</Text>
 					</Flex>
 				</Flex>
@@ -217,13 +211,14 @@ useHead({
 							<thead>
 								<tr>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Hash</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Method</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Block</Text></th>
-									<th><Text size="11" weight="600" color="tertiary" noWrap>Type</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>From</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>To</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Value</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas</Text></th>
-									<th><Text size="11" weight="600" color="tertiary" noWrap>Time</Text></th>
+									<th><Text size="11" weight="600" color="tertiary" noWrap>Status</Text></th>
 								</tr>
 							</thead>
 
@@ -233,14 +228,9 @@ useHead({
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
 												<Outline>
-													<Flex align="center" gap="6">
-														<Icon 
-															:name="(tx.status === 'success' || tx.status === 1) ? 'check' : 'close'" 
-															size="10" 
-															:color="(tx.status === 'success' || tx.status === 1) ? 'green' : 'red'" 
-														/>
-														<Icon name="tx" size="12" color="primary" />
-														<Text size="12" weight="600" color="primary" mono>
+													<Flex align="center" gap="4">
+														<Icon name="zap" size="12" color="primary" />
+														<Text size="12" weight="600" color="primary" tabular>
 															{{ shortHex(tx.hash) }}
 														</Text>
 													</Flex>
@@ -249,71 +239,26 @@ useHead({
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${tx.blockNumber}`">
-											<Flex align="center">
-												<Outline>
-													<Flex align="center" gap="4">
-														<Icon name="block" size="12" color="secondary" />
-														<Text size="12" weight="600" color="primary" tabular>
-															{{ comma(tx.blockNumber) }}
-														</Text>
-													</Flex>
-												</Outline>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center" gap="6">
-												<MessageTypeBadge :types="getTransactionTypes(tx)" compact />
-												<Flex v-if="getEnhancedMethodName(tx)" align="center" gap="4">
-													<Text size="11" weight="500" color="tertiary">
-														{{ getEnhancedMethodName(tx) }}
-													</Text>
-													<Icon v-if="canDecodeTransaction(tx)" name="code" size="10" color="green" />
-												</Flex>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Text size="12" weight="600" color="primary" mono>
-													{{ shortHex(tx.fromAddress) }}
-												</Text>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Text size="12" weight="600" color="primary" mono>
-													{{ tx.toAddress ? shortHex(tx.toAddress) : "—" }}
-												</Text>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
 												<Text size="12" weight="600" color="primary">
-													{{ formatMonValue(tx.value) }} MON
+													{{ getEnhancedMethodName(tx) || tx.method || 'Transfer' }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/block/${tx.block}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary" tabular>
+													{{ comma(tx.block_number || tx.block) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(tx.gasUsed) }}
-												</Text>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
+											<Flex direction="column" gap="4">
 												<Tooltip position="start" delay="500">
 													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
 														<Text size="11" weight="600" color="primary">
@@ -328,6 +273,52 @@ useHead({
 											</Flex>
 										</NuxtLink>
 									</td>
+									<td>
+										<NuxtLink :to="`/address/${tx.from?.hash}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ shortHex(tx.from?.hash) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/address/${tx.to?.hash}`" v-if="tx.to">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ shortHex(tx.to.hash) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+										<Text v-else size="12" weight="600" color="tertiary">Contract Creation</Text>
+									</td>
+									<td>
+										<NuxtLink :to="`/tx/${tx.hash}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ formatMonValue(tx.value) }} MON
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/tx/${tx.hash}`">
+											<Flex align="center">
+												<Text size="12" weight="600" color="primary">
+													{{ formatGasValue(tx.gas_used) }}
+												</Text>
+											</Flex>
+										</NuxtLink>
+									</td>
+									<td>
+										<NuxtLink :to="`/tx/${tx.hash}`">
+											<Flex align="center">
+												<Badge :color="tx.status === 'ok' ? 'green' : 'red'" size="mini">
+													{{ tx.status === 'ok' ? 'Success' : 'Failed' }}
+												</Badge>
+											</Flex>
+										</NuxtLink>
+									</td>
 								</tr>
 							</tbody>
 						</table>
@@ -338,33 +329,31 @@ useHead({
 						<div v-for="tx in transactions" :key="tx.hash" :class="$style.card">
 							<NuxtLink :to="`/tx/${tx.hash}`" :class="$style.card_link">
 								<Flex direction="column" gap="16">
-									<!-- Header with hash and status -->
+									<!-- Header -->
 									<Flex align="center" justify="between">
 										<Flex align="center" gap="8">
-											<Icon 
-												:name="(tx.status === 'success' || tx.status === 1) ? 'check' : 'close'" 
-												size="12" 
-												:color="(tx.status === 'success' || tx.status === 1) ? 'green' : 'red'" 
-											/>
-											<Icon name="tx" size="14" color="primary" />
-											<Text size="13" weight="600" color="primary" mono>
+											<Icon name="zap" size="14" color="primary" />
+											<Text size="13" weight="600" color="primary">
 												{{ shortHex(tx.hash) }}
 											</Text>
 										</Flex>
+										<Badge :color="tx.status === 'ok' ? 'green' : 'red'" size="mini">
+											{{ tx.status === 'ok' ? 'Success' : 'Failed' }}
+										</Badge>
 									</Flex>
 
-									<!-- Transaction details -->
+									<!-- Details -->
 									<Flex direction="column" gap="12">
 										<Flex align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">From</Text>
-											<Text size="12" weight="600" color="primary" mono>
-												{{ shortHex(tx.fromAddress) }}
+											<Text size="12" weight="600" color="tertiary">Block</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ comma(tx.block_number || tx.block) }}
 											</Text>
 										</Flex>
 										<Flex align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">To</Text>
-											<Text size="12" weight="600" color="primary" mono>
-												{{ tx.toAddress ? shortHex(tx.toAddress) : "—" }}
+											<Text size="12" weight="600" color="tertiary">Method</Text>
+											<Text size="12" weight="600" color="primary">
+												{{ getEnhancedMethodName(tx) || tx.method || 'Transfer' }}
 											</Text>
 										</Flex>
 										<Flex align="center" justify="between">
@@ -374,27 +363,10 @@ useHead({
 											</Text>
 										</Flex>
 										<Flex align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">Block</Text>
+											<Text size="12" weight="600" color="tertiary">Gas</Text>
 											<Text size="12" weight="600" color="primary">
-												{{ comma(tx.blockNumber) }}
+												{{ formatGasValue(tx.gas_used) }}
 											</Text>
-										</Flex>
-										<Flex v-if="getEnhancedMethodName(tx)" align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">Method</Text>
-											<Flex align="center" gap="4">
-												<Text size="12" weight="600" color="primary">
-													{{ getEnhancedMethodName(tx) }}
-												</Text>
-												<Icon v-if="canDecodeTransaction(tx)" name="code" size="10" color="green" />
-											</Flex>
-										</Flex>
-										<Flex align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">Time</Text>
-											<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
-												<Text size="12" weight="600" color="primary">
-													{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
-												</Text>
-											</ClientOnlyTime>
 										</Flex>
 									</Flex>
 								</Flex>
@@ -402,23 +374,23 @@ useHead({
 						</div>
 					</div>
 
-					<!-- Pagination -->
-					<Flex v-if="totalPages > 1" align="center" justify="center" gap="8" :class="$style.pagination">
-						<Button @click="handleFirst" type="secondary" size="mini" :disabled="currentPage === 1">
+					<!-- Cursor-based Pagination -->
+					<Flex align="center" justify="center" gap="8" :class="$style.pagination">
+						<Button @click="handleFirst" type="secondary" size="mini" :disabled="!canGoPrev || isLoading">
 							<Icon name="arrow-left-stop" size="12" color="primary" />
 						</Button>
-						
-						<Button @click="handlePrev" type="secondary" size="mini" :disabled="currentPage === 1">
+
+						<Button @click="handlePrev" type="secondary" size="mini" :disabled="!canGoPrev || isLoading">
 							<Icon name="arrow-left" size="12" color="primary" />
 						</Button>
 
 						<Flex align="center" gap="4">
 							<Text size="12" weight="600" color="secondary">
-								Page {{ currentPage }} of {{ totalPages }}
+								Page {{ currentPageNumber }}
 							</Text>
 						</Flex>
 
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="currentPage >= totalPages">
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasMore || isLoading">
 							<Icon name="arrow-right" size="12" color="primary" />
 						</Button>
 					</Flex>
@@ -451,58 +423,58 @@ useHead({
 
 .table {
 	width: 100%;
-	min-width: 1000px; /* Ensure all columns are visible */
+	min-width: 1200px;
 	border-spacing: 0;
-	
+
 	& thead {
 		& tr {
 			& th {
 				text-align: left;
-				padding: 12px 12px 6px 12px;
+				padding: 12px 8px 6px 8px;
 				border-bottom: 1px solid var(--op-5);
-				
+
 				&:first-child {
 					padding-left: 16px;
 				}
-				
+
 				&:last-child {
 					padding-right: 16px;
 				}
-				
+
 				& span {
 					display: flex;
 				}
 			}
 		}
 	}
-	
+
 	& tbody {
 		& tr {
 			cursor: pointer;
 			transition: all 0.05s ease;
-			
+
 			&:hover {
 				background: var(--op-5);
 			}
-			
+
 			&:active {
 				background: var(--op-8);
 			}
 		}
-		
+
 		& td {
-			padding: 6px 12px 6px 12px;
+			padding: 6px 8px 6px 8px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
-			
+
 			&:first-child {
 				padding-left: 16px;
 			}
-			
+
 			&:last-child {
 				padding-right: 16px;
 			}
-			
+
 			& > a {
 				display: flex;
 				align-items: center;
@@ -525,7 +497,7 @@ useHead({
 	border-radius: 8px;
 	background: var(--card-background);
 	transition: all 0.2s ease;
-	
+
 	&:hover {
 		border-color: var(--op-10);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -549,43 +521,33 @@ useHead({
 	border-top: 1px solid var(--op-5);
 }
 
-/* Responsive Breakpoints - Progressive column hiding */
+/* Responsive */
 @media (max-width: 1400px) {
 	.table {
-		min-width: 900px;
-		& thead th:nth-child(3),
-		& tbody td:nth-child(3) {
-			display: none; /* Hide Type column */
+		min-width: 1000px;
+		& thead th:nth-child(8),
+		& tbody td:nth-child(8) {
+			display: none;
 		}
 	}
 }
 
 @media (max-width: 1200px) {
 	.table {
-		min-width: 800px;
+		min-width: 900px;
 		& thead th:nth-child(7),
 		& tbody td:nth-child(7) {
-			display: none; /* Hide Gas column */
+			display: none;
 		}
 	}
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1000px) {
 	.table {
-		min-width: 700px;
-		& thead th:nth-child(2),
-		& tbody td:nth-child(2) {
-			display: none; /* Hide Block column */
-		}
-	}
-}
-
-@media (max-width: 900px) {
-	.table {
-		min-width: 600px;
-		& thead th:nth-child(5),
-		& tbody td:nth-child(5) {
-			display: none; /* Hide To column */
+		min-width: 800px;
+		& thead th:nth-child(6),
+		& tbody td:nth-child(6) {
+			display: none;
 		}
 	}
 }
@@ -594,11 +556,11 @@ useHead({
 	.desktop_table {
 		display: none;
 	}
-	
+
 	.mobile_cards {
 		display: flex;
 	}
-	
+
 	.wrapper {
 		padding: 20px 16px 60px 16px;
 	}
@@ -609,4 +571,4 @@ useHead({
 		padding: 32px 12px;
 	}
 }
-</style> 
+</style>

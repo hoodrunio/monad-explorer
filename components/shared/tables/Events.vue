@@ -10,8 +10,8 @@ import Button from "@/components/ui/Button.vue"
 import { mon, splitAddress } from "@/services/utils"
 
 /** API */
-import { fetchTxEvents } from "@/services/api/tx"
-// Note: fetchBlockEvents removed in new Indexer API - logs are transaction-level only
+// Note: Events/logs are now accessed directly from transaction data
+// No separate API calls needed for new Indexer API
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"

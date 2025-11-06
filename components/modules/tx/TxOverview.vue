@@ -41,7 +41,7 @@ const preselectedTab = route.query.tab && ["transfers", "internal", "logs"].incl
 const activeTab = ref(preselectedTab)
 
 // Use data directly from tx prop since API already includes everything
-const tokenTransfers = computed(() => props.tx?.tokenTransfers || [])
+const tokenTransfers = computed(() => props.tx?.tokenTransfers || props.tx?.token_transfers || [])
 const internalTransactions = computed(() => props.tx?.internalTransactions || [])
 
 // Transaction method information
@@ -202,12 +202,12 @@ const handleDecodeInput = () => {
 
 							<Flex align="center" gap="6">
 								<Icon
-									:name="tx.status === 1 ? 'check-circle' : 'close-circle'"
+									:name="(tx.status === 'ok' || tx.status === 1) ? 'check-circle' : 'close-circle'"
 									size="14"
-									:color="tx.status === 1 ? 'green' : 'red'"
+									:color="(tx.status === 'ok' || tx.status === 1) ? 'green' : 'red'"
 								/>
 								<Text size="13" weight="600" color="primary" style="text-transform: capitalize">
-									{{ tx.status === 1 ? "Success" : "Failed" }}
+									{{ (tx.status === 'ok' || tx.status === 1) ? "Success" : "Failed" }}
 								</Text>
 							</Flex>
 						</Flex>
@@ -405,19 +405,19 @@ const handleDecodeInput = () => {
 						<div v-for="transfer in tokenTransfers" :class="$style.transfer_item">
 							<Flex align="center" justify="between" wide>
 								<Flex direction="column" gap="4">
-									<Text size="12" weight="600" color="secondary">{{ transfer.tokenType }} Transfer</Text>
+									<Text size="12" weight="600" color="secondary">{{ transfer.token?.type || 'Token' }} Transfer</Text>
 									<Flex align="center" gap="8">
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.fromAddress) }}</Text>
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.from?.hash || transfer.from) }}</Text>
 										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.toAddress) }}</Text>
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.to?.hash || transfer.to) }}</Text>
 									</Flex>
 								</Flex>
 								<Flex direction="column" gap="4" align="end">
 									<Flex align="center" gap="4">
-										<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.value, 6) }}</Text>
-										<Text size="13" weight="600" color="brand">{{ transfer.tokenMetadata?.symbol }}</Text>
+										<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.total?.value || transfer.value, 6) }}</Text>
+										<Text size="13" weight="600" color="brand">{{ transfer.token?.symbol }}</Text>
 									</Flex>
-									<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.tokenAddress) }}</Text>
+									<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.token?.address_hash) }}</Text>
 								</Flex>
 							</Flex>
 						</div>
@@ -433,16 +433,16 @@ const handleDecodeInput = () => {
 						<div v-for="internal in internalTransactions" :class="$style.transfer_item">
 							<Flex align="center" justify="between" wide>
 								<Flex direction="column" gap="4">
-									<Text size="12" weight="600" color="secondary">{{ internal.type }}</Text>
+									<Text size="12" weight="600" color="secondary">{{ internal.type || 'CALL' }}</Text>
 									<Flex align="center" gap="8">
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.fromAddress) }}</Text>
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.from?.hash || internal.from) }}</Text>
 										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.toAddress) }}</Text>
+										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.to?.hash || internal.to) }}</Text>
 									</Flex>
 								</Flex>
 								<Flex direction="column" gap="4" align="end">
 									<Text size="13" weight="600" color="primary">{{ formatMonValue(internal.value, 18) }} MON</Text>
-									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gasUsed) }}</Text>
+									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gas_limit || internal.gas) }}</Text>
 								</Flex>
 							</Flex>
 						</div>

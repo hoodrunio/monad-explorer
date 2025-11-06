@@ -3,10 +3,11 @@
 import TxOverview from "@/components/modules/tx/TxOverview.vue"
 
 /** API */
-import { fetchTxByHash } from "@/services/api/tx"
+import { fetchTxByHash, fetchTxInternalTransactions, fetchTxLogs } from "@/services/api/tx"
 
 /** Services */
 import { shortHex } from "@/services/utils"
+import { transformLog } from "@/services/utils/transforms"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -30,15 +31,31 @@ const {
 			throw new Error("Invalid transaction hash format")
 		}
 
-		const { data: rawTransaction } = await fetchTxByHash(txHash)
+		// Fetch transaction details and related data in parallel
+		const [
+			{ data: rawTransaction },
+			{ data: internalTxs },
+			{ data: logs }
+		] = await Promise.all([
+			fetchTxByHash(txHash),
+			fetchTxInternalTransactions(txHash, { items_count: 50 }),
+			fetchTxLogs(txHash, { items_count: 50 })
+		])
 
-		// API response structure: { success: true, data: { ...transaction }, meta: {...} }
-		if (!rawTransaction.value?.data) {
+		// New Indexer API returns transaction directly (already transformed)
+		if (!rawTransaction.value) {
 			throw new Error("Transaction not found")
 		}
 
+		// Combine all data and transform logs
+		const txData = {
+			...rawTransaction.value,
+			internalTransactions: internalTxs.value?.items || [],
+			decodedLogs: (logs.value?.items || []).map(transformLog),
+		}
+
 		return {
-			transaction: rawTransaction.value.data,
+			transaction: txData,
 		}
 	} catch (err) {
 		if (err.message === "Transaction not found" || err.message === "Invalid transaction hash format") {
