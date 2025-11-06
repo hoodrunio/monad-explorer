@@ -229,8 +229,8 @@ const getTransactions = async (params = null) => {
 			gas_wanted: tx.gas_limit || tx.gas_used,
 			fee: tx.fee?.value || "0",
 			method: tx.method,
-			// For EVM, derive message types from transaction data
-			message_types: tx.method ? [tx.method] : ["Transfer"],
+			// Use transaction_types from API
+			transaction_types: tx.transaction_types || [],
 		}))
 
 		cacheStore.current.transactions = transactions.value

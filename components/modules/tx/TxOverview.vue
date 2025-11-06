@@ -591,7 +591,7 @@ const handleDecodeInput = () => {
 	padding: 16px;
 }
 
-.message_types {
+.transaction_types {
 	width: fit-content;
 
 	border-radius: 50px;
