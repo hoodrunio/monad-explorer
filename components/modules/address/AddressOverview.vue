@@ -6,10 +6,8 @@ import Checkbox from "@/components/ui/Checkbox.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import Input from "@/components/ui/Input.vue"
 import Popover from "@/components/ui/Popover.vue"
-import Toggle from "@/components/ui/Toggle.vue"
 
 /** Components */
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
 import TransactionsTable from "./tables/TransactionsTable.vue"
 
 /** Services */
@@ -20,7 +18,6 @@ import {
 	fetchAddressTransactionsClient,
 	fetchAddressBalanceClient,
 	fetchAddressStatsClient,
-	fetchAddressTokenTransfers,
 } from "@/services/api/address"
 
 /** Store */
@@ -133,14 +130,14 @@ const onSort = (by) => {
 }
 
 /** Filters */
-const msgTypes = computed(() => enumStore.enums.messageTypes.sort())
+const transactionTypes = computed(() => enumStore.enums.transaction_types || [])
 
 const filters = reactive({
 	status: {
 		success: false,
 		failed: false,
 	},
-	message_type: msgTypes.value?.reduce((a, b) => ({ ...a, [b]: false }), {}),
+	transaction_types: transactionTypes.value?.reduce((a, b) => ({ ...a, [b]: false }), {}),
 })
 const hasActiveFilters = computed(() => {
 	let has = false
@@ -148,8 +145,8 @@ const hasActiveFilters = computed(() => {
 	Object.keys(filters.status).forEach((s) => {
 		if (filters.status[s]) has = true
 	})
-	Object.keys(filters.message_type).forEach((t) => {
-		if (filters.message_type[t]) has = true
+	Object.keys(filters.transaction_types).forEach((t) => {
+		if (filters.transaction_types[t]) has = true
 	})
 
 	return has
@@ -161,8 +158,8 @@ const handleClearAllFilters = () => {
 		filters.status[f] = false
 	})
 
-	Object.keys(filters.message_type).forEach((f) => {
-		filters.message_type[f] = false
+	Object.keys(filters.transaction_types).forEach((f) => {
+		filters.transaction_types[f] = false
 	})
 
 	router.replace({
@@ -203,10 +200,10 @@ const updateRouteQuery = () => {
 				Object.keys(filters.status)
 					.filter((f) => filters.status[f])
 					.join(","),
-			message_type:
-				Object.keys(filters.message_type).find((f) => filters.message_type[f]) &&
-				Object.keys(filters.message_type)
-					.filter((f) => filters.message_type[f])
+			transaction_types:
+				Object.keys(filters.transaction_types).find((f) => filters.transaction_types[f]) &&
+				Object.keys(filters.transaction_types)
+					.filter((f) => filters.transaction_types[f])
 					.join(","),
 		},
 	})
@@ -243,8 +240,8 @@ const isMessageTypePopoverOpen = ref(false)
 const handleOpenMessageTypePopover = () => {
 	isMessageTypePopoverOpen.value = true
 
-	if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
-		savedFiltersBeforeChanges.value = { ...filters.message_type }
+	if (Object.keys(filters.transaction_types).find((f) => filters.transaction_types[f])) {
+		savedFiltersBeforeChanges.value = { ...filters.transaction_types }
 	}
 }
 const onMessageTypePopoverClose = () => {
@@ -253,10 +250,10 @@ const onMessageTypePopoverClose = () => {
 	searchTerm.value = ""
 
 	if (savedFiltersBeforeChanges.value) {
-		filters.message_type = savedFiltersBeforeChanges.value
+		filters.transaction_types = savedFiltersBeforeChanges.value
 		savedFiltersBeforeChanges.value = null
 	} else {
-		resetFilters("message_type")
+		resetFilters("transaction_types")
 	}
 }
 const handleApplyMessageTypeFilters = () => {
@@ -302,13 +299,12 @@ const getTransactions = async (params = null) => {
 				})
 			}
 
-			// Apply message type filters (map EVM transaction types to message types)
-			if (Object.keys(filters.message_type).find((f) => filters.message_type[f])) {
-				const activeTypes = Object.keys(filters.message_type).filter((f) => filters.message_type[f])
+			// Apply transaction type filters (using API's transaction_types array)
+			if (Object.keys(filters.transaction_types).find((f) => filters.transaction_types[f])) {
+				const activeTypes = Object.keys(filters.transaction_types).filter((f) => filters.transaction_types[f])
 				txs = txs.filter((tx) => {
-					const txType = tx.isContractCreation ? "contract_creation" :
-								   tx.isContractInteraction ? "contract_call" : "transfer"
-					return activeTypes.includes(txType)
+					// Check if any of the tx's transaction_types match active filters
+					return tx.transaction_types?.some(type => activeTypes.includes(type))
 				})
 			}
 
@@ -319,8 +315,8 @@ const getTransactions = async (params = null) => {
 				gas_used: tx.gas_used || tx.gasUsed,
 				gas_wanted: tx.gas_limit || tx.gas,
 				fee: tx.fee || tx.transactionFee || "0",
-				message_types: tx.isContractCreation ? ["Contract Creation"] :
-							   tx.isContractInteraction ? ["Contract Call"] : ["Transfer"],
+				// Keep transaction_types from API
+				transaction_types: tx.transaction_types || [],
 				time: tx.timestamp,
 				height: tx.block_number || tx.blockNumber,
 			}))
@@ -417,11 +413,7 @@ onMounted(async () => {
 	])
 })
 
-watch(page, () => {
-	if (activeTab.value === "transactions") {
-		getTransactions()
-	}
-})
+// Removed page watcher - using cursor pagination now
 
 // Modal handlers
 const handleSend = () => {
@@ -627,28 +619,28 @@ const handleViewRawAddress = () => {
 								:disabled="!transactions.length && !hasActiveFilters"
 							>
 								<Icon name="plus-circle" size="12" color="tertiary" />
-								<Text color="secondary">Message Type</Text>
+								<Text color="secondary">Transaction Type</Text>
 
-								<template v-if="Object.keys(filters.message_type).find((f) => filters.message_type[f])">
+								<template v-if="Object.keys(filters.transaction_types).find((f) => filters.transaction_types[f])">
 									<div :class="$style.vertical_divider" />
 
 									<Text size="12" weight="600" color="primary">
 										{{
-											Object.keys(filters.message_type).filter((f) => filters.message_type[f]).length < 3
-												? Object.keys(filters.message_type)
-														.filter((f) => filters.message_type[f])
-														.map((f) => f.replace("Msg", ""))
+											Object.keys(filters.transaction_types).filter((f) => filters.transaction_types[f]).length < 3
+												? Object.keys(filters.transaction_types)
+														.filter((f) => filters.transaction_types[f])
+														.map((f) => f.replace(/_/g, " "))
 														.join(", ")
-												: `${Object.keys(filters.message_type)
-														.filter((f) => filters.message_type[f])[0]
-														.replace("Msg", "")} and ${
-														Object.keys(filters.message_type).filter((f) => filters.message_type[f]).length - 1
+												: `${Object.keys(filters.transaction_types)
+														.filter((f) => filters.transaction_types[f])[0]
+														.replace(/_/g, " ")} and ${
+														Object.keys(filters.transaction_types).filter((f) => filters.transaction_types[f]).length - 1
 												  } more`
 										}}
 									</Text>
 
 									<Icon
-										@click.stop="resetFilters('message_type', true)"
+										@click.stop="resetFilters('transaction_types', true)"
 										name="close-circle"
 										size="12"
 										color="secondary"
@@ -658,25 +650,25 @@ const handleViewRawAddress = () => {
 
 							<template #content>
 								<Flex direction="column" gap="12">
-									<Text size="12" weight="500" color="secondary">Filter by Message Type</Text>
+									<Text size="12" weight="500" color="secondary">Filter by Transaction Type</Text>
 
 									<Input v-model="searchTerm" size="small" placeholder="Search" autofocus />
 
-									<Flex direction="column" gap="8" :class="$style.message_types_list">
+									<Flex direction="column" gap="8" :class="$style.transaction_types_list">
 										<template
 											v-if="
-												Object.keys(filters.message_type).filter((t) =>
+												Object.keys(filters.transaction_types).filter((t) =>
 													t.toLowerCase().includes(searchTerm.trim().toLowerCase()),
 												).length
 											"
 										>
 											<Checkbox
-												v-for="msg_type in Object.keys(filters.message_type).filter((t) =>
+												v-for="tx_type in Object.keys(filters.transaction_types).filter((t) =>
 													t.toLowerCase().includes(searchTerm.trim().toLowerCase()),
 												)"
-												v-model="filters.message_type[msg_type]"
+												v-model="filters.transaction_types[tx_type]"
 											>
-												<Text size="12" weight="500" color="primary">{{ msg_type.replace("Msg", "") }}</Text>
+												<Text size="12" weight="500" color="primary">{{ tx_type.replace(/_/g, " ") }}</Text>
 											</Checkbox>
 										</template>
 										<Flex v-else direction="column" gap="8">
@@ -719,7 +711,7 @@ const handleViewRawAddress = () => {
 							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
 								<Text size="13" weight="600" color="secondary" align="center"> No transactions </Text>
 								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-									This address did not signed any {{ page === 1 ? "" : "more" }} transactions
+									This address has no transactions
 								</Text>
 							</Flex>
 						</template>
@@ -728,18 +720,15 @@ const handleViewRawAddress = () => {
 					<!-- Pagination -->
 					<Flex align="center" justify="between">
 						<Flex align="center" gap="6" :class="$style.pagination">
-							<Button @click="page = 1" type="secondary" size="mini" :disabled="page === 1">
-								<Icon name="arrow-left-stop" size="12" color="primary" />
-							</Button>
-							<Button type="secondary" @click="handlePrev" size="mini" :disabled="page === 1">
+							<Button type="secondary" @click="handlePrev" size="mini" :disabled="previousPages.length === 0">
 								<Icon name="arrow-left" size="12" color="primary" />
 							</Button>
 
 							<Button type="secondary" size="mini" disabled>
-								<Text size="12" weight="600" color="primary">Page {{ page }}</Text>
+								<Text size="12" weight="600" color="primary">Page {{ previousPages.length + 1 }}</Text>
 							</Button>
 
-							<Button @click="handleNext" type="secondary" size="mini" :disabled="handleNextCondition">
+							<Button @click="handleNext" type="secondary" size="mini" :disabled="!nextPageParams">
 								<Icon name="arrow-right" size="12" color="primary" />
 							</Button>
 						</Flex>
@@ -814,7 +803,7 @@ const handleViewRawAddress = () => {
 	min-width: 0;
 }
 
-.message_types_list {
+.transaction_types_list {
 	height: 200px;
 
 	overflow-y: auto;
