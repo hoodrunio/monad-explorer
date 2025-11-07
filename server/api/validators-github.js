@@ -99,7 +99,7 @@ function delay(ms) {
 async function fetchValidatorData() {
   try {
     
-    // Get the contents of testnet-2 directory
+    // Get the contents of testnet directory
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${VALIDATOR_INFO_REPO}/contents/${TESTNET_FOLDER}`,
       { headers: getGithubHeaders() }

@@ -1,16 +1,16 @@
 // Monad Network Configuration
 export const monadTestnet = {
-	id: 30143, // Monad Testnet-2 Chain ID
-	name: 'Monad Testnet-2',
-	network: 'monad-testnet-2',
+	id: 10143, // Monad Testnet-1 Chain ID
+	name: 'Monad Testnet-1',
+	network: 'monad-testnet-1',
 	nativeCurrency: {
 		decimals: 18,
 		name: 'MON',
 		symbol: 'MON',
 	},
 	rpcUrls: {
-		public: { http: ['https://rpc-testnet-2.monadinfra.com'] },
-		default: { http: ['https://rpc-testnet-2.monadinfra.com'] },
+		public: { http: ['https://rpc-testnet.monadinfra.com'] },
+		default: { http: ['https://rpc-testnet.monadinfra.com'] },
 	},
 	blockExplorers: {
 		default: { name: 'MonadScan', url: 'https://monad.hoodscan.io' },
