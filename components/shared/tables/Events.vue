@@ -869,9 +869,8 @@ watch(
 			</Flex>
 
 			<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
-				<Text size="13" weight="600" color="secondary" align="center"> No events </Text>
 				<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-					This block does not contain any events
+					Events are transaction-based. You can view events for each transaction separately on the transaction details page.
 				</Text>
 			</Flex>
 		</Flex>
