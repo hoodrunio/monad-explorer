@@ -228,7 +228,8 @@ const periodSuffix = computed(() => period.value === 'daily' ? 'TXs/7d' : 'TXs/1
 									<Text color="primary">{{ item.daysIncluded }}/7</Text>
 								</Flex>
 
-								<Flex justify="between" align="center" gap="8">
+								<!-- blockCount not available in new API -->
+								<Flex v-if="item.blockCount" justify="between" align="center" gap="8">
 									<Text color="secondary">Blocks</Text>
 									<Text color="primary">{{ comma(item.blockCount) }}</Text>
 								</Flex>

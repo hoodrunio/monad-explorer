@@ -39,12 +39,16 @@ const processGasData = () => {
 	}
 
 	// Process daily gas data for the last 7 days
+	// Note: New API returns market data, not gas-specific history
+	// averageGasPrice will be "0" for all entries until dedicated gas history endpoint is available
 	const processedData = props.gasHistory
 		.slice(0, 7)
 		.map(item => ({
 			date: DateTime.fromISO(item.date),
-			value: item.averageGasPrice !== "0" ? convertFromWei(item.averageGasPrice, 9) : 0,
-			transactionCount: item.transactionCount
+			value: item.averageGasPrice && item.averageGasPrice !== "0"
+				? convertFromWei(item.averageGasPrice, 9)
+				: 0,
+			transactionCount: item.transactionCount || 0
 		}))
 	seriesData.value = processedData
 	
@@ -83,9 +87,13 @@ const getDayData = (dayOffset) => {
 		<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 			<Text size="13" weight="600" color="secondary">Loading gas price heatmap...</Text>
 		</Flex>
-		
-		<Flex v-else-if="!gasHistory.length" align="center" justify="center" :class="$style.no_data">
-			<Text size="13" weight="600" color="tertiary">No gas price data available</Text>
+
+		<Flex v-else-if="!gasHistory.length || !seriesData.length || maxValue === 0" align="center" justify="center" :class="$style.no_data">
+			<Flex direction="column" align="center" gap="8">
+				<Icon name="chart" size="24" color="tertiary" />
+				<Text size="13" weight="600" color="tertiary">Gas price heatmap not available</Text>
+				<Text size="11" weight="500" color="support">Historical gas data endpoint is not yet available in the new API</Text>
+			</Flex>
 		</Flex>
 		
 		<div v-else :class="$style.heatmap">

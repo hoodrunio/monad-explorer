@@ -46,12 +46,13 @@ const fetchGasData = async () => {
 		// Process current gas prices
 		if (currentData?.success && currentData?.data?.recommendations) {
 			const recommendations = currentData.data.recommendations
+			// New API already returns values in gwei (as strings), no conversion needed
 			const newGasPrice = {
-				fast: convertFromWei(recommendations.fast, 9), // gwei
-				median: convertFromWei(recommendations.standard, 9),
-				slow: convertFromWei(recommendations.slow, 9),
+				fast: parseFloat(recommendations.fast),
+				median: parseFloat(recommendations.standard),
+				slow: parseFloat(recommendations.slow),
 			}
-			
+
 			// Only update if values actually changed to prevent unnecessary re-renders
 			if (JSON.stringify(gasPrice.value) !== JSON.stringify(newGasPrice)) {
 				gasPrice.value = newGasPrice
