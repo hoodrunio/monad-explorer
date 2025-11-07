@@ -1,58 +1,35 @@
 <template>
 	<div :class="$style.wrapper">
-		<div :class="$style.chips">
-			<button
-				v-for="filter in filters"
-				:key="filter.id"
-				:class="[$style.chip, { [$style.active]: isActive(filter.id) }]"
-				@click="toggleFilter(filter.id)"
-			>
-				<Icon :name="filter.icon" size="10" :class="$style.icon" />
-				<span :class="$style.label">{{ filter.label }}</span>
-			</button>
-		</div>
+		<!-- Advanced Filters Button -->
+		<button :class="$style.advanced_button" @click="$emit('openModal')">
+			<Icon name="grid" size="12" :class="$style.icon" />
+			<span :class="$style.label">Advanced Filters</span>
+			<span v-if="activeFilterCount > 0" :class="$style.badge">
+				{{ activeFilterCount }}
+			</span>
+		</button>
 
-		<button v-if="activeFilters.length > 0" :class="$style.clear" @click="clearFilters">
+		<!-- Clear All Button -->
+		<button v-if="hasActiveFilters" :class="$style.clear" @click="$emit('clearAll')">
 			<Icon name="close" size="12" :class="$style.clearIcon" />
-			<span>Clear</span>
+			<span>Clear All</span>
 		</button>
 	</div>
 </template>
 
 <script setup>
-const emit = defineEmits(["update:filters"])
+defineProps({
+	activeFilterCount: {
+		type: Number,
+		default: 0,
+	},
+	hasActiveFilters: {
+		type: Boolean,
+		default: false,
+	},
+})
 
-const filters = [
-	{ id: "transfers", label: "Transfers", icon: "coins" },
-	{ id: "contract-calls", label: "Contract Calls", icon: "zap" },
-	{ id: "high-value", label: ">1 MON", icon: "coin" },
-	{ id: "failed", label: "Failed", icon: "danger" },
-]
-
-const activeFilters = ref([])
-
-const isActive = (filterId) => {
-	return activeFilters.value.includes(filterId)
-}
-
-const toggleFilter = (filterId) => {
-	const index = activeFilters.value.indexOf(filterId)
-
-	if (index > -1) {
-		// Remove filter
-		activeFilters.value.splice(index, 1)
-	} else {
-		// Add filter
-		activeFilters.value.push(filterId)
-	}
-
-	emit("update:filters", activeFilters.value)
-}
-
-const clearFilters = () => {
-	activeFilters.value = []
-	emit("update:filters", [])
-}
+defineEmits(['openModal', 'clearAll'])
 </script>
 
 <style module>
@@ -69,43 +46,40 @@ const clearFilters = () => {
 	display: none;
 }
 
-.chips {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
-.chip {
+.advanced_button {
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	padding: 6px 14px;
-	border-radius: 50px;
-	background: var(--filter-chip-bg);
-	border: 1px solid var(--filter-chip-border);
-	color: var(--txt-secondary);
-	font-size: 12px;
+	gap: 8px;
+	padding: 8px 16px;
+	border-radius: 8px;
+	background: var(--brand);
+	border: 1px solid var(--brand);
+	color: var(--txt-white);
+	font-size: 13px;
 	font-weight: 600;
 	transition: all 0.2s ease;
 	cursor: pointer;
 	white-space: nowrap;
+	position: relative;
 }
 
-.chip:hover {
-	background: var(--op-08);
-	border-color: var(--op-15);
-	color: var(--txt-primary);
+.advanced_button:hover {
+	opacity: 0.9;
+	transform: translateY(-1px);
 }
 
-.chip.active {
-	background: var(--filter-chip-bg-active);
-	border-color: var(--filter-chip-border-active);
-	color: var(--txt-primary);
-}
-
-.chip.active:hover {
-	background: var(--filter-chip-bg-active);
-	border-color: var(--brand);
+.badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 50px;
+	background: var(--txt-white);
+	color: var(--brand);
+	font-size: 11px;
+	font-weight: 700;
 }
 
 .icon {

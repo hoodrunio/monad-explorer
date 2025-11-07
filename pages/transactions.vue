@@ -6,11 +6,12 @@ import { DateTime } from "luxon"
 import { comma, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchTransactions } from "@/services/api/tx"
+import { fetchTransactions, fetchAdvancedFilters } from "@/services/api/tx"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
 import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
+import { useAdvancedFilters } from "@/composables/useAdvancedFilters"
 
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
@@ -18,6 +19,7 @@ import Button from "@/components/ui/Button.vue"
 import MethodChip from "@/components/ui/MethodChip.vue"
 import FilterChipsBar from "@/components/FilterChipsBar.vue"
 import BackgroundPattern from "@/components/BackgroundPattern.vue"
+import AdvancedFilterModal from "@/components/AdvancedFilterModal.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -35,13 +37,45 @@ const methodInfoMap = ref(new Map())
 // USD Conversion
 const { convertToUsd, isPriceAvailable } = useMonUsdConverter()
 
-// Active filters
-const activeFilters = ref([])
+// Advanced Filters
+const {
+	filters,
+	transactionTypes,
+	parseUrlFilters,
+	toApiParams,
+	updateUrl,
+	resetFilters,
+	hasActiveFilters,
+	activeFilterCount,
+} = useAdvancedFilters()
 
-const handleFiltersUpdate = (filters) => {
-	activeFilters.value = filters
-	// In a real implementation, you would apply these filters to the API call
-	// For now, we'll just store them as the API needs to support filtering
+const showFilterModal = ref(false)
+
+const openFilterModal = () => {
+	showFilterModal.value = true
+}
+
+const closeFilterModal = () => {
+	showFilterModal.value = false
+}
+
+const applyFilters = (newFilters) => {
+	// Update filter state
+	Object.assign(filters, newFilters)
+
+	// Update URL
+	updateUrl()
+
+	// Reload transactions with filters
+	previousPages.value = []
+	loadTransactions()
+}
+
+const clearAllFilters = () => {
+	resetFilters()
+	updateUrl()
+	previousPages.value = []
+	loadTransactions()
 }
 
 // EVM transaction helper functions
@@ -72,37 +106,74 @@ const getEnhancedMethodName = (tx) => {
 	return methodInfo?.methodName || tx.method || null
 }
 
-const loadTransactions = async (params = null) => {
+const loadTransactions = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
-		const queryParams = params || { items_count: 20 }
+		// Use advanced filters if any are active
+		if (hasActiveFilters.value) {
+			const apiParams = {
+				...toApiParams(),
+				...paginationParams,
+			}
 
-		const { data, error } = await fetchTransactions(queryParams)
+			const { data, error } = await fetchAdvancedFilters(apiParams)
 
-		if (error.value) {
-			transactions.value = []
-			nextPageParams.value = null
-			methodInfoMap.value.clear()
-		} else if (data.value) {
-			transactions.value = data.value.items || []
-			nextPageParams.value = data.value.next_page_params || null
+			if (error.value) {
+				console.error("Error fetching filtered transactions:", error.value)
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			} else if (data.value) {
+				transactions.value = data.value.items || []
+				nextPageParams.value = data.value.next_page_params || null
 
-			// Fetch method information for all transactions
-			if (transactions.value.length > 0) {
-				try {
-					const methodInfo = await batchGetMethodInfo(transactions.value)
-					methodInfoMap.value = methodInfo
-				} catch (methodError) {
-					// Failed to fetch method information
+				// Fetch method information for all transactions
+				if (transactions.value.length > 0) {
+					try {
+						const methodInfo = await batchGetMethodInfo(transactions.value)
+						methodInfoMap.value = methodInfo
+					} catch (methodError) {
+						console.warn('Failed to fetch method information:', methodError)
+					}
 				}
+			} else {
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
 			}
 		} else {
-			transactions.value = []
-			nextPageParams.value = null
-			methodInfoMap.value.clear()
+			// No filters - use regular transaction endpoint
+			const queryParams = paginationParams || { items_count: 20 }
+
+			const { data, error } = await fetchTransactions(queryParams)
+
+			if (error.value) {
+				console.error("Error fetching transactions:", error.value)
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			} else if (data.value) {
+				transactions.value = data.value.items || []
+				nextPageParams.value = data.value.next_page_params || null
+
+				// Fetch method information for all transactions
+				if (transactions.value.length > 0) {
+					try {
+						const methodInfo = await batchGetMethodInfo(transactions.value)
+						methodInfoMap.value = methodInfo
+					} catch (methodError) {
+						console.warn('Failed to fetch method information:', methodError)
+					}
+				}
+			} else {
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			}
 		}
 	} catch (error) {
+		console.error("Failed to load transactions:", error)
 		transactions.value = []
 		nextPageParams.value = null
 		methodInfoMap.value.clear()
@@ -157,12 +228,14 @@ const currentPageNumber = computed(() => previousPages.value.length + 1)
 onMounted(async () => {
 	await nextTick()
 
+	// Parse filters from URL
+	parseUrlFilters()
+
 	// Check if there's a cursor in URL for deep linking
 	const cursor = route.query.cursor
 	if (cursor) {
 		const [block_number, index] = cursor.split('-')
 		await loadTransactions({
-			items_count: 20,
 			block_number: parseInt(block_number),
 			index: parseInt(index)
 		})
@@ -217,7 +290,21 @@ useHead({
 				</Flex>
 
 				<!-- Filter Chips Bar -->
-				<FilterChipsBar @update:filters="handleFiltersUpdate" />
+				<FilterChipsBar
+					:active-filter-count="activeFilterCount"
+					:has-active-filters="hasActiveFilters"
+					@open-modal="openFilterModal"
+					@clear-all="clearAllFilters"
+				/>
+
+				<!-- Advanced Filter Modal -->
+				<AdvancedFilterModal
+					:show="showFilterModal"
+					:filters="filters"
+					:transaction-types="transactionTypes"
+					@close="closeFilterModal"
+					@apply="applyFilters"
+				/>
 
 				<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 					<Text size="13" weight="600" color="secondary">Loading transactions...</Text>

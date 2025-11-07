@@ -274,3 +274,84 @@ export const fetchTxsCount = async () => {
 		throw error
 	}
 }
+
+/**
+ * Get filtered transactions using advanced filters endpoint
+ * @param {object} params - Advanced filter parameters
+ * @param {string} params.transaction_types - Comma-separated list: coin_transfer,ERC-20,ERC-404,ERC-721,ERC-1155
+ * @param {string} params.methods - Comma-separated 4-byte signatures like 0xa0712d68
+ * @param {string} params.age_from - Timestamp in ISO 8601 format
+ * @param {string} params.age_to - Timestamp in ISO 8601 format
+ * @param {string} params.from_address_hashes_to_include - Comma-separated addresses
+ * @param {string} params.from_address_hashes_to_exclude - Comma-separated addresses
+ * @param {string} params.to_address_hashes_to_include - Comma-separated addresses
+ * @param {string} params.to_address_hashes_to_exclude - Comma-separated addresses
+ * @param {string} params.address_relation - 'or' | 'and'
+ * @param {number} params.amount_from - Minimum amount (float)
+ * @param {number} params.amount_to - Maximum amount (float)
+ * @param {string} params.token_contract_address_hashes_to_include - Comma-separated token addresses
+ * @param {string} params.token_contract_address_hashes_to_exclude - Comma-separated token addresses
+ * @param {number} params.block_number - Block number for pagination
+ * @param {number} params.transaction_index - Transaction index for pagination
+ * @param {number} params.internal_transaction_index - Internal transaction index for pagination
+ * @param {number} params.token_transfer_index - Token transfer index for pagination
+ * @returns {Promise} Fetch promise with filtered transactions
+ */
+export const fetchAdvancedFilters = (params = {}) => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/advanced-filters`)
+
+		// Add all provided parameters to URL
+		Object.entries(params).forEach(([key, value]) => {
+			if (value !== null && value !== undefined && value !== '') {
+				url.searchParams.append(key, value)
+			}
+		})
+
+		// Create a unique key for caching based on filter params
+		const filterKey = Object.entries(params)
+			.filter(([_, value]) => value !== null && value !== undefined && value !== '')
+			.map(([key, value]) => `${key}:${value}`)
+			.join('_')
+
+		return useFetch(url.href, {
+			key: `advanced-filters-${filterKey || 'all'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items.map(transformTransaction),
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
+		})
+	} catch (error) {
+		console.error('Failed to fetch advanced filters:', error)
+		throw error
+	}
+}
+
+/**
+ * Get available transaction methods for filtering
+ * @returns {Promise} List of methods with method_id and name
+ */
+export const fetchFilterMethods = async () => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/advanced-filters/methods`)
+		const data = await $fetch(url.href)
+
+		return {
+			data: {
+				value: Array.isArray(data) ? data : []
+			}
+		}
+	} catch (error) {
+		console.error('Failed to fetch filter methods:', error)
+		return {
+			data: {
+				value: []
+			}
+		}
+	}
+}
