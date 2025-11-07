@@ -1,12 +1,13 @@
 /**
  * Address Internal Transactions API Endpoint
  * GET /api/addresses/:address/internal-transactions
- * 
- * Trace internal calls (value transfers, delegate calls, etc.) touching the address.
- * Traces are generated on demand.
+ *
+ * MIGRATED: Now proxies to new Indexer API with cursor pagination
+ * Traces internal calls (value transfers, delegate calls, etc.) touching the address.
+ * NOTE: includeFailedCalls and maxDepth parameters removed from new API
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -65,21 +66,31 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Parse query parameters
+		// Parse query parameters (cursor-based pagination)
 		const query = getQuery(event)
-		const limit = Math.min(parseInt(query.limit) || 50, 100) // Cap at 100
-		const offset = Math.max(parseInt(query.offset) || 0, 0)
-		const includeFailedCalls = query.includeFailedCalls === 'true'
-		const maxDepth = Math.min(Math.max(parseInt(query.maxDepth) || 10, 1), 20) // Between 1-20
+		const items_count = Math.min(parseInt(query.items_count) || 50, 100) // Cap at 100
+		const block_number = query.block_number ? parseInt(query.block_number) : undefined
+		const transaction_index = query.transaction_index !== undefined ? parseInt(query.transaction_index) : undefined
+		const index = query.index !== undefined ? parseInt(query.index) : undefined
+		const filter = query.filter // Direction filter: "to" or "from"
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/addresses/${address}/internal-transactions`)
-		
-		apiUrl.searchParams.append('limit', limit.toString())
-		apiUrl.searchParams.append('offset', offset.toString())
-		apiUrl.searchParams.append('includeFailedCalls', includeFailedCalls.toString())
-		apiUrl.searchParams.append('maxDepth', maxDepth.toString())
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/addresses/${address.toLowerCase()}/internal-transactions`)
+
+		apiUrl.searchParams.append('items_count', items_count.toString())
+		if (block_number) {
+			apiUrl.searchParams.append('block_number', block_number.toString())
+		}
+		if (transaction_index !== undefined) {
+			apiUrl.searchParams.append('transaction_index', transaction_index.toString())
+		}
+		if (index !== undefined) {
+			apiUrl.searchParams.append('index', index.toString())
+		}
+		if (filter) {
+			apiUrl.searchParams.append('filter', filter)
+		}
 
 		// Make request to external API with longer timeout for tracing
 		const response = await $fetch(apiUrl.href, {

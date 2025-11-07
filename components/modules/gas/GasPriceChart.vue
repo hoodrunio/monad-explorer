@@ -170,11 +170,16 @@ const processGasHistoryData = () => {
 	}
 
 	// Process gas history data from analytics API
+	// Note: New API returns market data, not gas-specific history
+	// averageGasPrice will be "0" for all entries until dedicated gas history endpoint is available
 	gasPriceSeries.value = props.gasHistory
 		.slice(0, props.selectedPeriod.value)
 		.map(item => ({
 			date: DateTime.fromISO(item.date).toJSDate(),
-			value: convertFromWei(item.averageGasPrice, 9) // Convert to gwei
+			// Check if averageGasPrice exists and is not "0"
+			value: item.averageGasPrice && item.averageGasPrice !== "0"
+				? convertFromWei(item.averageGasPrice, 9)
+				: 0
 		}))
 		.filter(item => item.value > 0) // Filter out empty days
 		.reverse() // Reverse to show oldest to newest (left to right)
@@ -222,9 +227,13 @@ onBeforeUnmount(() => {
 		<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 			<Text size="13" weight="600" color="secondary">Loading gas price history...</Text>
 		</Flex>
-		
-		<Flex v-else-if="!gasHistory.length" align="center" justify="center" :class="$style.no_data">
-			<Text size="13" weight="600" color="tertiary">No gas price data available</Text>
+
+		<Flex v-else-if="!gasHistory.length || !gasPriceSeries.length" align="center" justify="center" :class="$style.no_data">
+			<Flex direction="column" align="center" gap="8">
+				<Icon name="chart" size="24" color="tertiary" />
+				<Text size="13" weight="600" color="tertiary">Gas price history not available</Text>
+				<Text size="11" weight="500" color="support">Historical gas data endpoint is not yet available in the new API</Text>
+			</Flex>
 		</Flex>
 		
 		<Flex v-else ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">

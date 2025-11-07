@@ -1,12 +1,13 @@
 /**
  * Address Token Transfers API Endpoint
  * GET /api/addresses/:address/token-transfers
- * 
- * List token transfer events involving the address.
- * Supports optional filtering by token contract.
+ *
+ * MIGRATED: Now proxies to new Indexer API with cursor pagination and type filtering
+ * Lists token transfer events involving the address.
+ * Supports filtering by token contract and token type (ERC-20, ERC-721, ERC-1155).
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -65,14 +66,17 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Parse query parameters
+		// Parse query parameters (cursor-based pagination)
 		const query = getQuery(event)
-		const tokenAddress = query.tokenAddress
-		const limit = Math.min(parseInt(query.limit) || 50, 100) // Cap at 100
-		const offset = Math.max(parseInt(query.offset) || 0, 0)
+		const items_count = Math.min(parseInt(query.items_count) || 50, 100) // Cap at 100
+		const block_number = query.block_number ? parseInt(query.block_number) : undefined
+		const index = query.index !== undefined ? parseInt(query.index) : undefined
+		const token = query.token // Specific token address filter
+		const type = query.type // Token type: "ERC-20", "ERC-721", "ERC-1155" or comma-separated
+		const filter = query.filter // Direction filter: "to" or "from"
 
 		// Validate token address if provided
-		if (tokenAddress && !isValidAddress(tokenAddress)) {
+		if (token && !isValidAddress(token)) {
 			return createApiResponse(
 				false,
 				'Invalid token address format',
@@ -86,14 +90,25 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/addresses/${address}/token-transfers`)
-		
-		apiUrl.searchParams.append('limit', limit.toString())
-		apiUrl.searchParams.append('offset', offset.toString())
-		if (tokenAddress) {
-			apiUrl.searchParams.append('tokenAddress', tokenAddress)
+		// Forward request to the new Indexer API
+		const indexerUrl = useIndexerUrl()
+		const apiUrl = new URL(`${indexerUrl}/addresses/${address.toLowerCase()}/token-transfers`)
+
+		apiUrl.searchParams.append('items_count', items_count.toString())
+		if (block_number) {
+			apiUrl.searchParams.append('block_number', block_number.toString())
+		}
+		if (index !== undefined) {
+			apiUrl.searchParams.append('index', index.toString())
+		}
+		if (token) {
+			apiUrl.searchParams.append('token', token.toLowerCase())
+		}
+		if (type) {
+			apiUrl.searchParams.append('type', type)
+		}
+		if (filter) {
+			apiUrl.searchParams.append('filter', filter)
 		}
 
 		// Make request to external API

@@ -30,13 +30,17 @@ const processedGasData = computed(() => {
 	}
 
 	// More efficient data processing with early filtering
+	// Note: New API returns market data, not gas-specific history
+	// totalGasUsed will be "0" for all entries until dedicated gas history endpoint is available
 	const processedData = []
 	const maxItems = Math.min(14, props.gasHistory.length)
-	
+
 	for (let i = 0; i < maxItems; i++) {
 		const item = props.gasHistory[i]
-		const gasUsed = parseInt(item.totalGasUsed) || 0
-		
+		const gasUsed = item.totalGasUsed && item.totalGasUsed !== "0"
+			? parseInt(item.totalGasUsed)
+			: 0
+
 		// Skip items with no gas usage
 		if (gasUsed > 0) {
 			processedData.push({
@@ -45,7 +49,7 @@ const processedGasData = computed(() => {
 				txCount: item.transactionCount || 0
 			})
 		}
-	}	
+	}
 	return processedData.reverse() // Reverse data to match reversed scale domain
 })
 
@@ -325,9 +329,13 @@ watch(isVisible, (visible) => {
 		<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 			<Text size="13" weight="600" color="secondary">Loading gas usage data...</Text>
 		</Flex>
-		
-		<Flex v-else-if="!gasHistory.length" align="center" justify="center" :class="$style.no_data">
-			<Text size="13" weight="600" color="tertiary">No gas usage data available</Text>
+
+		<Flex v-else-if="!gasHistory.length || !processedGasData.length" align="center" justify="center" :class="$style.no_data">
+			<Flex direction="column" align="center" gap="8">
+				<Icon name="stars" size="24" color="tertiary" />
+				<Text size="13" weight="600" color="tertiary">Gas usage trends not available</Text>
+				<Text size="11" weight="500" color="support">Historical gas data endpoint is not yet available in the new API</Text>
+			</Flex>
 		</Flex>
 
 		<Flex v-else ref="chartWrapperEl" direction="column" :class="$style.chart_wrapper">

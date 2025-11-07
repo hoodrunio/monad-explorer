@@ -36,13 +36,14 @@ const getTransactionType = (tx) => {
 // Use client-side non-blocking data fetching
 const { data: initialData, pending: isLoading } = useAsyncData('recent-transactions', async () => {
 	try {
-		const { data } = await fetchTransactions({ limit: 10 })
-		const response = data?.value?.data
-		const txList = Array.isArray(response?.transactions) ? response.transactions : []
-		
+		const { data } = await fetchTransactions({ items_count: 10 })
+		// New Indexer API returns { items: [], next_page_params: {} }
+		const txList = Array.isArray(data?.value?.items) ? data.value.items : []
+
+		// Transform already handles status, just return the data
 		return txList.map(tx => ({
 			...tx,
-			status: tx.status === 1 ? "success" : "failed",
+			status: tx.status === "ok" ? "success" : "failed",
 		}))
 	} catch (error) {
 		return []
@@ -67,27 +68,28 @@ const getTransactions = async (isInitial = false) => {
 		// Already loaded via useAsyncData
 		return
 	}
-	
+
 	isRefreshing.value = true
-	
+
 	try {
-		const { data } = await fetchTransactions({ limit: 10 })
-		const response = data?.value?.data
-		const txList = Array.isArray(response?.transactions) ? response.transactions : []
-		
+		const { data } = await fetchTransactions({ items_count: 10 })
+		// New Indexer API returns { items: [], next_page_params: {} }
+		const txList = Array.isArray(data?.value?.items) ? data.value.items : []
+
 		// Add a small delay for smooth transition
 		if (transactions.value.length > 0) {
 			await new Promise(resolve => setTimeout(resolve, 100))
 		}
-		
+
+		// Transform already handles status, just map it to success/failed
 		transactions.value = txList.map(tx => ({
 			...tx,
-			status: tx.status === 1 ? "success" : "failed",
+			status: tx.status === "ok" ? "success" : "failed",
 		}))
 	} catch (error) {
 		// Don't clear existing data on refresh error
 	}
-	
+
 	isRefreshing.value = false
 }
 

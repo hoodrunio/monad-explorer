@@ -19,15 +19,15 @@ const isLoading = ref(true)
 const fetchGasData = async () => {
 	try {
 		const data = await fetchCurrentGasAnalytics()
-		
+
 		if (data?.success && data?.data?.recommendations) {
 			const recommendations = data.data.recommendations
-			
-			// Convert from wei to gwei and map to expected structure
+
+			// New API already returns values in gwei (as strings), no conversion needed
 			gasPrice.value = {
-				fast: convertFromWei(recommendations.fast, 9), // gwei = wei / 10^9
-				median: convertFromWei(recommendations.standard, 9),
-				slow: convertFromWei(recommendations.slow, 9),
+				fast: parseFloat(recommendations.fast),
+				median: parseFloat(recommendations.standard),
+				slow: parseFloat(recommendations.slow),
 			}
 		} else {
 			// Fallback data for testing

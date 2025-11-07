@@ -1,33 +1,14 @@
 export const defaultEnums = {
-	message_type: [
-		"unknown",
-		"send",
-		"multisend",
-		"create_vesting_account",
-		"create_permanent_locked_account",
-		"create_periodic_vesting_account",
+	// EVM Transaction types from Monad Indexer API
+	transaction_types: [
+		"coin_transfer",
+		"contract_call",
+		"contract_creation",
+		"token_transfer",
+		"token_creation",
 	],
-	msg_type: [
-		"unknown",
-		"MsgSend",
-		"MsgMultiSend",
-		"MsgCreateVestingAccount",
-		"MsgCreatePermanentLockedAccount",
-		"MsgCreatePeriodicVestingAccount",
-	],
+	// Transaction status
 	status: ["success", "failed"],
-	event_type: [
-		"unknown",
-		"transfer",
-		"tx",
-		"send_packet",
-		"fungible_token_packet",
-		"acknowledge_packet",
-		"recv_packet",
-		"write_acknowledgement",
-		"timeout",
-		"timeout_packet",
-	],
 	categories: [
 		"uncategorized",
 		"finance",

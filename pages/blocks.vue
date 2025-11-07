@@ -16,10 +16,10 @@ const route = useRoute()
 const router = useRouter()
 
 const blocks = ref([])
-const currentPage = ref(parseInt(route.query.page) || 1)
-const pageSize = ref(20)
-const totalBlocks = ref(0)
+const nextPageParams = ref(null)
+const previousPages = ref([]) // Stack to store previous page params for back navigation
 const isLoading = ref(false)
+const hasMore = computed(() => nextPageParams.value !== null)
 
 // EVM block helper functions
 const formatGasValue = (value) => {
@@ -29,83 +29,92 @@ const formatGasValue = (value) => {
 
 const getGasUsagePercent = (gasUsed, gasLimit) => {
 	if (!gasLimit || gasLimit === "0") return 0
-	return Math.min((parseInt(gasUsed) / parseInt(gasLimit)) * 100, 100)
+	const used = parseFloat(gasUsed) || 0
+	const limit = parseFloat(gasLimit) || 1
+	return Math.min((used / limit) * 100, 100)
 }
 
-const loadBlocks = async (page = 1) => {
+const loadBlocks = async (params = null) => {
 	isLoading.value = true
-	
+
 	try {
-		const { data, error } = await fetchBlocks({
-			limit: pageSize.value,
-			page: page,
-			offset: (page - 1) * pageSize.value
-		})
-		
+		const queryParams = params || { items_count: 20 }
+
+		const { data, error } = await fetchBlocks(queryParams)
+
 		if (error.value) {
+			console.error("Error fetching blocks:", error.value)
 			blocks.value = []
-			totalBlocks.value = 0
-		} else if (data.value && data.value.data) {
-			blocks.value = data.value.data.blocks || []
-			totalBlocks.value = data.value.data.pagination?.total || blocks.value.length
-			currentPage.value = page
+			nextPageParams.value = null
+		} else if (data.value) {
+			blocks.value = data.value.items || []
+			nextPageParams.value = data.value.next_page_params || null
 		} else {
 			blocks.value = []
-			totalBlocks.value = 0
+			nextPageParams.value = null
 		}
 	} catch (error) {
+		console.error("Failed to load blocks:", error)
 		blocks.value = []
-		totalBlocks.value = 0
+		nextPageParams.value = null
 	} finally {
 		isLoading.value = false
 	}
 }
 
-const handlePageChange = (page) => {
-	currentPage.value = page
-	router.push({ query: { page } })
-	loadBlocks(page)
-}
+const handleNext = async () => {
+	if (!hasMore.value) return
 
-const handleNext = () => {
-	if (currentPage.value * pageSize.value < totalBlocks.value) {
-		handlePageChange(currentPage.value + 1)
+	// Store current state for back navigation
+	previousPages.value.push({
+		blocks: [...blocks.value],
+		params: nextPageParams.value
+	})
+
+	await loadBlocks(nextPageParams.value)
+
+	// Update URL with cursor (optional, for deep linking)
+	if (nextPageParams.value?.block_number) {
+		router.push({ query: { cursor: nextPageParams.value.block_number } })
 	}
 }
 
 const handlePrev = () => {
-	if (currentPage.value > 1) {
-		handlePageChange(currentPage.value - 1)
+	if (previousPages.value.length === 0) return
+
+	const previousState = previousPages.value.pop()
+	blocks.value = previousState.blocks
+	nextPageParams.value = previousState.params
+
+	// Update URL
+	const prevCursor = previousPages.value[previousPages.value.length - 1]?.params?.block_number
+	if (prevCursor) {
+		router.push({ query: { cursor: prevCursor } })
+	} else {
+		router.push({ query: {} })
 	}
 }
 
-const handleFirst = () => {
-	if (currentPage.value > 1) {
-		handlePageChange(1)
-	}
+const handleFirst = async () => {
+	previousPages.value = []
+	await loadBlocks()
+	router.push({ query: {} })
 }
 
-const totalPages = computed(() => {
-	return Math.ceil(totalBlocks.value / pageSize.value)
-})
+const canGoPrev = computed(() => previousPages.value.length > 0)
+const currentPageNumber = computed(() => previousPages.value.length + 1)
 
 // Load blocks on mount
 onMounted(async () => {
 	await nextTick()
-	loadBlocks(currentPage.value)
-})
 
-// Watch for route changes
-watch(() => route.query.page, (newPage) => {
-	const page = parseInt(newPage) || 1
-	if (page !== currentPage.value) {
-		loadBlocks(page)
+	// Check if there's a cursor in URL for deep linking
+	const cursor = route.query.cursor
+	if (cursor) {
+		await loadBlocks({ items_count: 20, block_number: parseInt(cursor) })
+	} else {
+		await loadBlocks()
 	}
-}, { immediate: true })
-
-// Additional handler for page refresh
-onActivated(() => {
-	loadBlocks(currentPage.value)
 })
 
 useHead({
@@ -121,7 +130,6 @@ useHead({
 			name: "description",
 			content: "Browse all blocks on the Monad network. View block details, transactions, gas usage, and timestamps.",
 		},
-
 	],
 })
 </script>
@@ -144,10 +152,10 @@ useHead({
 						<Icon name="block" size="16" color="primary" />
 						<Text size="16" weight="600" color="primary">Blocks</Text>
 					</Flex>
-					
+
 					<Flex align="center" gap="8">
 						<Text size="13" weight="600" color="secondary">
-							{{ totalBlocks.toLocaleString() }} total blocks
+							Page {{ currentPageNumber }}
 						</Text>
 					</Flex>
 				</Flex>
@@ -173,15 +181,15 @@ useHead({
 							</thead>
 
 							<tbody>
-								<tr v-for="block in blocks" :key="block.number">
+								<tr v-for="block in blocks" :key="block.hash || block.height">
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center">
 												<Outline>
 													<Flex align="center" gap="4">
 														<Icon name="block" size="12" color="primary" />
 														<Text size="12" weight="600" color="primary" tabular>
-															{{ comma(block.number) }}
+															{{ comma(block.height) }}
 														</Text>
 													</Flex>
 												</Outline>
@@ -189,7 +197,7 @@ useHead({
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex direction="column" gap="4">
 												<Tooltip position="start" delay="500">
 													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
@@ -206,37 +214,37 @@ useHead({
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center">
 												<Text size="12" weight="600" color="primary">
-													{{ comma(block.transactionCount || 0) }}
+													{{ comma(block.transactions_count || block.tx_count || 0) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center" gap="2">
 												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.gasUsed) }}
+													{{ formatGasValue(block.gas_used) }}
 												</Text>
 												<Text size="11" weight="600" color="tertiary">
-													({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+													({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
 												</Text>
 											</Flex>
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center">
 												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.gasLimit) }}
+													{{ formatGasValue(block.gas_limit) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center">
 												<Text size="12" weight="600" color="primary">
 													{{ formatBytes(block.size, 0) }}
@@ -245,10 +253,10 @@ useHead({
 										</NuxtLink>
 									</td>
 									<td>
-										<NuxtLink :to="`/block/${block.number}`">
+										<NuxtLink :to="`/block/${block.height}`">
 											<Flex align="center">
 												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.baseFeePerGas) }}
+													{{ formatGasValue(block.base_fee_per_gas) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
@@ -260,15 +268,15 @@ useHead({
 
 					<!-- Mobile Card View -->
 					<div :class="$style.mobile_cards">
-						<div v-for="block in blocks" :key="block.number" :class="$style.card">
-							<NuxtLink :to="`/block/${block.number}`" :class="$style.card_link">
+						<div v-for="block in blocks" :key="block.hash || block.height" :class="$style.card">
+							<NuxtLink :to="`/block/${block.height}`" :class="$style.card_link">
 								<Flex direction="column" gap="16">
 									<!-- Header with block number and timestamp -->
 									<Flex align="center" justify="between">
 										<Flex align="center" gap="8">
 											<Icon name="block" size="14" color="primary" />
 											<Text size="13" weight="600" color="primary">
-												Block {{ comma(block.number) }}
+												Block {{ comma(block.height) }}
 											</Text>
 										</Flex>
 										<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="tertiary">
@@ -283,17 +291,17 @@ useHead({
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Transactions</Text>
 											<Text size="12" weight="600" color="primary">
-												{{ comma(block.transactionCount || 0) }}
+												{{ comma(block.transactions_count || block.tx_count || 0) }}
 											</Text>
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Gas Used</Text>
 											<Flex align="center" gap="4">
 												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.gasUsed) }}
+													{{ formatGasValue(block.gas_used) }}
 												</Text>
 												<Text size="11" weight="600" color="tertiary">
-													({{ getGasUsagePercent(block.gasUsed, block.gasLimit).toFixed(1) }}%)
+													({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
 												</Text>
 											</Flex>
 										</Flex>
@@ -306,7 +314,7 @@ useHead({
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Base Fee</Text>
 											<Text size="12" weight="600" color="primary">
-												{{ formatGasValue(block.baseFeePerGas) }}
+												{{ formatGasValue(block.base_fee_per_gas) }}
 											</Text>
 										</Flex>
 									</Flex>
@@ -315,23 +323,23 @@ useHead({
 						</div>
 					</div>
 
-					<!-- Pagination -->
-					<Flex v-if="totalPages > 1" align="center" justify="center" gap="8" :class="$style.pagination">
-						<Button @click="handleFirst" type="secondary" size="mini" :disabled="currentPage === 1">
+					<!-- Cursor-based Pagination -->
+					<Flex align="center" justify="center" gap="8" :class="$style.pagination">
+						<Button @click="handleFirst" type="secondary" size="mini" :disabled="!canGoPrev || isLoading">
 							<Icon name="arrow-left-stop" size="12" color="primary" />
 						</Button>
-						
-						<Button @click="handlePrev" type="secondary" size="mini" :disabled="currentPage === 1">
+
+						<Button @click="handlePrev" type="secondary" size="mini" :disabled="!canGoPrev || isLoading">
 							<Icon name="arrow-left" size="12" color="primary" />
 						</Button>
 
 						<Flex align="center" gap="4">
 							<Text size="12" weight="600" color="secondary">
-								Page {{ currentPage }} of {{ totalPages }}
+								Page {{ currentPageNumber }}
 							</Text>
 						</Flex>
 
-						<Button @click="handleNext" type="secondary" size="mini" :disabled="currentPage >= totalPages">
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasMore || isLoading">
 							<Icon name="arrow-right" size="12" color="primary" />
 						</Button>
 					</Flex>
@@ -366,56 +374,56 @@ useHead({
 	width: 100%;
 	min-width: 1000px; /* Ensure all columns are visible */
 	border-spacing: 0;
-	
+
 	& thead {
 		& tr {
 			& th {
 				text-align: left;
 				padding: 12px 8px 6px 8px;
 				border-bottom: 1px solid var(--op-5);
-				
+
 				&:first-child {
 					padding-left: 16px;
 				}
-				
+
 				&:last-child {
 					padding-right: 16px;
 				}
-				
+
 				& span {
 					display: flex;
 				}
 			}
 		}
 	}
-	
+
 	& tbody {
 		& tr {
 			cursor: pointer;
 			transition: all 0.05s ease;
-			
+
 			&:hover {
 				background: var(--op-5);
 			}
-			
+
 			&:active {
 				background: var(--op-8);
 			}
 		}
-		
+
 		& td {
 			padding: 6px 8px 6px 8px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
-			
+
 			&:first-child {
 				padding-left: 16px;
 			}
-			
+
 			&:last-child {
 				padding-right: 16px;
 			}
-			
+
 			& > a {
 				display: flex;
 				align-items: center;
@@ -438,7 +446,7 @@ useHead({
 	border-radius: 8px;
 	background: var(--card-background);
 	transition: all 0.2s ease;
-	
+
 	&:hover {
 		border-color: var(--op-10);
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -507,11 +515,11 @@ useHead({
 	.desktop_table {
 		display: none;
 	}
-	
+
 	.mobile_cards {
 		display: flex;
 	}
-	
+
 	.wrapper {
 		padding: 20px 16px 60px 16px;
 	}
@@ -522,4 +530,4 @@ useHead({
 		padding: 32px 12px;
 	}
 }
-</style> 
+</style>

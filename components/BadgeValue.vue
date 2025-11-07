@@ -18,6 +18,8 @@ const props = defineProps({
 const copied = ref(false)
 
 const handleCopy = () => {
+	if (!props.text) return
+
 	window.navigator.clipboard.writeText(props.text.toUpperCase())
 
 	notificationsStore.create({
@@ -39,13 +41,13 @@ const handleCopy = () => {
 <template>
 	<Flex @click="handleCopy" align="center" justify="between" :class="$style.wrapper">
 		<Flex :class="$style.left">
-			<Text size="12" weight="600" color="secondary" mono>{{ space(text.toUpperCase()) }}</Text>
+			<Text size="12" weight="600" color="secondary" mono>{{ text ? space(text.toUpperCase()) : '' }}</Text>
 		</Flex>
 
 		<div v-for="dot in 3" class="dot" />
 
 		<Flex justify="end" :class="$style.right">
-			<Text size="12" weight="600" color="secondary" mono>{{ space(text.toUpperCase()) }}</Text>
+			<Text size="12" weight="600" color="secondary" mono>{{ text ? space(text.toUpperCase()) : '' }}</Text>
 		</Flex>
 	</Flex>
 </template>

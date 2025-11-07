@@ -28,18 +28,18 @@ const formatGasValue = (value) => {
 
 const getGasUsagePercent = (gasUsed, gasLimit) => {
 	if (!gasUsed || !gasLimit || gasLimit === "0") return 0
-	const used = parseInt(gasUsed) || 0
-	const limit = parseInt(gasLimit) || 1
+	const used = parseFloat(gasUsed) || 0
+	const limit = parseFloat(gasLimit) || 1
 	return (used / limit) * 100
 }
 
-// Use client-side non-blocking data fetching
+// Use client-side non-blocking data fetching with new API
 const { data: initialData, pending: isLoading } = useAsyncData('recent-blocks', async () => {
 	try {
-		const { data } = await fetchBlocks({ limit: 10 })
-		const response = data?.value?.data
-		return Array.isArray(response?.blocks) ? response.blocks : []
+		const { data } = await fetchBlocks({ items_count: 10 })
+		return Array.isArray(data?.value?.items) ? data.value.items : []
 	} catch (error) {
+		console.error("Error loading recent blocks:", error)
 		return []
 	}
 }, {
@@ -57,29 +57,24 @@ watch(initialData, (newData) => {
 	}
 }, { immediate: true })
 
-const getBlocks = async (isInitial = false) => {
-	if (isInitial) {
-		// Already loaded via useAsyncData
-		return
-	}
-	
+const getBlocks = async () => {
 	isRefreshing.value = true
-	
+
 	try {
-		const { data } = await fetchBlocks({ limit: 10 })
-		const response = data?.value?.data
-		const newBlocks = Array.isArray(response?.blocks) ? response.blocks : []
-		
+		const { data } = await fetchBlocks({ items_count: 10 })
+		const newBlocks = Array.isArray(data?.value?.items) ? data.value.items : []
+
 		// Add a small delay for smooth transition
 		if (blocks.value.length > 0) {
 			await new Promise(resolve => setTimeout(resolve, 100))
 		}
-		
+
 		blocks.value = newBlocks
 	} catch (error) {
+		console.error("Error refreshing blocks:", error)
 		// Don't clear existing data on refresh error
 	}
-	
+
 	isRefreshing.value = false
 }
 
@@ -88,7 +83,7 @@ let refreshInterval = null
 
 onMounted(() => {
 	// Data already loaded via useAsyncData, just start refresh interval
-	refreshInterval = setInterval(() => getBlocks(false), 5000)
+	refreshInterval = setInterval(() => getBlocks(), 5000)
 })
 
 onUnmounted(() => {
@@ -109,7 +104,7 @@ onUnmounted(() => {
 					<Icon name="refresh" size="12" color="secondary" :class="$style.spinning" />
 				</div>
 			</Flex>
-			
+
 			<NuxtLink to="/blocks">
 				<Flex align="center" gap="4" :class="$style.view_all">
 					<Text size="12" weight="600" color="secondary">View All</Text>
@@ -136,17 +131,17 @@ onUnmounted(() => {
 					</thead>
 
 					<transition-group name="list-item" tag="tbody">
-						<tr v-for="(block, index) in blocks" :key="block?.number || `block-${index}`">
-								<td v-if="block?.number">
-									<NuxtLink :to="`/block/${block.number}`">
+						<tr v-for="(block, index) in blocks" :key="block?.hash || block?.height || `block-${index}`">
+								<td v-if="block?.height">
+									<NuxtLink :to="`/block/${block.height}`">
 										<Flex align="center" gap="6">
 											<Icon name="block" size="14" color="primary" />
-											<Text size="13" weight="600" color="primary" tabular>{{ comma(block.number) }}</Text>
+											<Text size="13" weight="600" color="primary" tabular>{{ comma(block.height) }}</Text>
 										</Flex>
 									</NuxtLink>
 								</td>
 								<td v-if="block?.timestamp">
-									<NuxtLink :to="`/block/${block.number}`">
+									<NuxtLink :to="`/block/${block.height}`">
 										<Tooltip position="start" delay="500">
 											<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
 												<Text size="12" weight="600" color="primary">
@@ -161,26 +156,26 @@ onUnmounted(() => {
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/block/${block?.number || '#'}`">
+									<NuxtLink :to="`/block/${block?.height || '#'}`">
 										<Text size="13" weight="600" color="primary">
-											{{ comma(block?.transactionCount || 0) }}
+											{{ comma(block?.transactions_count || block?.tx_count || 0) }}
 										</Text>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/block/${block?.number || '#'}`">
+									<NuxtLink :to="`/block/${block?.height || '#'}`">
 										<Flex align="center" gap="4">
 											<Text size="13" weight="600" color="primary">
-												{{ getGasUsagePercent(block?.gasUsed, block?.gasLimit).toFixed(1) }}%
+												{{ getGasUsagePercent(block?.gas_used, block?.gas_limit).toFixed(1) }}%
 											</Text>
 											<Text size="12" weight="600" color="tertiary">
-												({{ formatGasValue(block?.gasUsed) }})
+												({{ formatGasValue(block?.gas_used) }})
 											</Text>
 										</Flex>
 									</NuxtLink>
 								</td>
 								<td>
-									<NuxtLink :to="`/block/${block?.number || '#'}`">
+									<NuxtLink :to="`/block/${block?.height || '#'}`">
 										<Text size="13" weight="600" color="primary">
 											{{ formatBytes(block?.size || 0, 0) }}
 										</Text>
@@ -244,48 +239,48 @@ onUnmounted(() => {
 .table {
 	width: 100%;
 	border-spacing: 0;
-	
+
 	& thead th {
 		text-align: left;
 		padding: 8px 12px;
 		border-bottom: 1px solid var(--op-5);
-		
+
 		&:first-child {
 			padding-left: 0;
 		}
-		
+
 		&:last-child {
 			padding-right: 0;
 		}
 	}
-	
+
 	& tbody {
 		& tr {
 			cursor: pointer;
 			transition: all 0.05s ease;
-			
+
 			&:hover {
 				background: var(--op-3);
 			}
-			
+
 			&:active {
 				background: var(--op-5);
 			}
 		}
-		
+
 		& td {
 			padding: 12px 12px;
 			white-space: nowrap;
 			border-bottom: 1px solid var(--op-3);
-			
+
 			&:first-child {
 				padding-left: 0;
 			}
-			
+
 			&:last-child {
 				padding-right: 0;
 			}
-			
+
 			& > a {
 				display: flex;
 				align-items: center;
@@ -376,9 +371,9 @@ onUnmounted(() => {
 	.wrapper {
 		padding: 12px;
 	}
-	
+
 	.table {
 		font-size: 12px;
 	}
 }
-</style> 
+</style>

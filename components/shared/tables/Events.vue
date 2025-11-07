@@ -10,8 +10,8 @@ import Button from "@/components/ui/Button.vue"
 import { mon, splitAddress } from "@/services/utils"
 
 /** API */
-import { fetchTxEvents } from "@/services/api/tx"
-import { fetchBlockEvents } from "@/services/api/block"
+// Note: Events/logs are now accessed directly from transaction data
+// No separate API calls needed for new Indexer API
 
 /** Store */
 import { useModalsStore } from "@/store/modals.store"
@@ -58,17 +58,12 @@ const EventIconMapping = {
 const getEvents = async () => {
 	isLoading.value = true
 
-			try {
+	try {
 		if (props.block) {
-			// For EVM blocks, use number instead of height
-			const blockId = props.block.number || props.block.height
-			const { data } = await fetchBlockEvents({
-				height: blockId,
-				limit: 10,
-				offset: (page.value - 1) * 10,
-			})
-			events.value = data?.value?.data?.logs || []
-			totalEventsCount.value = data?.value?.meta?.totalCount || 0
+			// Logs are only available at transaction level
+			// Block events feature is disabled for now
+			events.value = []
+			totalEventsCount.value = 0
 		} else if (props.tx) {
 			// For EVM transactions, use decodedLogs directly from tx data
 			// instead of making additional API calls
@@ -76,8 +71,10 @@ const getEvents = async () => {
 			const endIndex = startIndex + 10
 			const decodedLogs = props.tx.decodedLogs || []
 			events.value = decodedLogs.slice(startIndex, endIndex)
+			totalEventsCount.value = decodedLogs.length
 		}
 	} catch (error) {
+		console.error("Error loading events:", error)
 		events.value = []
 	}
 
@@ -872,9 +869,8 @@ watch(
 			</Flex>
 
 			<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
-				<Text size="13" weight="600" color="secondary" align="center"> No events </Text>
 				<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-					This block does not contain any events
+					Events are transaction-based. You can view events for each transaction separately on the transaction details page.
 				</Text>
 			</Flex>
 		</Flex>

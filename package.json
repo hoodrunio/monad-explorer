@@ -29,7 +29,12 @@
 	},
 	"dependencies": {
 		"@amplitude/analytics-browser": "^2.3.3",
+		"@codemirror/commands": "^6.10.0",
+		"@codemirror/lang-javascript": "^6.2.4",
 		"@codemirror/lang-json": "^6.0.1",
+		"@codemirror/search": "^6.5.11",
+		"@codemirror/state": "^6.5.2",
+		"@codemirror/view": "^6.38.6",
 		"@keplr-wallet/cosmos": "^0.12.70",
 		"@openzeppelin/merkle-tree": "^1.0.6",
 		"@pinia/nuxt": "0.11.0",

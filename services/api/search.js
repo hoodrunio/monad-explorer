@@ -60,11 +60,12 @@ export const search = async (query) => {
 			isContract(normalizedQuery).then(async (contractExists) => {
 				if (contractExists) {
 					try {
-						const { data } = await fetchContract(normalizedQuery, { includeMetadata: true })
-						if (data.value?.data) {
+						// New API doesn't need includeMetadata parameter - all data is included
+						const { data } = await fetchContract(normalizedQuery)
+						if (data.value) {
 							results.push({
 								type: "contract",
-								result: data.value.data,
+								result: data.value,
 							})
 						}
 					} catch (error) {
@@ -80,11 +81,12 @@ export const search = async (query) => {
 						const hasActivity = await hasAddressActivity(normalizedQuery)
 						if (hasActivity) {
 							const { data } = await fetchAddressStatsClient(normalizedQuery)
+							// New Indexer API returns counters directly at root level
 							results.push({
 								type: "address",
-								result: { 
+								result: {
 									hash: normalizedQuery,
-									stats: data.value?.data?.stats || null
+									counters: data.value || null
 								},
 							})
 						}

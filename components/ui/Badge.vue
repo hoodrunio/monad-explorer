@@ -7,6 +7,9 @@
 <style module>
 .wrapper {
 	height: 26px;
+	width: fit-content;
+	min-width: 0;
+	max-width: 100%;
 
 	background: linear-gradient(var(--op-8), var(--op-3));
 	box-shadow: inset 0 0 0 1px var(--op-5);

@@ -6,7 +6,8 @@ import { defaultEnums } from "@/services/constants/enums.js"
 
 export const useEnumStore = defineStore("enums", () => {
 	const enums = ref({
-		messageTypes: defaultEnums.message_type,
+		transaction_types: defaultEnums.transaction_types,
+		status: defaultEnums.status,
 		rollupCategories: defaultEnums.categories,
 		rollupTypes: defaultEnums.rollup_type,
 		rollupTags: defaultEnums.tags,

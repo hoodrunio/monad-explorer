@@ -1,12 +1,13 @@
 /**
  * Address Balance API Endpoint
  * GET /api/addresses/:address/balance
- * 
+ *
+ * HYBRID: Tries new Indexer API first, falls back to old API if fails
  * Fetch on-chain balances for the address.
  * Returns either a single token balance or a batch (plus optional native balance).
  */
 
-import { useExplorerURL } from "@/services/config"
+import { useExplorerURL, useIndexerUrl } from "@/services/config"
 
 /**
  * Validate Ethereum address format
@@ -103,27 +104,52 @@ export default defineEventHandler(async (event) => {
 			)
 		}
 
-		// Forward request to the actual explorer API
-		const explorerUrl = useExplorerURL()
-		const apiUrl = new URL(`${explorerUrl}/api/addresses/${address}/balance`)
-		
-		if (tokenAddress) {
-			apiUrl.searchParams.append('tokenAddress', tokenAddress)
-		}
-		apiUrl.searchParams.append('includeNative', includeNative.toString())
-		apiUrl.searchParams.append('includeMetadata', includeMetadata.toString())
-		apiUrl.searchParams.append('useCache', useCache.toString())
-		if (blockNumber !== null) {
-			apiUrl.searchParams.append('blockNumber', blockNumber.toString())
-		}
+		let response
+		let usedNewApi = false
 
-		// Make request to external API
-		const response = await $fetch(apiUrl.href, {
-			headers: {
-				'Accept': 'application/json',
-				'User-Agent': 'Celenium-Explorer/1.0'
+		try {
+			// Try new Indexer API first
+			const newApiUrl = new URL(`${useIndexerUrl()}/addresses/${address.toLowerCase()}`)
+
+			const newResponse = await $fetch(newApiUrl.href, {
+				headers: {
+					'Accept': 'application/json',
+					'User-Agent': 'Celenium-Explorer/1.0'
+				}
+			})
+
+			// Transform new API response to match old format
+			response = {
+				data: {
+					nativeBalance: newResponse.coin_balance || "0",
+					// Add token balances if needed
+				}
 			}
-		})
+			usedNewApi = true
+
+		} catch (newApiError) {
+			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
+
+			// Fallback to old API
+			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${address}/balance`)
+
+			if (tokenAddress) {
+				oldApiUrl.searchParams.append('tokenAddress', tokenAddress)
+			}
+			oldApiUrl.searchParams.append('includeNative', includeNative.toString())
+			oldApiUrl.searchParams.append('includeMetadata', includeMetadata.toString())
+			oldApiUrl.searchParams.append('useCache', useCache.toString())
+			if (blockNumber !== null) {
+				oldApiUrl.searchParams.append('blockNumber', blockNumber.toString())
+			}
+
+			response = await $fetch(oldApiUrl.href, {
+				headers: {
+					'Accept': 'application/json',
+					'User-Agent': 'Celenium-Explorer/1.0'
+				}
+			})
+		}
 
 		// Set response headers for caching
 		// Balance data can be cached longer if not requesting latest block
@@ -131,8 +157,9 @@ export default defineEventHandler(async (event) => {
 		setResponseStatus(event, 200)
 		setResponseHeader(event, 'Cache-Control', `public, s-maxage=${cacheTime}, stale-while-revalidate=300`)
 		setResponseHeader(event, 'Content-Type', 'application/json')
+		setResponseHeader(event, 'X-Api-Source', usedNewApi ? 'indexer' : 'legacy')
 
-		// Return the response from the external API
+		// Return the response from the API
 		return response
 
 	} catch (error) {

@@ -17,6 +17,7 @@ const router = useRouter()
 
 const block = ref()
 const transactions = ref([])
+const nextTxParams = ref(null)
 
 const {
 	data,
@@ -24,22 +25,22 @@ const {
 	error,
 } = useAsyncData("block", async () => {
 	try {
-		const blockNumber = route.params.id
+		const blockId = route.params.id
 
-		// Validate block number
-		if (isNaN(blockNumber) || blockNumber < 0) {
-			throw new Error("Invalid block number")
+		// Validate block identifier (can be number or hash)
+		if (!blockId) {
+			throw new Error("Invalid block identifier")
 		}
 
+		// Fetch block and initial transactions in parallel
 		const [
 			{ data: rawBlock },
 			{ data: rawTransactions },
 		] = await Promise.all([
-			fetchBlockByHeight(blockNumber),
-			fetchBlockTransactions({ 
-				number: blockNumber, 
-				limit: 10, 
-				includeTokenTransfers: true 
+			fetchBlockByHeight(blockId),
+			fetchBlockTransactions({
+				blockNumberOrHash: blockId,
+				items_count: 20,
 			}),
 		])
 
@@ -48,11 +49,13 @@ const {
 		}
 
 		return {
-			block: rawBlock.value.data?.block || rawBlock.value.data || rawBlock.value,
-			transactions: rawTransactions.value.data?.transactions || rawTransactions.value?.transactions || [],
+			block: rawBlock.value,
+			transactions: rawTransactions.value?.items || [],
+			nextTxParams: rawTransactions.value?.next_page_params || null,
 		}
 	} catch (err) {
-		if (err.message === "Block not found" || err.message === "Invalid block number") {
+		console.error("Error loading block:", err)
+		if (err.message === "Block not found" || err.message === "Invalid block identifier") {
 			await router.push("/")
 		}
 		throw err
@@ -65,6 +68,7 @@ watch(
 		if (newData) {
 			block.value = newData.block
 			transactions.value = newData.transactions
+			nextTxParams.value = newData.nextTxParams
 			cacheStore.current.block = newData.block
 			cacheStore.current.transactions = newData.transactions
 		}
@@ -73,10 +77,8 @@ watch(
 )
 
 const blockNumber = computed(() => {
-	return block.value?.number || route.params.id
+	return block.value?.height || route.params.id
 })
-
-
 
 useHead({
 	title: `Block ${comma(blockNumber.value)} - Monad Explorer`,
@@ -91,7 +93,6 @@ useHead({
 			name: "description",
 			content: `Explore block ${comma(blockNumber.value)} on Monad network. View transactions, gas usage, block size, and other details.`,
 		},
-
 	],
 })
 </script>
@@ -121,10 +122,11 @@ useHead({
 				</NuxtLink>
 			</Flex>
 
-			<BlockOverview 
-				v-else-if="block" 
-				:block="block" 
+			<BlockOverview
+				v-else-if="block"
+				:block="block"
 				:transactions="transactions"
+				:nextTxParams="nextTxParams"
 			/>
 		</Flex>
 	</Flex>
@@ -150,4 +152,4 @@ useHead({
 		padding: 32px 12px;
 	}
 }
-</style> 
+</style>

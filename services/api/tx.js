@@ -1,160 +1,286 @@
-/** Services */
-import { useExplorerURL } from "@/services/config"
+/**
+ * Transaction API Service - New Indexer API (Blockscout-compatible)
+ * All endpoints use cursor-based pagination
+ */
 
-// Get latest transactions with basic data (for preview)
-export const fetchTransactions = ({ limit = 20, offset = 0, page = 1 } = {}) => {
+import { useIndexerUrl } from "@/services/config"
+import { transformTransaction } from "@/services/utils/transforms"
+
+/**
+ * Get latest transactions with cursor-based pagination
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 50)
+ * @param {string} params.filter - Filter: validated|pending (default: validated)
+ * @param {string} params.type - Transaction type filter
+ * @param {string} params.method - Method signature filter
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.index - Transaction index cursor for pagination
+ * @returns {Promise} Fetch promise with transactions data
+ */
+export const fetchTransactions = (params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/transactions`)
+		const {
+			items_count = 50,
+			filter = 'validated',
+			type,
+			method,
+			block_number,
+			index
+		} = params
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (page) url.searchParams.append("page", page)
+		const url = new URL(`${useIndexerUrl()}/transactions`)
+
+		url.searchParams.append("items_count", items_count)
+		if (filter) url.searchParams.append("filter", filter)
+		if (type) url.searchParams.append("type", type)
+		if (method) url.searchParams.append("method", method)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (index !== undefined) url.searchParams.append("index", index)
 
 		return useFetch(url.href, {
-			key: `transactions-${page}-${limit}-${offset}`,
+			key: `transactions-${items_count}-${block_number || 'initial'}-${index || 'initial'}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items.map(transformTransaction),
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch transactions:", error)
+		throw error
 	}
 }
 
-// Get enriched transaction with runtime-parsed token transfers
-export const fetchTxByHash = (hash, {
-	includeTokenTransfers = true,
-	includeTokenMetadata = true,
-	includeDecodedLogs = true,
-	includeInternalTransactions = true
-} = {}) => {
+/**
+ * Get specific transaction by hash - SSR version
+ * @param {string} txHash - Transaction hash
+ * @returns {Promise} Fetch promise with transaction data
+ */
+export const fetchTxByHash = (txHash) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}`)
-
-		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
-		if (includeTokenMetadata) url.searchParams.append("includeTokenMetadata", includeTokenMetadata)
-		if (includeDecodedLogs) url.searchParams.append("includeDecodedLogs", includeDecodedLogs)
-		if (includeInternalTransactions) url.searchParams.append("includeInternalTransactions", includeInternalTransactions)
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}`)
 
 		return useFetch(url.href, {
-			key: "transaction",
+			key: `tx-${txHash}`,
+			transform: (response) => transformTransaction(response),
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch transaction by hash:", error)
+		throw error
 	}
 }
 
-// Get token transfers for a specific transaction
-export const fetchTxTokenTransfers = (hash, { includeMetadata = false } = {}) => {
+/**
+ * Get specific transaction by hash - Client-side version
+ * @param {string} txHash - Transaction hash
+ * @returns {Promise} Transaction data wrapped in standard format
+ */
+export const fetchTxByHashClient = async (txHash) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/token-transfers`)
-
-		if (includeMetadata) url.searchParams.append("includeMetadata", includeMetadata)
-
-		return useFetch(url.href, {
-			key: "tx_token_transfers",
-		})
-	} catch (error) {
-		// Error handling can be added here
-	}
-}
-
-// Get internal transactions for a specific transaction (on-demand tracing)
-export const fetchTxInternalTransactions = (hash, {
-	includeFailedCalls = false,
-	maxDepth = 10,
-	filterByAddress = null
-} = {}) => {
-	try {
-		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/internal-transactions`)
-
-		if (includeFailedCalls) url.searchParams.append("includeFailedCalls", includeFailedCalls)
-		if (maxDepth) url.searchParams.append("maxDepth", maxDepth)
-		if (filterByAddress) url.searchParams.append("filterByAddress", filterByAddress)
-
-		return useFetch(url.href, {
-			key: "tx_internal_transactions",
-		})
-	} catch (error) {
-		// Error handling can be added here
-	}
-}
-
-// Quick check if transaction has internal transactions (lightweight)
-export const fetchTxHasInternalTransactions = async (hash) => {
-	try {
-		const url = new URL(`${useExplorerURL()}/api/transactions/${hash}/has-internal-transactions`)
-
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}`)
 		const data = await $fetch(url.href)
-		return data
-	} catch (error) {
-		// Error handling can be added here
-	}
-}
 
-// Legacy functions for backward compatibility
-
-// Legacy: Transaction messages (mapped to token transfers for EVM)
-export const fetchTxMessages = async (hash) => {
-	return fetchTxTokenTransfers(hash, { includeMetadata: true })
-}
-
-// Legacy: Transaction events (mapped to decoded logs for EVM)
-export const fetchTxEvents = async ({ hash, limit, offset }) => {
-	try {
-		const tx = await fetchTxByHash(hash, { 
-			includeDecodedLogs: true,
-			includeTokenTransfers: false,
-			includeTokenMetadata: false,
-			includeInternalTransactions: false
-		})
-
-		if (tx.data?.value?.decodedLogs) {
-			const logs = tx.data.value.decodedLogs
-			const start = offset || 0
-			const end = start + (limit || logs.length)
-			return {
-				data: logs.slice(start, end),
-				total: logs.length
+		return {
+			data: {
+				value: transformTransaction(data)
 			}
 		}
-
-		return { data: [], total: 0 }
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch transaction by hash (client):", error)
+		throw error
 	}
 }
 
-// Legacy: Transactions count
-export const fetchTxsCount = () => {
+/**
+ * Get token transfers for a specific transaction
+ * @param {string} txHash - Transaction hash
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page
+ * @param {string} params.type - Token type filter (ERC-20, ERC-721, ERC-1155)
+ * @returns {Promise} Fetch promise with token transfers data
+ */
+export const fetchTxTokenTransfers = (txHash, params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/stats/tx_count`)
+		const { items_count = 50, type } = params
+
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/token-transfers`)
+
+		url.searchParams.append("items_count", items_count)
+		if (type) url.searchParams.append("type", type)
 
 		return useFetch(url.href, {
-			key: "transactions_count",
+			key: `tx-token-transfers-${txHash}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch token transfers:", error)
+		throw error
 	}
 }
 
-// Legacy: Transactions by block (now handled in block.js)
-export const fetchTransactionsByBlock = ({ 
-	height, 
-	limit, 
-	offset, 
-	includeTokenTransfers = false,
-	// Legacy params that we'll ignore for EVM compatibility
-	sort, from, to, status, type, excluded_types
-} = {}) => {
+/**
+ * Get internal transactions for a specific transaction
+ * @param {string} txHash - Transaction hash
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page
+ * @returns {Promise} Fetch promise with internal transactions data
+ */
+export const fetchTxInternalTransactions = (txHash, params = {}) => {
 	try {
-		const url = new URL(`${useExplorerURL()}/api/blocks/${height}/transactions`)
+		const { items_count = 50 } = params
 
-		if (limit) url.searchParams.append("limit", limit)
-		if (offset) url.searchParams.append("offset", offset)
-		if (includeTokenTransfers) url.searchParams.append("includeTokenTransfers", includeTokenTransfers)
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/internal-transactions`)
+
+		url.searchParams.append("items_count", items_count)
 
 		return useFetch(url.href, {
-			key: "transactions_by_block",
+			key: `tx-internal-txs-${txHash}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
 		})
 	} catch (error) {
-		// Error handling can be added here
+		console.error("Failed to fetch internal transactions:", error)
+		throw error
+	}
+}
+
+/**
+ * Get logs (events) for a specific transaction
+ * @param {string} txHash - Transaction hash
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page
+ * @returns {Promise} Fetch promise with logs data
+ */
+export const fetchTxLogs = (txHash, params = {}) => {
+	try {
+		const { items_count = 50 } = params
+
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/logs`)
+
+		url.searchParams.append("items_count", items_count)
+
+		return useFetch(url.href, {
+			key: `tx-logs-${txHash}`,
+			transform: (response) => {
+				if (response?.items) {
+					return {
+						items: response.items,
+						next_page_params: response.next_page_params,
+					}
+				}
+				return response
+			},
+		})
+	} catch (error) {
+		console.error("Failed to fetch transaction logs:", error)
+		throw error
+	}
+}
+
+/**
+ * Get state changes for a specific transaction (FUTURE)
+ * @param {string} txHash - Transaction hash
+ * @param {object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page
+ * @returns {Promise} Fetch promise with state changes data
+ */
+export const fetchTxStateChanges = (txHash, params = {}) => {
+	try {
+		const { items_count = 50 } = params
+
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/state-changes`)
+
+		url.searchParams.append("items_count", items_count)
+
+		return useFetch(url.href, {
+			key: `tx-state-changes-${txHash}`,
+		})
+	} catch (error) {
+		console.error("Failed to fetch transaction state changes:", error)
+		throw error
+	}
+}
+
+/**
+ * Get raw trace for a specific transaction (FUTURE)
+ * @param {string} txHash - Transaction hash
+ * @returns {Promise} Fetch promise with raw trace data
+ */
+export const fetchTxRawTrace = async (txHash) => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/raw-trace`)
+		const data = await $fetch(url.href)
+
+		return {
+			data: {
+				value: data
+			}
+		}
+	} catch (error) {
+		console.error("Failed to fetch transaction raw trace:", error)
+		throw error
+	}
+}
+
+/**
+ * Get transaction summary (FUTURE)
+ * @param {string} txHash - Transaction hash
+ * @returns {Promise} Fetch promise with transaction summary
+ */
+export const fetchTxSummary = async (txHash) => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/transactions/${txHash}/summary`)
+		const data = await $fetch(url.href)
+
+		return {
+			data: {
+				value: data
+			}
+		}
+	} catch (error) {
+		console.error("Failed to fetch transaction summary:", error)
+		throw error
+	}
+}
+
+/**
+ * Get transactions count from stats endpoint
+ * @returns {Promise} Total transactions count
+ */
+export const fetchTxsCount = async () => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/stats`)
+		const data = await $fetch(url.href)
+
+		return {
+			data: {
+				value: {
+					total_transactions: data.total_transactions,
+					transactions_today: data.transactions_today,
+				}
+			}
+		}
+	} catch (error) {
+		console.error("Failed to fetch transactions count:", error)
+		throw error
 	}
 }

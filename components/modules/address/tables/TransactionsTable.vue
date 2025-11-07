@@ -102,12 +102,12 @@ const props = defineProps({
 					<td>
 						<NuxtLink :to="`/tx/${tx.hash}`">
 							<Tooltip position="start" textAlign="left">
-								<MessageTypeBadge :types="tx.message_types" />
+								<MessageTypeBadge :types="tx.transaction_types" />
 
 								<template #content>
 									<Flex direction="column" gap="8">
-										<Text v-for="type in tx.message_types" color="primary">
-											{{ type.replace("Msg", "") }}
+										<Text v-for="type in tx.transaction_types" color="primary">
+											{{ type.replace(/_/g, " ") }}
 										</Text>
 									</Flex>
 								</template>
