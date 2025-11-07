@@ -74,7 +74,6 @@ const getTransactionsByBlock = async () => {
 			status: tx.status === "ok" ? "success" : "failed",
 		}))
 	} catch (error) {
-		console.error("Error fetching block transactions:", error)
 		preview.transactions = []
 	}
 

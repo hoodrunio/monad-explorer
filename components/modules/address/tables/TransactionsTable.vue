@@ -7,9 +7,15 @@ import { comma, space, shortHex } from "@/services/utils"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
+import MethodChip from "@/components/ui/MethodChip.vue"
 
 /** Shared Components */
 import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
+
+/** Composables */
+import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
+
+const { convertToUsd } = useMonUsdConverter()
 
 const router = useRouter()
 
@@ -48,7 +54,7 @@ const props = defineProps({
 			</thead>
 
 			<tbody>
-				<tr v-for="tx in transactions">
+				<tr v-for="tx in transactions" :class="$style.row">
 					<td style="width: 1px">
 						<NuxtLink :to="`/tx/${tx.hash}`">
 							<Tooltip position="start" delay="500">
@@ -57,6 +63,7 @@ const props = defineProps({
 										:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
 										size="13"
 										:color="tx.status === 'success' ? 'green' : 'red'"
+										:class="tx.status === 'success' ? $style.status_icon_success : $style.status_icon_error"
 									/>
 
 									<Text size="12" weight="600" color="primary" mono class="table_column_alias">
@@ -90,7 +97,7 @@ const props = defineProps({
 							<Flex justify="center" direction="column" gap="4">
 								<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="primary">
 									<Text size="12" weight="600" color="primary">
-										{{ DateTime.fromISO(tx.time).toRelative({ locale: "en", style: "short" }) }}
+										{{ DateTime.fromISO(tx.time).toRelative({ locale: "en", style: "short" }).replace(' ago', '') }}
 									</Text>
 								</ClientOnlyTime>
 								<Text size="12" weight="500" color="tertiary">
@@ -149,11 +156,11 @@ const props = defineProps({
 	& tbody {
 		& tr {
 			cursor: pointer;
-
-			transition: all 0.05s ease;
+			transition: all 0.2s ease;
 
 			&:hover {
 				background: var(--op-5);
+				transform: translateX(4px);
 			}
 
 			&:active {
@@ -198,5 +205,26 @@ const props = defineProps({
 
 .link {
 	cursor: pointer;
+}
+
+/* Neon Glow Effects */
+.status_icon_success {
+	filter: drop-shadow(0 0 6px var(--neon-success));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 10px var(--neon-success));
+		transform: scale(1.02);
+	}
+}
+
+.status_icon_error {
+	filter: drop-shadow(0 0 6px var(--neon-error));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 10px var(--neon-error));
+		transform: scale(1.02);
+	}
 }
 </style>

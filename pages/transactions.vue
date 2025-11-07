@@ -10,10 +10,14 @@ import { fetchTransactions } from "@/services/api/tx"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
+import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
 
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
+import MethodChip from "@/components/ui/MethodChip.vue"
+import FilterChipsBar from "@/components/FilterChipsBar.vue"
+import BackgroundPattern from "@/components/BackgroundPattern.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +32,19 @@ const hasMore = computed(() => nextPageParams.value !== null)
 const { batchGetMethodInfo } = useTransactionMethods()
 const methodInfoMap = ref(new Map())
 
+// USD Conversion
+const { convertToUsd, isPriceAvailable } = useMonUsdConverter()
+
+// Active filters
+const activeFilters = ref([])
+
+const handleFiltersUpdate = (filters) => {
+	activeFilters.value = filters
+	// In a real implementation, you would apply these filters to the API call
+	// For now, we'll just log them as the API needs to support filtering
+	console.log("Active filters:", filters)
+}
+
 // EVM transaction helper functions
 const formatGasValue = (value) => {
 	if (!value) return "0"
@@ -37,7 +54,7 @@ const formatGasValue = (value) => {
 const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
 	const monValue = parseFloat(value) / Math.pow(10, 18)
-	return monValue.toFixed(6)
+	return monValue.toFixed(4)
 }
 
 const getTransactionType = (tx) => {
@@ -175,6 +192,8 @@ useHead({
 </script>
 
 <template>
+	<BackgroundPattern />
+
 	<Flex direction="column" gap="20" wide :class="$style.wrapper">
 		<Flex direction="column" gap="12">
 			<Flex align="end" justify="between" :class="$style.header">
@@ -200,6 +219,9 @@ useHead({
 					</Flex>
 				</Flex>
 
+				<!-- Filter Chips Bar -->
+				<FilterChipsBar @update:filters="handleFiltersUpdate" />
+
 				<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 					<Text size="13" weight="600" color="secondary">Loading transactions...</Text>
 				</Flex>
@@ -222,7 +244,7 @@ useHead({
 							</thead>
 
 							<tbody>
-								<tr v-for="tx in transactions" :key="tx.hash">
+								<tr v-for="tx in transactions" :key="tx.hash" :class="$style.row">
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center" gap="6">
@@ -230,6 +252,7 @@ useHead({
 													:name="tx.status === 'ok' ? 'check-circle' : 'close-circle'"
 													size="14"
 													:color="tx.status === 'ok' ? 'green' : 'red'"
+													:class="tx.status === 'ok' ? $style.status_icon_success : $style.status_icon_error"
 												/>
 												<Outline>
 													<Flex align="center" gap="4">
@@ -241,13 +264,12 @@ useHead({
 												</Outline>
 											</Flex>
 										</NuxtLink>
+										<div :class="$style.hover_arrow">→</div>
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="12" weight="600" color="primary">
-													{{ getEnhancedMethodName(tx) || tx.method || 'Transfer' }}
-												</Text>
+												<MethodChip :method="getEnhancedMethodName(tx) || tx.method || 'Transfer'" />
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -266,7 +288,7 @@ useHead({
 												<Tooltip position="start" delay="500">
 													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
 														<Text size="11" weight="600" color="primary">
-															{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
+															{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }).replace(' ago', '') }}
 														</Text>
 													</ClientOnlyTime>
 
@@ -298,9 +320,12 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
+											<Flex direction="column" gap="2">
 												<Text size="12" weight="600" color="primary">
 													{{ formatMonValue(tx.value) }} MON
+												</Text>
+												<Text v-if="tx.value && tx.value !== '0' && convertToUsd(tx.value)" size="10" weight="600" color="tertiary" :class="$style.usd_value">
+													{{ convertToUsd(tx.value) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
@@ -405,9 +430,10 @@ useHead({
 }
 
 .content {
-	border-radius: 8px;
+	border-radius: var(--card-border-radius);
 	background: var(--card-background);
 	overflow: hidden;
+	position: relative;
 }
 
 /* Desktop Table View */
@@ -450,10 +476,16 @@ useHead({
 	& tbody {
 		& tr {
 			cursor: pointer;
-			transition: all 0.05s ease;
+			transition: all 0.2s ease;
+			position: relative;
 
 			&:hover {
 				background: var(--op-5);
+				transform: translateX(8px);
+
+				& .hover_arrow {
+					opacity: 1;
+				}
 			}
 
 			&:active {
@@ -569,5 +601,46 @@ useHead({
 	.wrapper {
 		padding: 32px 12px;
 	}
+}
+
+/* Neon Glow Effects */
+.status_icon_success {
+	filter: drop-shadow(0 0 8px var(--neon-success));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 12px var(--neon-success));
+		transform: scale(1.02);
+	}
+}
+
+.status_icon_error {
+	filter: drop-shadow(0 0 8px var(--neon-error));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 12px var(--neon-error));
+		transform: scale(1.02);
+	}
+}
+
+/* Hover Arrow Indicator */
+.hover_arrow {
+	position: absolute;
+	right: -20px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--hover-arrow-color);
+	font-size: 16px;
+	font-weight: 600;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	pointer-events: none;
+}
+
+/* USD Value Styling */
+.usd_value {
+	opacity: 0.65;
+	line-height: 1;
 }
 </style>

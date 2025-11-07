@@ -1,4 +1,5 @@
 import { useModalsStore } from "./modals.store"
+import { fetchGasHistoryAnalytics } from "@/services/api/analytics"
 
 export const useAppStore = defineStore("app", () => {
 	const version = ref()
@@ -20,6 +21,53 @@ export const useAppStore = defineStore("app", () => {
 		low: "0",
 		close: "0",
 	})
+
+	// Price fetching
+	let priceInterval = null
+
+	const updatePrice = async () => {
+		try {
+			// Use market data endpoint to get current price
+			const marketData = await fetchGasHistoryAnalytics({})
+			console.log("Market API Response:", marketData)
+
+			if (marketData?.success && marketData?.data?.data?.length > 0) {
+				// Get the most recent price (first item in array)
+				const latestData = marketData.data.data[0]
+
+				// Map to currentPrice structure
+				currentPrice.value = {
+					time: latestData.date,
+					open: latestData.closingPrice || "0",
+					high: latestData.closingPrice || "0",
+					low: latestData.closingPrice || "0",
+					close: latestData.closingPrice || "0"
+				}
+				console.log("Price updated in store:", currentPrice.value)
+			}
+		} catch (error) {
+			console.error("Failed to fetch price:", error)
+		}
+	}
+
+	const startPriceFetching = () => {
+		// Fetch immediately
+		updatePrice()
+
+		// Then fetch every 60 seconds
+		if (!priceInterval) {
+			priceInterval = setInterval(() => {
+				updatePrice()
+			}, 60000) // 60 seconds
+		}
+	}
+
+	const stopPriceFetching = () => {
+		if (priceInterval) {
+			clearInterval(priceInterval)
+			priceInterval = null
+		}
+	}
 
 	const wallet = ref("")
 	const address = ref("")
@@ -52,6 +100,9 @@ export const useAppStore = defineStore("app", () => {
 		head,
 		gas,
 		currentPrice,
+		updatePrice,
+		startPriceFetching,
+		stopPriceFetching,
 		wallet,
 		address,
 		balance,
