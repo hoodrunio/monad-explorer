@@ -5,6 +5,10 @@
 import { useCssModule } from "vue"
 import { NuxtLink } from "#components"
 
+defineOptions({
+	inheritAttrs: false
+})
+
 const emit = defineEmits(["onKeybind"])
 const props = defineProps({
 	size: {
@@ -54,7 +58,7 @@ const getStyles = () => {
 <template>
 	<component
 		:is="link ? NuxtLink : 'button'"
-		v-bind="{ to: link ? link : null }"
+		v-bind="{ to: link ? link : null, ...$attrs }"
 		:target="target"
 		:class="[...getStyles(), loading && $style.loading]"
 	>

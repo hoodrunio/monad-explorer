@@ -1,18 +1,13 @@
 <script setup>
-import {
-	connect,
-	disconnect,
-	getAccount,
-	switchChain,
-	getBalance,
-	watchAccount,
-	watchChainId,
-} from '@wagmi/core'
 import { injected, metaMask, walletConnect } from 'wagmi/connectors'
-import { formatEther } from 'viem'
 import { monadTestnet } from '~/config/chains'
 import { useStakingStore } from '~/store/staking.store'
-import { useNotificationsStore } from '~/store/notifications.store'
+import { useWalletConnection } from '~/composables/useWalletConnection'
+import { useNetworkValidation } from '~/composables/useNetworkValidation'
+import {
+	showSuccessNotification,
+	showNetworkSwitchRequiredNotification,
+} from '~/utils/notifications'
 
 // UI Components
 import Button from '@/components/ui/Button.vue'
@@ -44,17 +39,33 @@ const props = defineProps({
 })
 
 const stakingStore = useStakingStore()
-const notificationsStore = useNotificationsStore()
-const { $wagmiConfig } = useNuxtApp()
 
-// Reactive state
-const isConnecting = ref(false)
-const connectingWallet = ref(null)
+// Use wallet connection composable
+const {
+	account,
+	balance,
+	chainId,
+	isConnecting,
+	connectingWallet,
+	isConnected,
+	address,
+	formattedAddress,
+	formattedBalance,
+	connectWallet: _connectWallet,
+	disconnectWallet: _disconnectWallet,
+	copyAddress: _copyAddress,
+	initializeWatchers,
+} = useWalletConnection()
+
+// Use network validation composable
+const {
+	isCorrectNetwork,
+	switchToMonadNetwork: _switchToMonadNetwork,
+} = useNetworkValidation()
+
+// UI state
 const showAccountModal = ref(false)
 const showConnectModal = ref(false)
-const account = ref(null)
-const balance = ref('0')
-const chainId = ref(null)
 const addressCopied = ref(false)
 
 // Available connectors
@@ -84,32 +95,6 @@ const connectors = [
 	}
 ]
 
-// Computed values
-const isConnected = computed(() => account.value?.isConnected || false)
-const isCorrectNetwork = computed(() => {
-	if (!chainId.value) return false
-	const currentChainIdNum = typeof chainId.value === 'string'
-		? parseInt(chainId.value, 16)
-		: chainId.value
-	return currentChainIdNum === monadTestnet.id
-})
-const formattedAddress = computed(() => {
-	if (!account.value?.address) return ''
-	const addr = account.value.address
-	return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-})
-const formattedBalance = computed(() => {
-	try {
-		const value = parseFloat(formatEther(BigInt(balance.value || '0')))
-		return new Intl.NumberFormat('en-US', {
-			minimumFractionDigits: 4,
-			maximumFractionDigits: 4
-		}).format(value)
-	} catch {
-		return '0.0000'
-	}
-})
-
 // Responsive helpers
 const getResponsiveValue = (prop, screenSize = 'largeScreen') => {
 	if (typeof prop === 'object' && prop !== null) {
@@ -118,301 +103,87 @@ const getResponsiveValue = (prop, screenSize = 'largeScreen') => {
 	return prop
 }
 
-// Initialize wallet watchers
-function initializeWatchers() {
-	if (!$wagmiConfig) return
-
-	// Watch account changes
-	watchAccount($wagmiConfig, {
-		onChange: (accountData) => {
-			account.value = accountData
+// Initialize wallet watchers with staking store integration
+function initializeWalletWatchers() {
+	initializeWatchers({
+		onAccountChange: (accountData) => {
 			if (accountData.isConnected && accountData.address) {
-				fetchBalance()
 				stakingStore.address = accountData.address
 				stakingStore.isConnected = true
+				// Let store fetch its own balance to avoid race condition
+				stakingStore.fetchBalance()
 				stakingStore.fetchUserStakingData()
 			} else {
 				stakingStore.resetUserData()
 			}
-		}
-	})
-
-	// Watch chain changes
-	watchChainId($wagmiConfig, {
-		onChange: (newChainId) => {
-			chainId.value = newChainId
-			stakingStore.chainId = newChainId
+		},
+		onChainChange: (newChainId) => {
 			const chainIdNum = typeof newChainId === 'string'
 				? parseInt(newChainId, 16)
 				: newChainId
-			stakingStore.isCorrectNetwork = chainIdNum === monadTestnet.id
 
-			// Show notification if on wrong network
+			stakingStore.chainId = newChainId
+
 			if (chainIdNum !== monadTestnet.id) {
-				notificationsStore.create({
-					notification: {
-						type: 'warning',
-						icon: 'warning',
-						title: 'Wrong Network',
-						description: 'Please switch to Monad Testnet',
-						autoDestroy: false
-					}
-				})
+				showNetworkSwitchRequiredNotification()
+			}
+
+			// Refetch balance after network switch
+			if (stakingStore.isConnected && stakingStore.address) {
+				stakingStore.fetchBalance()
 			}
 		}
 	})
 
-	// Get initial state
-	const initialAccount = getAccount($wagmiConfig)
-	account.value = initialAccount
-
-	// Get initial chain ID
-	const currentChainId = $wagmiConfig.state.chainId
-	chainId.value = currentChainId
-
-	// Set initial staking store chain state
-	if (currentChainId) {
-		stakingStore.chainId = currentChainId
-		const chainIdNum = typeof currentChainId === 'string'
-			? parseInt(currentChainId, 16)
-			: currentChainId
-		stakingStore.isCorrectNetwork = chainIdNum === monadTestnet.id
-	}
-
-	if (initialAccount.isConnected) {
-		fetchBalance()
-		stakingStore.address = initialAccount.address
-		stakingStore.isConnected = true
-	}
-}
-
-// Fetch balance
-async function fetchBalance() {
-	if (!account.value?.address || !$wagmiConfig) return
-
-	try {
-		const balanceData = await getBalance($wagmiConfig, {
-			address: account.value.address,
-			chainId: monadTestnet.id,
-		})
-		balance.value = balanceData.value.toString()
-		stakingStore.balance = balanceData.value.toString()
-	} catch (err) {
-		console.error('Failed to fetch balance:', err)
-	}
+	// Set initial chainId to stakingStore
+	stakingStore.chainId = chainId.value
 }
 
 // Connect wallet
 async function connectWallet(connector) {
-	if (isConnecting.value || !$wagmiConfig) return
+	const success = await _connectWallet(connector.connector, connector.name)
 
-	isConnecting.value = true
-	connectingWallet.value = connector.id
-
-	try {
-		await connect($wagmiConfig, {
-			connector: connector.connector
-		})
-
+	if (success) {
 		// Switch to Monad testnet if not already on it
 		if (!isCorrectNetwork.value) {
-			await switchToMonadNetwork()
+			await _switchToMonadNetwork()
 		}
-
 		showConnectModal.value = false
-
-		// Show success notification
-		notificationsStore.create({
-			notification: {
-				type: 'success',
-				icon: 'check',
-				title: 'Wallet Connected',
-				description: `Successfully connected to ${connector.name}`,
-				autoDestroy: true,
-				delay: 3000
-			}
-		})
-	} catch (err) {
-		// Show error notification
-		notificationsStore.create({
-			notification: {
-				type: 'error',
-				icon: 'warning',
-				title: 'Connection Failed',
-				description: err.message || 'Failed to connect wallet',
-				autoDestroy: true,
-				delay: 5000
-			}
-		})
-	} finally {
-		isConnecting.value = false
-		connectingWallet.value = null
 	}
 }
 
 // Disconnect wallet
 async function disconnectWallet() {
-	if (!$wagmiConfig) return
-
-	try {
-		await disconnect($wagmiConfig)
-		stakingStore.resetUserData()
-		showAccountModal.value = false
-
-		// Show notification
-		notificationsStore.create({
-			notification: {
-				type: 'success',
-				icon: 'check',
-				title: 'Wallet Disconnected',
-				description: 'Your wallet has been disconnected',
-				autoDestroy: true,
-				delay: 3000
-			}
-		})
-	} catch (err) {
-		notificationsStore.create({
-			notification: {
-				type: 'error',
-				icon: 'warning',
-				title: 'Disconnection Failed',
-				description: err.message || 'Failed to disconnect wallet',
-				autoDestroy: true,
-				delay: 5000
-			}
-		})
-	}
+	await _disconnectWallet()
+	stakingStore.resetUserData()
+	showAccountModal.value = false
 }
 
-// Switch to Monad network
+// Switch to Monad network (using composable)
 async function switchToMonadNetwork() {
-	if (!$wagmiConfig) return
-
-	try {
-		await switchChain($wagmiConfig, {
-			chainId: monadTestnet.id
-		})
-
-		notificationsStore.create({
-			notification: {
-				type: 'success',
-				icon: 'check',
-				title: 'Network Switched',
-				description: 'Successfully switched to Monad Testnet',
-				autoDestroy: true,
-				delay: 3000
-			}
-		})
-	} catch (switchError) {
-		// If switching fails, try to add the chain first
-		if (switchError.code === 4902 || switchError.message.includes('Unrecognized chain ID')) {
-			try {
-				const chainParams = {
-					chainId: `0x${monadTestnet.id.toString(16)}`,
-					chainName: monadTestnet.name,
-					nativeCurrency: monadTestnet.nativeCurrency,
-					rpcUrls: [monadTestnet.rpcUrls.default.http[0]],
-					blockExplorerUrls: [monadTestnet.blockExplorers.default.url],
-				}
-
-				if (!window.ethereum) {
-					notificationsStore.create({
-						notification: {
-							type: 'error',
-							icon: 'warning',
-							title: 'MetaMask Not Found',
-							description: 'Please install MetaMask to continue',
-							autoDestroy: false
-						}
-					})
-					return
-				}
-
-				await window.ethereum.request({
-					method: 'wallet_addEthereumChain',
-					params: [chainParams]
-				})
-
-				// After adding, try to switch again
-				await switchChain($wagmiConfig, {
-					chainId: monadTestnet.id
-				})
-
-				notificationsStore.create({
-					notification: {
-						type: 'success',
-						icon: 'check',
-						title: 'Network Added',
-						description: 'Monad Testnet added and switched successfully',
-						autoDestroy: true,
-						delay: 3000
-					}
-				})
-			} catch (addError) {
-				notificationsStore.create({
-					notification: {
-						type: 'error',
-						icon: 'warning',
-						title: 'Failed to Add Network',
-						description: 'Please add Monad Testnet manually in your wallet',
-						autoDestroy: false
-					}
-				})
-			}
-		} else {
-			notificationsStore.create({
-				notification: {
-					type: 'warning',
-					icon: 'warning',
-					title: 'Network Switch Required',
-					description: 'Please switch to Monad Testnet manually',
-					autoDestroy: false
-				}
-			})
-		}
-	}
+	await _switchToMonadNetwork()
 }
 
 // Copy address to clipboard
 async function copyAddress() {
-	if (!account.value?.address) return
+	const success = await _copyAddress()
 
-	try {
-		await navigator.clipboard.writeText(account.value.address)
+	if (success) {
 		addressCopied.value = true
-
-		// Show notification
-		notificationsStore.create({
-			notification: {
-				type: 'success',
-				icon: 'check',
-				title: 'Address Copied',
-				description: 'Wallet address copied to clipboard',
-				autoDestroy: true,
-				delay: 2000
-			}
-		})
-
+		showSuccessNotification(
+			'Address Copied',
+			'Wallet address copied to clipboard',
+			2000
+		)
 		setTimeout(() => {
 			addressCopied.value = false
 		}, 2000)
-	} catch (err) {
-		notificationsStore.create({
-			notification: {
-				type: 'error',
-				icon: 'warning',
-				title: 'Copy Failed',
-				description: 'Failed to copy address to clipboard',
-				autoDestroy: true,
-				delay: 3000
-			}
-		})
 	}
 }
 
 // Initialize on mount
 onMounted(() => {
-	initializeWatchers()
+	initializeWalletWatchers()
 })
 </script>
 

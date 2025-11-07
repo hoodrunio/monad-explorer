@@ -1,8 +1,10 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
+import { useNetworkValidation } from '~/composables/useNetworkValidation'
 import Button from '@/components/ui/Button.vue'
 
 const stakingStore = useStakingStore()
+const { isCorrectNetwork, switchToMonadNetwork } = useNetworkValidation()
 
 const isSwitching = ref(false)
 
@@ -11,7 +13,7 @@ async function handleSwitchNetwork() {
 
 	isSwitching.value = true
 	try {
-		await stakingStore.switchToMonadNetwork()
+		await switchToMonadNetwork()
 	} finally {
 		// Small delay to show the button state
 		setTimeout(() => {
@@ -23,7 +25,7 @@ async function handleSwitchNetwork() {
 
 <template>
 	<Transition name="slide-down">
-		<div v-if="stakingStore.isConnected && !stakingStore.isCorrectNetwork" :class="$style.networkGuard">
+		<div v-if="stakingStore.isConnected && !isCorrectNetwork" :class="$style.networkGuard">
 			<div :class="$style.container">
 				<div :class="$style.icon">
 					<Icon name="warning" size="24" />

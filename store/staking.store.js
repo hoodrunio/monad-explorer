@@ -1,18 +1,12 @@
 import { defineStore } from 'pinia'
-import {
-	getBalance,
-	readContract,
-	writeContract,
-	waitForTransactionReceipt,
-	getChainId,
-	switchChain,
-} from '@wagmi/core'
-import { parseEther, formatEther, parseUnits, formatUnits } from 'viem'
+import { getBalance, getChainId } from '@wagmi/core'
+import { formatEther, parseEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
-import { STAKING_CONFIG, monadTestnet } from '~/config/chains'
+import { monadTestnet } from '~/config/chains'
 import { useModalsStore } from '~/store/modals.store'
-import { useNotificationsStore } from '~/store/notifications.store'
-import { getDelegatorWithdrawals } from '~/services/api/staking'
+import { createStakingService } from '~/services/StakingService'
+import { createNetworkService } from '~/services/NetworkService'
+import { isCorrectNetwork as checkNetwork } from '~/utils/chain'
 
 export const useStakingStore = defineStore('staking', {
 	state: () => ({
@@ -21,7 +15,6 @@ export const useStakingStore = defineStore('staking', {
 		address: null,
 		balance: '0',
 		chainId: null,
-		isCorrectNetwork: false,
 
 		// Staking State
 		currentEpoch: 0,
@@ -50,6 +43,12 @@ export const useStakingStore = defineStore('staking', {
 	}),
 
 	getters: {
+		// Network validation
+		isCorrectNetwork: (state) => {
+			if (!state.chainId) return false
+			return checkNetwork(state.chainId, monadTestnet.id)
+		},
+
 		// Formatted balances
 		formattedBalance: (state) => formatEther(BigInt(state.balance || '0')),
 		formattedRewards: (state) => formatEther(BigInt(state.userRewards || '0')),
@@ -138,166 +137,58 @@ export const useStakingStore = defineStore('staking', {
 
 		// Fetch current epoch info
 		async fetchEpochInfo() {
-			try {
-				const { $wagmiConfig } = useNuxtApp()
-				const result = await readContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'getEpoch',
-						type: 'function',
-						stateMutability: 'view',
-						inputs: [],
-						outputs: [
-							{ name: 'epoch', type: 'uint64' },
-							{ name: 'inBoundary', type: 'bool' }
-						]
-					}],
-					functionName: 'getEpoch',
-				})
-				
-				this.currentEpoch = Number(result[0])
-				this.inBoundary = result[1]
-			} catch (error) {
-				// Failed to fetch epoch info
-			}
+			const { fetchEpochInfo } = useStakingData()
+			const epochInfo = await fetchEpochInfo()
+			this.currentEpoch = epochInfo.currentEpoch
+			this.inBoundary = epochInfo.inBoundary
 		},
 
 		// Fetch user's delegations
 		async fetchUserDelegations() {
 			if (!this.address) return []
-			
-			try {
-				const { $wagmiConfig } = useNuxtApp()
-				const delegations = []
-				let startValId = 0
-				let done = false
-				
-				while (!done) {
-					const result = await readContract($wagmiConfig, {
-						address: STAKING_CONFIG.CONTRACT_ADDRESS,
-						abi: [{
-							name: 'getDelegations',
-							type: 'function',
-							stateMutability: 'view',
-							inputs: [
-								{ name: 'delegator', type: 'address' },
-								{ name: 'startValId', type: 'uint64' }
-							],
-							outputs: [
-								{ name: 'done', type: 'bool' },
-								{ name: 'nextValId', type: 'uint64' },
-								{ name: 'valIds', type: 'uint64[]' }
-							]
-						}],
-						functionName: 'getDelegations',
-						args: [this.address, startValId],
-					})
-					
-					done = result[0]
-					startValId = Number(result[1])
-					
-					// Fetch detailed info for each validator
-					for (const valId of result[2]) {
-						try {
-							const delegatorInfo = await this.fetchDelegatorInfo(Number(valId))
-							if (delegatorInfo) {
-								delegations.push({
-									valId: Number(valId),
-									...delegatorInfo
-								})
-							}
-						} catch (error) {
-							// Failed to fetch delegation info
-						}
-					}
-				}
-				
-				this.userDelegations = delegations
-				return delegations
-			} catch (error) {
-				return []
-			}
+
+			const { fetchUserDelegations } = useStakingData()
+			const delegations = await fetchUserDelegations(this.address)
+			this.userDelegations = delegations
+			return delegations
 		},
 
 		// Fetch delegator info for specific validator
 		async fetchDelegatorInfo(valId) {
 			if (!this.address) return null
-			
-			try {
-				const { $wagmiConfig } = useNuxtApp()
-				const result = await readContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'getDelegator',
-						type: 'function',
-						stateMutability: 'view',
-						inputs: [
-							{ name: 'valId', type: 'uint64' },
-							{ name: 'delegator', type: 'address' }
-						],
-						outputs: [
-							{ name: 'stake', type: 'uint256' },
-							{ name: 'acc', type: 'uint256' },
-							{ name: 'rewards', type: 'uint256' },
-							{ name: 'deltaStake', type: 'uint256' },
-							{ name: 'nextDeltaStake', type: 'uint256' },
-							{ name: 'deltaEpoch', type: 'uint64' },
-							{ name: 'nextDeltaEpoch', type: 'uint64' }
-						]
-					}],
-					functionName: 'getDelegator',
-					args: [valId, this.address],
-				})
-				
-				return {
-					stake: result[0].toString(),
-					acc: result[1].toString(),
-					rewards: result[2].toString(),
-					deltaStake: result[3].toString(),
-					nextDeltaStake: result[4].toString(),
-					deltaEpoch: Number(result[5]),
-					nextDeltaEpoch: Number(result[6]),
-				}
-			} catch (error) {
-				return null
-			}
+
+			const { fetchDelegatorInfo } = useStakingData()
+			return await fetchDelegatorInfo(valId, this.address)
 		},
 
 		// Fetch user's withdrawal requests
 		async fetchUserWithdrawals() {
 			if (!this.address) return []
-			
-			try {
-				// Only fetch withdrawals if user has delegations
-				if (this.userDelegations.length === 0) {
-					this.userWithdrawals = []
-					return []
-				}
-				
-				const withdrawals = await getDelegatorWithdrawals(this.address)
-				this.userWithdrawals = withdrawals
-				return withdrawals
-			} catch (error) {
-				// Don't fail completely, just return empty array
+
+			// Only fetch withdrawals if user has delegations
+			if (this.userDelegations.length === 0) {
 				this.userWithdrawals = []
 				return []
 			}
+
+			const { fetchUserWithdrawals } = useStakingData()
+			const withdrawals = await fetchUserWithdrawals(this.address)
+			this.userWithdrawals = withdrawals
+			return withdrawals
 		},
 
 		// Fetch all user staking data
 		async fetchUserStakingData() {
 			if (!this.address) return
-			
-			await Promise.all([
-				this.fetchEpochInfo(),
-				this.fetchUserDelegations(),
-				this.fetchUserWithdrawals(),
-			])
-			
-			// Calculate total rewards
-			this.userRewards = this.userDelegations
-				.reduce((total, delegation) => total + BigInt(delegation.rewards || '0'), BigInt('0'))
-				.toString()
+
+			const { fetchAllStakingData } = useStakingData()
+			const data = await fetchAllStakingData(this.address)
+
+			this.currentEpoch = data.currentEpoch
+			this.inBoundary = data.inBoundary
+			this.userDelegations = data.userDelegations
+			this.userWithdrawals = data.userWithdrawals
+			this.userRewards = data.userRewards
 		},
 
 		// Delegate to a validator
@@ -312,100 +203,45 @@ export const useStakingStore = defineStore('staking', {
 
 			this.loading.delegate = true
 			const modalsStore = useModalsStore()
-			const notificationsStore = useNotificationsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
 
-				// Double-check chain ID and auto-switch if needed
-				const currentChainId = getChainId($wagmiConfig)
-				if (currentChainId !== monadTestnet.id) {
-					// Attempt to switch network automatically
-					const switched = await this.switchToMonadNetwork()
-					if (!switched) {
-						// If switch failed or was rejected, throw error
-						throw new Error('Please switch to Monad Testnet to continue')
-					}
-					// Wait a moment for the switch to complete
-					await new Promise(resolve => setTimeout(resolve, 500))
-				}
+				// Execute transaction (network validation happens inside service)
+				const transaction = await stakingService.delegate(valId, amount)
 
-				const amountWei = parseEther(amount.toString())
-
-				const hash = await writeContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'delegate',
-						type: 'function',
-						stateMutability: 'payable',
-						inputs: [{ name: 'valId', type: 'uint64' }],
-						outputs: [{ name: 'success', type: 'bool' }]
-					}],
-					functionName: 'delegate',
-					args: [valId],
-					value: amountWei,
-				})
-				
-				const transaction = {
-					hash,
-					type: 'delegate',
-					valId,
-					amount: amount.toString(),
-					timestamp: Date.now(),
-					status: 'pending'
-				}
-				
+				// Track transaction
 				this.pendingTransactions.push(transaction)
-				
+
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
-				
-				// Wait for confirmation with timeout
-				try {
-					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
-						hash,
-						timeout: 60000 // 60 seconds timeout
-					})
-					
-					// Update transaction status
-					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-					transaction.blockNumber = receipt.blockNumber
-					transaction.gasUsed = receipt.gasUsed
-					
-				} catch (receiptError) {
-					// Mark as failed if we can't get receipt
-					transaction.status = 'failed'
-					transaction.error = 'Transaction confirmation timeout'
-				}
-				
-				// Update modal with final status (don't reopen, just update)
+
+				// Update modal with final status
 				modalsStore.updateTransactionResult(transaction)
-				
+
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
-				
+
 				// Remove from pending after delay
 				setTimeout(() => {
-					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+					this.pendingTransactions = this.pendingTransactions.filter(
+						(tx) => tx.hash !== transaction.hash
+					)
 				}, 3000)
-				
-				return hash
+
+				return transaction.hash
 			} catch (error) {
-				// Delegation failed
-				
 				// Show error in modal
-				const errorTransaction = {
-					hash: null,
-					type: 'delegate',
+				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
+				const errorTransaction = stakingService.createErrorTransaction('delegate', error, {
 					valId,
 					amount: amount.toString(),
-					timestamp: Date.now(),
-					status: 'failed',
-					error: error.message || 'Transaction failed'
-				}
+				})
 				modalsStore.showTransactionResult(errorTransaction)
-				
+
 				throw error
 			} finally {
 				this.loading.delegate = false
@@ -424,104 +260,42 @@ export const useStakingStore = defineStore('staking', {
 
 			this.loading.undelegate = true
 			const modalsStore = useModalsStore()
-			const notificationsStore = useNotificationsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
 
-				// Double-check chain ID and auto-switch if needed
-				const currentChainId = getChainId($wagmiConfig)
-				if (currentChainId !== monadTestnet.id) {
-					// Attempt to switch network automatically
-					const switched = await this.switchToMonadNetwork()
-					if (!switched) {
-						// If switch failed or was rejected, throw error
-						throw new Error('Please switch to Monad Testnet to continue')
-					}
-					// Wait a moment for the switch to complete
-					await new Promise(resolve => setTimeout(resolve, 500))
-				}
+				// Execute transaction
+				const transaction = await stakingService.undelegate(valId, amount, withdrawId)
 
-				const amountWei = parseEther(amount.toString())
-
-				const hash = await writeContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'undelegate',
-						type: 'function',
-						stateMutability: 'nonpayable',
-						inputs: [
-							{ name: 'valId', type: 'uint64' },
-							{ name: 'amount', type: 'uint256' },
-							{ name: 'withdrawId', type: 'uint8' }
-						],
-						outputs: [{ name: 'success', type: 'bool' }]
-					}],
-					functionName: 'undelegate',
-					args: [valId, amountWei, withdrawId],
-				})
-				
-				const transaction = {
-					hash,
-					type: 'undelegate',
-					valId,
-					amount: amount.toString(),
-					withdrawId,
-					timestamp: Date.now(),
-					status: 'pending'
-				}
-				
+				// Track transaction
 				this.pendingTransactions.push(transaction)
-				
+
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
-				
-				// Wait for confirmation with timeout
-				try {
-					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
-						hash,
-						timeout: 60000 // 60 seconds timeout
-					})
-					
-					// Update transaction status
-					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-					transaction.blockNumber = receipt.blockNumber
-					transaction.gasUsed = receipt.gasUsed
-					
-				} catch (receiptError) {
-					// Mark as failed if we can't get receipt
-					transaction.status = 'failed'
-					transaction.error = 'Transaction confirmation timeout'
-				}
-				
-				// Update modal with final status (don't reopen, just update)
 				modalsStore.updateTransactionResult(transaction)
-				
+
 				// Refresh data
 				await this.fetchUserStakingData()
-				
+
 				// Remove from pending after delay
 				setTimeout(() => {
-					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+					this.pendingTransactions = this.pendingTransactions.filter(
+						(tx) => tx.hash !== transaction.hash
+					)
 				}, 3000)
-				
-				return hash
+
+				return transaction.hash
 			} catch (error) {
-				// Undelegation failed
-				
-				// Show error in modal
-				const errorTransaction = {
-					hash: null,
-					type: 'undelegate',
+				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
+				const errorTransaction = stakingService.createErrorTransaction('undelegate', error, {
 					valId,
 					amount: amount.toString(),
 					withdrawId,
-					timestamp: Date.now(),
-					status: 'failed',
-					error: error.message || 'Transaction failed'
-				}
+				})
 				modalsStore.showTransactionResult(errorTransaction)
-				
+
 				throw error
 			} finally {
 				this.loading.undelegate = false
@@ -540,94 +314,40 @@ export const useStakingStore = defineStore('staking', {
 
 			this.loading.compound = true
 			const modalsStore = useModalsStore()
-			const notificationsStore = useNotificationsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
 
-				// Double-check chain ID and auto-switch if needed
-				const currentChainId = getChainId($wagmiConfig)
-				if (currentChainId !== monadTestnet.id) {
-					// Attempt to switch network automatically
-					const switched = await this.switchToMonadNetwork()
-					if (!switched) {
-						// If switch failed or was rejected, throw error
-						throw new Error('Please switch to Monad Testnet to continue')
-					}
-					// Wait a moment for the switch to complete
-					await new Promise(resolve => setTimeout(resolve, 500))
-				}
+				// Execute transaction
+				const transaction = await stakingService.compound(valId)
 
-				const hash = await writeContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'compound',
-						type: 'function',
-						stateMutability: 'nonpayable',
-						inputs: [{ name: 'valId', type: 'uint64' }],
-						outputs: [{ name: 'success', type: 'bool' }]
-					}],
-					functionName: 'compound',
-					args: [valId],
-				})
-				
-				const transaction = {
-					hash,
-					type: 'compound',
-					valId,
-					timestamp: Date.now(),
-					status: 'pending'
-				}
-				
+				// Track transaction
 				this.pendingTransactions.push(transaction)
-				
+
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
-				
-				// Wait for confirmation with timeout
-				try {
-					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
-						hash,
-						timeout: 60000 // 60 seconds timeout
-					})
-					
-					// Update transaction status
-					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-					transaction.blockNumber = receipt.blockNumber
-					transaction.gasUsed = receipt.gasUsed
-					
-				} catch (receiptError) {
-					// Mark as failed if we can't get receipt
-					transaction.status = 'failed'
-					transaction.error = 'Transaction confirmation timeout'
-				}
-				
-				// Update modal with final status (don't reopen, just update)
 				modalsStore.updateTransactionResult(transaction)
-				
+
 				// Refresh data
 				await this.fetchUserStakingData()
-				
+
 				// Remove from pending after delay
 				setTimeout(() => {
-					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+					this.pendingTransactions = this.pendingTransactions.filter(
+						(tx) => tx.hash !== transaction.hash
+					)
 				}, 3000)
-				
-				return hash
+
+				return transaction.hash
 			} catch (error) {
-				// Compound failed
-				
-				// Show error in modal
-				const errorTransaction = {
-					hash: null,
-					type: 'compound',
+				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
+				const errorTransaction = stakingService.createErrorTransaction('compound', error, {
 					valId,
-					timestamp: Date.now(),
-					status: 'failed',
-					error: error.message || 'Transaction failed'
-				}
+				})
 				modalsStore.showTransactionResult(errorTransaction)
-				
+
 				throw error
 			} finally {
 				this.loading.compound = false
@@ -646,95 +366,41 @@ export const useStakingStore = defineStore('staking', {
 
 			this.loading.claimRewards = true
 			const modalsStore = useModalsStore()
-			const notificationsStore = useNotificationsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
 
-				// Double-check chain ID and auto-switch if needed
-				const currentChainId = getChainId($wagmiConfig)
-				if (currentChainId !== monadTestnet.id) {
-					// Attempt to switch network automatically
-					const switched = await this.switchToMonadNetwork()
-					if (!switched) {
-						// If switch failed or was rejected, throw error
-						throw new Error('Please switch to Monad Testnet to continue')
-					}
-					// Wait a moment for the switch to complete
-					await new Promise(resolve => setTimeout(resolve, 500))
-				}
+				// Execute transaction
+				const transaction = await stakingService.claimRewards(valId)
 
-				const hash = await writeContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'claimRewards',
-						type: 'function',
-						stateMutability: 'nonpayable',
-						inputs: [{ name: 'valId', type: 'uint64' }],
-						outputs: [{ name: 'success', type: 'bool' }]
-					}],
-					functionName: 'claimRewards',
-					args: [valId],
-				})
-				
-				const transaction = {
-					hash,
-					type: 'claimRewards',
-					valId,
-					timestamp: Date.now(),
-					status: 'pending'
-				}
-				
+				// Track transaction
 				this.pendingTransactions.push(transaction)
-				
+
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
-				
-				// Wait for confirmation with timeout
-				try {
-					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
-						hash,
-						timeout: 60000 // 60 seconds timeout
-					})
-					
-					// Update transaction status
-					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-					transaction.blockNumber = receipt.blockNumber
-					transaction.gasUsed = receipt.gasUsed
-					
-				} catch (receiptError) {
-					// Mark as failed if we can't get receipt
-					transaction.status = 'failed'
-					transaction.error = 'Transaction confirmation timeout'
-				}
-				
-				// Update modal with final status (don't reopen, just update)
 				modalsStore.updateTransactionResult(transaction)
-				
+
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
-				
+
 				// Remove from pending after delay
 				setTimeout(() => {
-					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+					this.pendingTransactions = this.pendingTransactions.filter(
+						(tx) => tx.hash !== transaction.hash
+					)
 				}, 3000)
-				
-				return hash
+
+				return transaction.hash
 			} catch (error) {
-				// Claim rewards failed
-				
-				// Show error in modal
-				const errorTransaction = {
-					hash: null,
-					type: 'claimRewards',
+				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
+				const errorTransaction = stakingService.createErrorTransaction('claimRewards', error, {
 					valId,
-					timestamp: Date.now(),
-					status: 'failed',
-					error: error.message || 'Transaction failed'
-				}
+				})
 				modalsStore.showTransactionResult(errorTransaction)
-				
+
 				throw error
 			} finally {
 				this.loading.claimRewards = false
@@ -753,100 +419,42 @@ export const useStakingStore = defineStore('staking', {
 
 			this.loading.withdraw = true
 			const modalsStore = useModalsStore()
-			const notificationsStore = useNotificationsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
 
-				// Double-check chain ID and auto-switch if needed
-				const currentChainId = getChainId($wagmiConfig)
-				if (currentChainId !== monadTestnet.id) {
-					// Attempt to switch network automatically
-					const switched = await this.switchToMonadNetwork()
-					if (!switched) {
-						// If switch failed or was rejected, throw error
-						throw new Error('Please switch to Monad Testnet to continue')
-					}
-					// Wait a moment for the switch to complete
-					await new Promise(resolve => setTimeout(resolve, 500))
-				}
+				// Execute transaction
+				const transaction = await stakingService.withdraw(valId, withdrawId)
 
-				const hash = await writeContract($wagmiConfig, {
-					address: STAKING_CONFIG.CONTRACT_ADDRESS,
-					abi: [{
-						name: 'withdraw',
-						type: 'function',
-						stateMutability: 'nonpayable',
-						inputs: [
-							{ name: 'valId', type: 'uint64' },
-							{ name: 'withdrawId', type: 'uint8' }
-						],
-						outputs: [{ name: 'success', type: 'bool' }]
-					}],
-					functionName: 'withdraw',
-					args: [valId, withdrawId],
-				})
-				
-				const transaction = {
-					hash,
-					type: 'withdraw',
-					valId,
-					withdrawId,
-					timestamp: Date.now(),
-					status: 'pending'
-				}
-				
+				// Track transaction
 				this.pendingTransactions.push(transaction)
-				
+
 				// Show transaction result modal
 				modalsStore.showTransactionResult(transaction)
-				
-				// Wait for confirmation with timeout
-				try {
-					const receipt = await waitForTransactionReceipt($wagmiConfig, { 
-						hash,
-						timeout: 60000 // 60 seconds timeout
-					})
-					
-					// Update transaction status
-					transaction.status = receipt.status === 'success' ? 'success' : 'failed'
-					transaction.blockNumber = receipt.blockNumber
-					transaction.gasUsed = receipt.gasUsed
-					
-				} catch (receiptError) {
-					// Mark as failed if we can't get receipt
-					transaction.status = 'failed'
-					transaction.error = 'Transaction confirmation timeout'
-				}
-				
-				// Update modal with final status (don't reopen, just update)
 				modalsStore.updateTransactionResult(transaction)
-				
+
 				// Refresh data
 				await this.fetchBalance()
 				await this.fetchUserStakingData()
-				
+
 				// Remove from pending after delay
 				setTimeout(() => {
-					this.pendingTransactions = this.pendingTransactions.filter(tx => tx.hash !== hash)
+					this.pendingTransactions = this.pendingTransactions.filter(
+						(tx) => tx.hash !== transaction.hash
+					)
 				}, 3000)
-				
-				return hash
+
+				return transaction.hash
 			} catch (error) {
-				// Withdraw failed
-				
-				// Show error in modal
-				const errorTransaction = {
-					hash: null,
-					type: 'withdraw',
+				const { $wagmiConfig } = useNuxtApp()
+				const stakingService = createStakingService($wagmiConfig)
+				const errorTransaction = stakingService.createErrorTransaction('withdraw', error, {
 					valId,
 					withdrawId,
-					timestamp: Date.now(),
-					status: 'failed',
-					error: error.message || 'Transaction failed'
-				}
+				})
 				modalsStore.showTransactionResult(errorTransaction)
-				
+
 				throw error
 			} finally {
 				this.loading.withdraw = false
@@ -866,112 +474,14 @@ export const useStakingStore = defineStore('staking', {
 
 		// Switch to Monad network
 		async switchToMonadNetwork() {
-			const notificationsStore = useNotificationsStore()
+			const { $wagmiConfig } = useNuxtApp()
 
-			try {
-				const { $wagmiConfig } = useNuxtApp()
-
-				if (!$wagmiConfig) {
-					throw new Error('Wallet configuration not available')
-				}
-
-				// Try to switch to Monad Testnet
-				await switchChain($wagmiConfig, {
-					chainId: monadTestnet.id
-				})
-
-				// Success notification
-				notificationsStore.create({
-					notification: {
-						type: 'success',
-						icon: 'check',
-						title: 'Network Switched',
-						description: 'Successfully switched to Monad Testnet',
-						autoDestroy: true,
-						delay: 3000
-					}
-				})
-
-				return true
-			} catch (switchError) {
-				// If switching fails (error code 4902), try to add the chain first
-				if (switchError.code === 4902 || switchError.message?.includes('Unrecognized chain ID')) {
-					try {
-						const chainParams = {
-							chainId: `0x${monadTestnet.id.toString(16)}`,
-							chainName: monadTestnet.name,
-							nativeCurrency: monadTestnet.nativeCurrency,
-							rpcUrls: [monadTestnet.rpcUrls.default.http[0]],
-							blockExplorerUrls: [monadTestnet.blockExplorers.default.url],
-						}
-
-						// Check if MetaMask/provider is available
-						if (!window.ethereum) {
-							notificationsStore.create({
-								notification: {
-									type: 'error',
-									icon: 'warning',
-									title: 'Wallet Not Found',
-									description: 'Please install MetaMask or another Web3 wallet',
-									autoDestroy: false
-								}
-							})
-							return false
-						}
-
-						// Add the chain to wallet
-						await window.ethereum.request({
-							method: 'wallet_addEthereumChain',
-							params: [chainParams]
-						})
-
-						// After adding, try to switch again
-						const { $wagmiConfig } = useNuxtApp()
-						await switchChain($wagmiConfig, {
-							chainId: monadTestnet.id
-						})
-
-						// Success notification
-						notificationsStore.create({
-							notification: {
-								type: 'success',
-								icon: 'check',
-								title: 'Network Added',
-								description: 'Monad Testnet added and switched successfully',
-								autoDestroy: true,
-								delay: 3000
-							}
-						})
-
-						return true
-					} catch (addError) {
-						// Failed to add network
-						notificationsStore.create({
-							notification: {
-								type: 'error',
-								icon: 'warning',
-								title: 'Failed to Add Network',
-								description: 'Please add Monad Testnet manually in your wallet settings',
-								autoDestroy: false
-							}
-						})
-						return false
-					}
-				} else {
-					// Other errors (user rejected, etc.)
-					notificationsStore.create({
-						notification: {
-							type: 'warning',
-							icon: 'warning',
-							title: 'Network Switch Required',
-							description: switchError.message || 'Please switch to Monad Testnet manually',
-							autoDestroy: true,
-							delay: 5000
-						}
-					})
-					return false
-				}
+			if (!$wagmiConfig) {
+				return false
 			}
+
+			const networkService = createNetworkService($wagmiConfig)
+			return await networkService.switchToMonadNetwork()
 		},
 
 		// Fetch validators list
