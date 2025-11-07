@@ -1,8 +1,8 @@
 <script setup>
-// Use the new RainbowKit-style connect button
-import RainbowConnectButton from '@/components/RainbowConnectButton.vue'
+// Wallet connection modal component
+import WalletModal from '@/components/WalletModal.vue'
 
-// Props for customization (RainbowKit compatible)
+// Props for customization
 const props = defineProps({
 	label: {
 		type: String,
@@ -24,7 +24,7 @@ const props = defineProps({
 </script>
 
 <template>
-	<RainbowConnectButton 
+	<WalletModal
 		:label="label"
 		:account-status="accountStatus"
 		:chain-status="chainStatus"

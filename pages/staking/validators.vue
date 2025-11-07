@@ -3,10 +3,11 @@ import { useStakingStore } from '~/store/staking.store'
 import { getStakingStats } from '~/services/api/staking'
 import { fetchValidatorRankings } from '@/services/api/validator'
 
-// Components  
+// Components
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Icon from "@/components/Icon.vue"
+import NetworkGuard from '@/components/staking/NetworkGuard.vue'
 import ValidatorList from '@/components/staking/ValidatorList.vue'
 
 const route = useRoute()
@@ -300,7 +301,10 @@ watch(filterType, () => {
 
 		<!-- Content -->
 		<Flex direction="column" gap="20" wide :class="$style.content_container">
-				<!-- Stats Overview -->
+			<!-- Network Guard - Show warning if on wrong network -->
+			<NetworkGuard />
+
+			<!-- Stats Overview -->
 			<Flex align="center" justify="between" wide :class="$style.stats_section">
 				<Flex direction="column" gap="4">
 					<Text size="14" weight="600" color="primary">Network Overview</Text>

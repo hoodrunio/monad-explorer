@@ -1,14 +1,17 @@
 import { defineStore } from 'pinia'
-import { 
-	getBalance, 
+import {
+	getBalance,
 	readContract,
 	writeContract,
 	waitForTransactionReceipt,
+	getChainId,
+	switchChain,
 } from '@wagmi/core'
 import { parseEther, formatEther, parseUnits, formatUnits } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { STAKING_CONFIG, monadTestnet } from '~/config/chains'
 import { useModalsStore } from '~/store/modals.store'
+import { useNotificationsStore } from '~/store/notifications.store'
 import { getDelegatorWithdrawals } from '~/services/api/staking'
 
 export const useStakingStore = defineStore('staking', {
@@ -111,9 +114,9 @@ export const useStakingStore = defineStore('staking', {
 	},
 
 	actions: {
-		// Initialize wallet watchers (now handled by RainbowConnectButton)
+		// Initialize wallet watchers (now handled by WalletConnectButton)
 		async initializeWallet() {
-			// This is now handled by the RainbowConnectButton component
+			// This is now handled by the WalletConnectButton component
 			// State updates are managed directly by that component
 		},
 
@@ -302,18 +305,33 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address || !this.isConnected) {
 				throw new Error('Wallet not connected')
 			}
-			
+
 			if (!this.isCorrectNetwork) {
 				throw new Error('Please switch to Monad Testnet')
 			}
-			
+
 			this.loading.delegate = true
 			const modalsStore = useModalsStore()
-			
+			const notificationsStore = useNotificationsStore()
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+
+				// Double-check chain ID and auto-switch if needed
+				const currentChainId = getChainId($wagmiConfig)
+				if (currentChainId !== monadTestnet.id) {
+					// Attempt to switch network automatically
+					const switched = await this.switchToMonadNetwork()
+					if (!switched) {
+						// If switch failed or was rejected, throw error
+						throw new Error('Please switch to Monad Testnet to continue')
+					}
+					// Wait a moment for the switch to complete
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+
 				const amountWei = parseEther(amount.toString())
-				
+
 				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
@@ -399,18 +417,33 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address || !this.isConnected) {
 				throw new Error('Wallet not connected')
 			}
-			
+
 			if (!this.isCorrectNetwork) {
 				throw new Error('Please switch to Monad Testnet')
 			}
-			
+
 			this.loading.undelegate = true
 			const modalsStore = useModalsStore()
-			
+			const notificationsStore = useNotificationsStore()
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+
+				// Double-check chain ID and auto-switch if needed
+				const currentChainId = getChainId($wagmiConfig)
+				if (currentChainId !== monadTestnet.id) {
+					// Attempt to switch network automatically
+					const switched = await this.switchToMonadNetwork()
+					if (!switched) {
+						// If switch failed or was rejected, throw error
+						throw new Error('Please switch to Monad Testnet to continue')
+					}
+					// Wait a moment for the switch to complete
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+
 				const amountWei = parseEther(amount.toString())
-				
+
 				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
@@ -500,17 +533,31 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address || !this.isConnected) {
 				throw new Error('Wallet not connected')
 			}
-			
+
 			if (!this.isCorrectNetwork) {
 				throw new Error('Please switch to Monad Testnet')
 			}
-			
+
 			this.loading.compound = true
 			const modalsStore = useModalsStore()
-			
+			const notificationsStore = useNotificationsStore()
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
-				
+
+				// Double-check chain ID and auto-switch if needed
+				const currentChainId = getChainId($wagmiConfig)
+				if (currentChainId !== monadTestnet.id) {
+					// Attempt to switch network automatically
+					const switched = await this.switchToMonadNetwork()
+					if (!switched) {
+						// If switch failed or was rejected, throw error
+						throw new Error('Please switch to Monad Testnet to continue')
+					}
+					// Wait a moment for the switch to complete
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+
 				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
@@ -592,17 +639,31 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address || !this.isConnected) {
 				throw new Error('Wallet not connected')
 			}
-			
+
 			if (!this.isCorrectNetwork) {
 				throw new Error('Please switch to Monad Testnet')
 			}
-			
+
 			this.loading.claimRewards = true
 			const modalsStore = useModalsStore()
-			
+			const notificationsStore = useNotificationsStore()
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
-				
+
+				// Double-check chain ID and auto-switch if needed
+				const currentChainId = getChainId($wagmiConfig)
+				if (currentChainId !== monadTestnet.id) {
+					// Attempt to switch network automatically
+					const switched = await this.switchToMonadNetwork()
+					if (!switched) {
+						// If switch failed or was rejected, throw error
+						throw new Error('Please switch to Monad Testnet to continue')
+					}
+					// Wait a moment for the switch to complete
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+
 				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
@@ -685,17 +746,31 @@ export const useStakingStore = defineStore('staking', {
 			if (!this.address || !this.isConnected) {
 				throw new Error('Wallet not connected')
 			}
-			
+
 			if (!this.isCorrectNetwork) {
 				throw new Error('Please switch to Monad Testnet')
 			}
-			
+
 			this.loading.withdraw = true
 			const modalsStore = useModalsStore()
-			
+			const notificationsStore = useNotificationsStore()
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
-				
+
+				// Double-check chain ID and auto-switch if needed
+				const currentChainId = getChainId($wagmiConfig)
+				if (currentChainId !== monadTestnet.id) {
+					// Attempt to switch network automatically
+					const switched = await this.switchToMonadNetwork()
+					if (!switched) {
+						// If switch failed or was rejected, throw error
+						throw new Error('Please switch to Monad Testnet to continue')
+					}
+					// Wait a moment for the switch to complete
+					await new Promise(resolve => setTimeout(resolve, 500))
+				}
+
 				const hash = await writeContract($wagmiConfig, {
 					address: STAKING_CONFIG.CONTRACT_ADDRESS,
 					abi: [{
@@ -787,6 +862,116 @@ export const useStakingStore = defineStore('staking', {
 			this.userWithdrawals = []
 			this.userRewards = '0'
 			this.pendingTransactions = []
+		},
+
+		// Switch to Monad network
+		async switchToMonadNetwork() {
+			const notificationsStore = useNotificationsStore()
+
+			try {
+				const { $wagmiConfig } = useNuxtApp()
+
+				if (!$wagmiConfig) {
+					throw new Error('Wallet configuration not available')
+				}
+
+				// Try to switch to Monad Testnet
+				await switchChain($wagmiConfig, {
+					chainId: monadTestnet.id
+				})
+
+				// Success notification
+				notificationsStore.create({
+					notification: {
+						type: 'success',
+						icon: 'check',
+						title: 'Network Switched',
+						description: 'Successfully switched to Monad Testnet',
+						autoDestroy: true,
+						delay: 3000
+					}
+				})
+
+				return true
+			} catch (switchError) {
+				// If switching fails (error code 4902), try to add the chain first
+				if (switchError.code === 4902 || switchError.message?.includes('Unrecognized chain ID')) {
+					try {
+						const chainParams = {
+							chainId: `0x${monadTestnet.id.toString(16)}`,
+							chainName: monadTestnet.name,
+							nativeCurrency: monadTestnet.nativeCurrency,
+							rpcUrls: [monadTestnet.rpcUrls.default.http[0]],
+							blockExplorerUrls: [monadTestnet.blockExplorers.default.url],
+						}
+
+						// Check if MetaMask/provider is available
+						if (!window.ethereum) {
+							notificationsStore.create({
+								notification: {
+									type: 'error',
+									icon: 'warning',
+									title: 'Wallet Not Found',
+									description: 'Please install MetaMask or another Web3 wallet',
+									autoDestroy: false
+								}
+							})
+							return false
+						}
+
+						// Add the chain to wallet
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [chainParams]
+						})
+
+						// After adding, try to switch again
+						const { $wagmiConfig } = useNuxtApp()
+						await switchChain($wagmiConfig, {
+							chainId: monadTestnet.id
+						})
+
+						// Success notification
+						notificationsStore.create({
+							notification: {
+								type: 'success',
+								icon: 'check',
+								title: 'Network Added',
+								description: 'Monad Testnet added and switched successfully',
+								autoDestroy: true,
+								delay: 3000
+							}
+						})
+
+						return true
+					} catch (addError) {
+						// Failed to add network
+						notificationsStore.create({
+							notification: {
+								type: 'error',
+								icon: 'warning',
+								title: 'Failed to Add Network',
+								description: 'Please add Monad Testnet manually in your wallet settings',
+								autoDestroy: false
+							}
+						})
+						return false
+					}
+				} else {
+					// Other errors (user rejected, etc.)
+					notificationsStore.create({
+						notification: {
+							type: 'warning',
+							icon: 'warning',
+							title: 'Network Switch Required',
+							description: switchError.message || 'Please switch to Monad Testnet manually',
+							autoDestroy: true,
+							delay: 5000
+						}
+					})
+					return false
+				}
+			}
 		},
 
 		// Fetch validators list

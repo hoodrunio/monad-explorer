@@ -3,6 +3,7 @@ import { useStakingStore } from '~/store/staking.store'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
+import NetworkGuard from '@/components/staking/NetworkGuard.vue'
 import StakingOverview from '@/components/staking/StakingOverview.vue'
 
 const route = useRoute()
@@ -153,6 +154,9 @@ onMounted(() => {
 				<WalletConnect />
 			</Flex>
 		</Flex>
+
+		<!-- Network Guard - Show warning if on wrong network -->
+		<NetworkGuard />
 
 		<!-- Overview Tab Content -->
 		<Flex v-if="activeTab === 'overview'" direction="column" gap="0">
