@@ -210,7 +210,7 @@ useHead({
 						<table :class="$style.table">
 							<thead>
 								<tr>
-									<th><Text size="11" weight="600" color="tertiary" noWrap>Hash</Text></th>
+									<th :class="$style.hash_header"><Text size="11" weight="600" color="tertiary" noWrap>Hash</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Method</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Block</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Timestamp</Text></th>
@@ -218,7 +218,6 @@ useHead({
 									<th><Text size="11" weight="600" color="tertiary" noWrap>To</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Value</Text></th>
 									<th><Text size="11" weight="600" color="tertiary" noWrap>Gas</Text></th>
-									<th><Text size="11" weight="600" color="tertiary" noWrap>Status</Text></th>
 								</tr>
 							</thead>
 
@@ -226,7 +225,12 @@ useHead({
 								<tr v-for="tx in transactions" :key="tx.hash">
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
+											<Flex align="center" gap="6">
+												<Icon
+													:name="tx.status === 'ok' ? 'check-circle' : 'close-circle'"
+													size="14"
+													:color="tx.status === 'ok' ? 'green' : 'red'"
+												/>
 												<Outline>
 													<Flex align="center" gap="4">
 														<Icon name="zap" size="12" color="primary" />
@@ -307,15 +311,6 @@ useHead({
 												<Text size="12" weight="600" color="primary">
 													{{ formatGasValue(tx.gas_used) }}
 												</Text>
-											</Flex>
-										</NuxtLink>
-									</td>
-									<td>
-										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<Badge :color="tx.status === 'ok' ? 'green' : 'red'" size="mini">
-													{{ tx.status === 'ok' ? 'Success' : 'Failed' }}
-												</Badge>
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -423,7 +418,7 @@ useHead({
 
 .table {
 	width: 100%;
-	min-width: 1200px;
+	min-width: 1100px;
 	border-spacing: 0;
 
 	& thead {
@@ -433,10 +428,6 @@ useHead({
 				padding: 12px 8px 6px 8px;
 				border-bottom: 1px solid var(--op-5);
 
-				&:first-child {
-					padding-left: 16px;
-				}
-
 				&:last-child {
 					padding-right: 16px;
 				}
@@ -444,6 +435,14 @@ useHead({
 				& span {
 					display: flex;
 				}
+			}
+
+			& th:first-child {
+				padding-left: 16px;
+			}
+
+			& th.hash_header {
+				padding-left: 36px !important;
 			}
 		}
 	}
@@ -525,8 +524,8 @@ useHead({
 @media (max-width: 1400px) {
 	.table {
 		min-width: 1000px;
-		& thead th:nth-child(8),
-		& tbody td:nth-child(8) {
+		& thead th:nth-child(7),
+		& tbody td:nth-child(7) {
 			display: none;
 		}
 	}
@@ -535,8 +534,8 @@ useHead({
 @media (max-width: 1200px) {
 	.table {
 		min-width: 900px;
-		& thead th:nth-child(7),
-		& tbody td:nth-child(7) {
+		& thead th:nth-child(6),
+		& tbody td:nth-child(6) {
 			display: none;
 		}
 	}
@@ -545,8 +544,8 @@ useHead({
 @media (max-width: 1000px) {
 	.table {
 		min-width: 800px;
-		& thead th:nth-child(6),
-		& tbody td:nth-child(6) {
+		& thead th:nth-child(5),
+		& tbody td:nth-child(5) {
 			display: none;
 		}
 	}
