@@ -6,6 +6,7 @@
 
 import { computed } from 'vue'
 import { useStakingStore } from '~/store/staking.store'
+import { useModalsStore } from '~/store/modals.store'
 
 /**
  * Error types for staking transactions
@@ -22,6 +23,7 @@ const ERROR_TYPES = {
 
 export function useStakingTransactions() {
 	const stakingStore = useStakingStore()
+	const modalsStore = useModalsStore()
 
 	/**
 	 * Checks if error is a user rejection
@@ -76,18 +78,14 @@ export function useStakingTransactions() {
 	/**
 	 * Parses error to user-friendly message
 	 * @param {Error} error - Error object
-	 * @returns {string|null} User-friendly error message, null for user rejections
+	 * @returns {string} User-friendly error message
 	 */
 	function parseTransactionError(error) {
 		const errorType = getErrorType(error)
 
-		// Don't show message for user rejections
-		if (errorType === ERROR_TYPES.USER_REJECTED) {
-			return null
-		}
-
 		// Map error types to user-friendly messages
 		const errorMessages = {
+			[ERROR_TYPES.USER_REJECTED]: 'Transaction was rejected by user',
 			[ERROR_TYPES.INSUFFICIENT_BALANCE]: 'Insufficient balance for transaction',
 			[ERROR_TYPES.NETWORK_ERROR]: 'Network connection error. Please try again',
 			[ERROR_TYPES.GAS_ERROR]: 'Transaction would fail. Please check your input',
@@ -135,24 +133,35 @@ export function useStakingTransactions() {
 		} = options
 
 		try {
-			// Execute the transaction
-			await transactionFn()
+			// Execute the transaction - returns transaction object
+			const transaction = await transactionFn()
+
+			// Show success modal with transaction data
+			modalsStore.showTransactionResult(transaction)
 
 			// Call success callback
 			onSuccess()
 
 			return true
 		} catch (error) {
-			console.error('Transaction error:', error)
-
 			// Parse error message
 			const errorMessage = parseTransactionError(error)
 
-			if (errorMessage === null) {
-				// User rejected - call specific callback
+			// Show error modal for ALL errors (including user rejection)
+			const errorTransaction = {
+				hash: null,
+				type: 'transaction',
+				timestamp: Date.now(),
+				status: 'failed',
+				error: errorMessage,
+			}
+			modalsStore.showTransactionResult(errorTransaction)
+
+			// Determine if user rejected
+			const errorType = getErrorType(error)
+			if (errorType === ERROR_TYPES.USER_REJECTED) {
 				onUserRejection()
 			} else {
-				// Other error - call error callback with parsed message
 				onError(errorMessage)
 			}
 

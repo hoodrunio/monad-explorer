@@ -3,7 +3,6 @@ import { getBalance } from '@wagmi/core'
 import { formatEther, parseEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { monadTestnet } from '~/config/chains'
-import { useModalsStore } from '~/store/modals.store'
 import { createStakingService } from '~/services/StakingService'
 import { createNetworkService } from '~/services/NetworkService'
 import { isCorrectNetwork as checkNetwork } from '~/utils/chain'
@@ -202,7 +201,6 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			this.loading.delegate = true
-			const modalsStore = useModalsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -213,12 +211,6 @@ export const useStakingStore = defineStore('staking', {
 
 				// Track transaction
 				this.pendingTransactions.push(transaction)
-
-				// Show transaction result modal
-				modalsStore.showTransactionResult(transaction)
-
-				// Update modal with final status
-				modalsStore.updateTransactionResult(transaction)
 
 				// Refresh data
 				await this.fetchBalance()
@@ -231,17 +223,8 @@ export const useStakingStore = defineStore('staking', {
 					)
 				}, 3000)
 
-				return transaction.hash
+				return transaction
 			} catch (error) {
-				// Show error in modal (composable handles user rejections)
-				const { $wagmiConfig } = useNuxtApp()
-				const stakingService = createStakingService($wagmiConfig)
-				const errorTransaction = stakingService.createErrorTransaction('delegate', error, {
-					valId,
-					amount: amount.toString(),
-				})
-				modalsStore.showTransactionResult(errorTransaction)
-
 				throw error
 			} finally {
 				this.loading.delegate = false
@@ -259,7 +242,6 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			this.loading.undelegate = true
-			const modalsStore = useModalsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -271,10 +253,6 @@ export const useStakingStore = defineStore('staking', {
 				// Track transaction
 				this.pendingTransactions.push(transaction)
 
-				// Show transaction result modal
-				modalsStore.showTransactionResult(transaction)
-				modalsStore.updateTransactionResult(transaction)
-
 				// Refresh data
 				await this.fetchUserStakingData()
 
@@ -285,18 +263,8 @@ export const useStakingStore = defineStore('staking', {
 					)
 				}, 3000)
 
-				return transaction.hash
+				return transaction
 			} catch (error) {
-				// Show error in modal (composable handles user rejections)
-				const { $wagmiConfig } = useNuxtApp()
-				const stakingService = createStakingService($wagmiConfig)
-				const errorTransaction = stakingService.createErrorTransaction('undelegate', error, {
-					valId,
-					amount: amount.toString(),
-					withdrawId,
-				})
-				modalsStore.showTransactionResult(errorTransaction)
-
 				throw error
 			} finally {
 				this.loading.undelegate = false
@@ -314,7 +282,6 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			this.loading.compound = true
-			const modalsStore = useModalsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -326,10 +293,6 @@ export const useStakingStore = defineStore('staking', {
 				// Track transaction
 				this.pendingTransactions.push(transaction)
 
-				// Show transaction result modal
-				modalsStore.showTransactionResult(transaction)
-				modalsStore.updateTransactionResult(transaction)
-
 				// Refresh data
 				await this.fetchUserStakingData()
 
@@ -340,16 +303,8 @@ export const useStakingStore = defineStore('staking', {
 					)
 				}, 3000)
 
-				return transaction.hash
+				return transaction
 			} catch (error) {
-				// Show error in modal (composable handles user rejections)
-				const { $wagmiConfig } = useNuxtApp()
-				const stakingService = createStakingService($wagmiConfig)
-				const errorTransaction = stakingService.createErrorTransaction('compound', error, {
-					valId,
-				})
-				modalsStore.showTransactionResult(errorTransaction)
-
 				throw error
 			} finally {
 				this.loading.compound = false
@@ -367,7 +322,6 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			this.loading.claimRewards = true
-			const modalsStore = useModalsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -378,10 +332,6 @@ export const useStakingStore = defineStore('staking', {
 
 				// Track transaction
 				this.pendingTransactions.push(transaction)
-
-				// Show transaction result modal
-				modalsStore.showTransactionResult(transaction)
-				modalsStore.updateTransactionResult(transaction)
 
 				// Refresh data
 				await this.fetchBalance()
@@ -394,16 +344,8 @@ export const useStakingStore = defineStore('staking', {
 					)
 				}, 3000)
 
-				return transaction.hash
+				return transaction
 			} catch (error) {
-				// Show error in modal (composable handles user rejections)
-				const { $wagmiConfig } = useNuxtApp()
-				const stakingService = createStakingService($wagmiConfig)
-				const errorTransaction = stakingService.createErrorTransaction('claimRewards', error, {
-					valId,
-				})
-				modalsStore.showTransactionResult(errorTransaction)
-
 				throw error
 			} finally {
 				this.loading.claimRewards = false
@@ -421,7 +363,6 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			this.loading.withdraw = true
-			const modalsStore = useModalsStore()
 
 			try {
 				const { $wagmiConfig } = useNuxtApp()
@@ -432,10 +373,6 @@ export const useStakingStore = defineStore('staking', {
 
 				// Track transaction
 				this.pendingTransactions.push(transaction)
-
-				// Show transaction result modal
-				modalsStore.showTransactionResult(transaction)
-				modalsStore.updateTransactionResult(transaction)
 
 				// Refresh data
 				await this.fetchBalance()
@@ -448,17 +385,8 @@ export const useStakingStore = defineStore('staking', {
 					)
 				}, 3000)
 
-				return transaction.hash
+				return transaction
 			} catch (error) {
-				// Show error in modal (composable handles user rejections)
-				const { $wagmiConfig } = useNuxtApp()
-				const stakingService = createStakingService($wagmiConfig)
-				const errorTransaction = stakingService.createErrorTransaction('withdraw', error, {
-					valId,
-					withdrawId,
-				})
-				modalsStore.showTransactionResult(errorTransaction)
-
 				throw error
 			} finally {
 				this.loading.withdraw = false

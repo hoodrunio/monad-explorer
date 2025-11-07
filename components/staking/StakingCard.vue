@@ -79,7 +79,7 @@ async function handleStake() {
 	if (!stakeAmount.value || stakeAmountError.value) return
 
 	error.value = ''
-	const success = await stakingTransactions.delegate(
+	await stakingTransactions.delegate(
 		props.validator.valId,
 		stakeAmount.value,
 		{
