@@ -109,7 +109,7 @@ watch(() => props.sourceCode, (newValue) => {
 
 <style module>
 .wrapper {
-	padding: 24px;
+	padding: 12px;
 	background: var(--card-background);
 	border: 1px solid var(--op-10);
 	border-radius: 12px;

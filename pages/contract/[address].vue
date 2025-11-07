@@ -105,7 +105,7 @@ const handleViewRawData = () => {
 </script>
 
 <template>
-	<Flex direction="column" gap="4">
+	<Flex direction="column" gap="4" wide>
 		<Skeleton v-if="pending" />
 
 		<template v-else-if="contractData">
