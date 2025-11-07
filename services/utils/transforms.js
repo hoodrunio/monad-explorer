@@ -12,7 +12,6 @@ export const parseISOTimestamp = (isoTimestamp) => {
 	try {
 		return new Date(isoTimestamp)
 	} catch (error) {
-		console.error('Failed to parse timestamp:', error)
 		return null
 	}
 }
@@ -37,7 +36,6 @@ export const parseBigInt = (value) => {
 	try {
 		return BigInt(value.toString())
 	} catch (error) {
-		console.error('Failed to parse BigInt:', error)
 		return null
 	}
 }
@@ -95,11 +93,32 @@ export const transformBlock = (block) => {
 
 /**
  * Transform transaction response from new API to component-compatible format
+ * Handles two different API response formats:
+ * 1. Regular /transactions endpoint (full transaction details)
+ * 2. Advanced filters /advanced-filters endpoint (simplified transfer format)
+ *
  * @param {object} tx - Transaction data from API
  * @returns {object} Transformed transaction
  */
 export const transformTransaction = (tx) => {
 	if (!tx) return null
+
+	// Detect which API format we're dealing with
+	const isAdvancedFilterFormat = !tx.hasOwnProperty('status') && typeof tx.type === 'string'
+
+	// For advanced-filters format, infer status from the result field or default to "ok"
+	// Advanced filters only return successful/completed transactions
+	let normalizedStatus = tx.status || 'ok'
+
+	// Handle fee field: could be object {type, value} or string
+	const normalizedFee = typeof tx.fee === 'object' ? tx.fee?.value || "0" : tx.fee || "0"
+
+	// Handle transaction_types: could be array or need to be inferred from type
+	let normalizedTransactionTypes = tx.transaction_types || []
+	if (isAdvancedFilterFormat && typeof tx.type === 'string') {
+		// Convert advanced-filter type string to transaction_types array format
+		normalizedTransactionTypes = [tx.type]
+	}
 
 	// New Indexer API structure
 	return {
@@ -112,10 +131,12 @@ export const transformTransaction = (tx) => {
 		block_number: parseNumericString(tx.block_number) || parseNumericString(tx.block) || 0,
 		timestamp: tx.timestamp,
 
+		// Status normalization
 		// - Original string format: "ok" or "error" (for list views)
 		// - Numeric format: 1 or 0 (for detail views)
-		status: tx.status, // Keep original "ok" or "error" string
-		statusCode: tx.status === "ok" ? 1 : 0, // Numeric version for backwards compatibility
+		status: normalizedStatus, // Normalized "ok" or "error" string
+		statusCode: normalizedStatus === "ok" ? 1 : 0, // Numeric version for backwards compatibility
+		result: tx.result || (normalizedStatus === "ok" ? "success" : null), // Result field for detail views
 
 		// From/To addresses - Keep both object and string formats
 		from: tx.from, // Keep original object { hash, is_contract, ... }
@@ -138,14 +159,15 @@ export const transformTransaction = (tx) => {
 		gas_price: tx.gas_price || "0",
 		effectiveGasPrice: tx.gas_price || "0", // Same as gas_price in most cases
 
-		// Transaction fee (calculate or use from fee.value)
-		transactionFee: tx.fee?.value || "0",
-		fee: tx.fee?.value || "0",
+		// Transaction fee normalization
+		transactionFee: normalizedFee,
+		fee: normalizedFee,
 
 		// Transaction index/position
-		transactionIndex: parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
-		index: parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
-		position: parseNumericString(tx.position) || 0,
+		// Advanced filters uses transaction_index instead of position
+		transactionIndex: parseNumericString(tx.transaction_index) || parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
+		index: parseNumericString(tx.transaction_index) || parseNumericString(tx.position) || parseNumericString(tx.index) || 0,
+		position: parseNumericString(tx.transaction_index) || parseNumericString(tx.position) || 0,
 		nonce: parseNumericString(tx.nonce) || 0,
 
 		// Method information
@@ -166,9 +188,15 @@ export const transformTransaction = (tx) => {
 		decodedLogs: tx.decoded_logs || [],
 		decoded_logs: tx.decoded_logs || [],
 
-		// Type information
-		type: tx.type || 0,
-		transaction_types: tx.transaction_types || [],
+		// Type information normalization
+		type: typeof tx.type === 'number' ? tx.type : 0, // Transaction type (0=legacy, 2=EIP-1559)
+		transaction_types: normalizedTransactionTypes, // Transaction categories array
+
+		// Keep advanced-filter specific fields
+		internal_transaction_index: tx.internal_transaction_index,
+		token_transfer_index: tx.token_transfer_index,
+		token_transfer_batch_index: tx.token_transfer_batch_index,
+		total: tx.total,
 	}
 }
 

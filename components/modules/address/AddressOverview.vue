@@ -417,8 +417,6 @@ onMounted(async () => {
 
 // Modal handlers
 const handleSend = () => {
-	// For now, just log - could open a send modal in the future
-	console.log('Send to address:', props.address.hash)
 	// TODO: Implement send modal when available
 	// modalsStore.open("send")
 }

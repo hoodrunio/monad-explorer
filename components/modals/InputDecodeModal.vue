@@ -108,7 +108,6 @@ const performAbiDecoding = async () => {
 
 		enhancedDecoding.value = result
 	} catch (error) {
-		console.error('Enhanced decoding failed:', error)
 		abiDecodingError.value = error.message
 	} finally {
 		isDecodingWithAbi.value = false

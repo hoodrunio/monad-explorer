@@ -89,6 +89,9 @@ onMounted(async () => {
 	settingsStore.init()
 	activityStore.init()
 
+	// Start price fetching for MON/USD conversion
+	appStore.startPriceFetching()
+
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
 
@@ -138,6 +141,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
 	clearInterval(watchInterval)
+	appStore.stopPriceFetching()
 })
 </script>
 

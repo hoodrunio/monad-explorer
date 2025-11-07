@@ -39,7 +39,6 @@ const { data: initialData, pending: isLoading } = useAsyncData('recent-blocks', 
 		const { data } = await fetchBlocks({ items_count: 10 })
 		return Array.isArray(data?.value?.items) ? data.value.items : []
 	} catch (error) {
-		console.error("Error loading recent blocks:", error)
 		return []
 	}
 }, {
@@ -71,7 +70,6 @@ const getBlocks = async () => {
 
 		blocks.value = newBlocks
 	} catch (error) {
-		console.error("Error refreshing blocks:", error)
 		// Don't clear existing data on refresh error
 	}
 

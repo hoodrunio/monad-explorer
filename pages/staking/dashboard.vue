@@ -98,7 +98,6 @@ async function loadValidatorDetails() {
 				const validatorInfo = await getValidatorById(delegation.valId)
 				validatorMap.set(delegation.valId, validatorInfo)
 			} catch (error) {
-				console.error(`Failed to load validator ${delegation.valId}:`, error)
 				// Add fallback data for failed requests
 				validatorMap.set(delegation.valId, {
 					valId: delegation.valId,
@@ -113,7 +112,7 @@ async function loadValidatorDetails() {
 		
 		validators.value = validatorMap
 	} catch (error) {
-		console.error('Failed to load validator details:', error)
+		// Failed to load validator details
 	}
 }
 
@@ -138,7 +137,6 @@ async function loadWithdrawals() {
 		loadingWithdrawals.value = true
 		withdrawals.value = await getDelegatorWithdrawals(address.value)
 	} catch (error) {
-		console.error('Failed to load withdrawals:', error)
 		// Don't fail silently, but don't break the app
 		withdrawals.value = []
 	} finally {
@@ -164,7 +162,7 @@ async function refreshData() {
 		await loadWithdrawals()
 		
 	} catch (error) {
-		console.error('Failed to refresh data:', error)
+		// Failed to refresh data
 	} finally {
 		refreshing.value = false
 	}
@@ -176,7 +174,7 @@ async function handleWithdraw(withdrawal) {
 		await stakingStore.withdraw(withdrawal.valId, withdrawal.withdrawId)
 		await refreshData()
 	} catch (error) {
-		console.error('Withdrawal failed:', error)
+		// Withdrawal failed
 	}
 }
 
@@ -190,7 +188,7 @@ async function claimAllRewards() {
 		try {
 			await stakingStore.claimRewards(delegation.valId)
 		} catch (error) {
-			console.error(`Failed to claim rewards for validator ${delegation.valId}:`, error)
+			// Failed to claim rewards
 		}
 	}
 	
@@ -207,7 +205,7 @@ async function compoundAllRewards() {
 		try {
 			await stakingStore.compound(delegation.valId)
 		} catch (error) {
-			console.error(`Failed to compound rewards for validator ${delegation.valId}:`, error)
+			// Failed to compound rewards
 		}
 	}
 	

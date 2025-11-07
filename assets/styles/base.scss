@@ -105,6 +105,19 @@ $grayscale: (
 	--partially-verified-yellow: #e6c525;
 	--unverified-bg: rgba(255, 131, 81, 0.1);
 	--unverified-border: rgba(255, 131, 81, 0.25);
+
+	/** Transaction List Enhancement */
+	--card-border-radius: 12px;
+	--neon-success: rgba(24, 210, 165, 0.4);
+	--neon-error: rgba(235, 87, 87, 0.4);
+	--filter-chip-bg: rgba(255, 255, 255, 0.05);
+	--filter-chip-bg-active: rgba(24, 210, 165, 0.15);
+	--filter-chip-border: rgba(255, 255, 255, 0.1);
+	--filter-chip-border-active: rgba(24, 210, 165, 0.4);
+	--method-chip-bg: rgba(255, 255, 255, 0.05);
+	--method-chip-border: rgba(255, 255, 255, 0.1);
+	--hover-arrow-color: var(--brand);
+	--background-pattern: rgba(255, 255, 255, 0.04);
 }
 
 [theme="dimmed"] {
@@ -182,6 +195,30 @@ $grayscale: (
 	--logo-name: var(--txt-primary);
 	--bar-fill: rgb(243, 147, 45);
 	--geo-map: #8b8c8d;
+
+	/** Verification Badge Colors */
+	--verified-bg: rgba(10, 222, 113, 0.12);
+	--verified-border: rgba(10, 222, 113, 0.3);
+	--verified-green: #0ade71;
+	--verified-glow: rgba(10, 222, 113, 0.4);
+	--partially-verified-bg: rgba(255, 212, 0, 0.12);
+	--partially-verified-border: rgba(255, 212, 0, 0.3);
+	--partially-verified-yellow: #ffd400;
+	--unverified-bg: rgba(255, 131, 81, 0.1);
+	--unverified-border: rgba(255, 131, 81, 0.25);
+
+	/** Transaction List Enhancement */
+	--card-border-radius: 12px;
+	--neon-success: rgba(51, 168, 83, 0.4);
+	--neon-error: rgba(235, 87, 87, 0.4);
+	--filter-chip-bg: rgba(255, 255, 255, 0.05);
+	--filter-chip-bg-active: rgba(51, 168, 83, 0.15);
+	--filter-chip-border: rgba(255, 255, 255, 0.1);
+	--filter-chip-border-active: rgba(51, 168, 83, 0.4);
+	--method-chip-bg: rgba(255, 255, 255, 0.05);
+	--method-chip-border: rgba(255, 255, 255, 0.1);
+	--hover-arrow-color: var(--brand);
+	--background-pattern: rgba(255, 255, 255, 0.04);
 }
 
 [theme="light"] {
@@ -270,6 +307,19 @@ $grayscale: (
 	--partially-verified-yellow: #e5c10b;
 	--unverified-bg: rgba(255, 90, 23, 0.08);
 	--unverified-border: rgba(255, 90, 23, 0.2);
+
+	/** Transaction List Enhancement */
+	--card-border-radius: 12px;
+	--neon-success: rgba(10, 222, 113, 0.35);
+	--neon-error: rgba(235, 87, 87, 0.35);
+	--filter-chip-bg: rgba(0, 0, 0, 0.05);
+	--filter-chip-bg-active: rgba(10, 222, 113, 0.15);
+	--filter-chip-border: rgba(0, 0, 0, 0.1);
+	--filter-chip-border-active: rgba(10, 222, 113, 0.4);
+	--method-chip-bg: rgba(0, 0, 0, 0.05);
+	--method-chip-border: rgba(0, 0, 0, 0.1);
+	--hover-arrow-color: var(--brand);
+	--background-pattern: rgba(0, 0, 0, 0.04);
 }
 
 @font-face {

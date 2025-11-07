@@ -55,7 +55,6 @@ const loadInitialData = async () => {
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics data'
-		console.error('Transaction analytics error:', err)
 	} finally {
 		isLoading.value = false
 	}
@@ -88,7 +87,6 @@ const updateDashboardData = async () => {
 	} catch (err) {
 		if (err.name !== 'AbortError') {
 			error.value = 'Failed to load transaction analytics data'
-			console.error('Transaction analytics error:', err)
 		}
 	} finally {
 		isLoading.value = false

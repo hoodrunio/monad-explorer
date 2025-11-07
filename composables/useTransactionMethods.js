@@ -88,7 +88,6 @@ export const useTransactionMethods = () => {
 			canDecode.value = decodeable
 			} catch (err) {
 				error.value = err.message || 'Failed to fetch method information'
-				console.warn('Error fetching method info:', err)
 			} finally {
 				isLoadingMethod.value = false
 			}
@@ -156,7 +155,6 @@ export const useTransactionMethods = () => {
 					methodInfoCache.set(methodId, methodInfo)
 					results.set(methodId, methodInfo)
 				} catch (err) {
-					console.warn(`Failed to fetch method info for ${methodId}:`, err)
 					// Set default values for failed requests
 					results.set(methodId, {
 						signature: null,
@@ -195,7 +193,6 @@ export const useTransactionMethods = () => {
 		try {
 			return await hasMethodSignature(methodId)
 		} catch (err) {
-			console.warn('Error checking decode availability:', err)
 			return false
 		}
 	}

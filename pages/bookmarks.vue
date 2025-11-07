@@ -174,34 +174,47 @@ const handleClearBookmarks = () => {
 						@onRemove="handleRemove('validators', bookmark)"
 					/>
 				</Flex>
-				<Text v-else size="12" weight="500" color="tertiary"> 
+				<Text v-else size="12" weight="500" color="tertiary">
 					No bookmarked validators yet. Visit a validator page and click the bookmark button to save it here.
 				</Text>
 			</Flex>
 
-			<Flex v-if="bookmarksStore.bookmarks.addresses?.length || bookmarksStore.bookmarks.txs?.length || bookmarksStore.bookmarks.blocks?.length" direction="column" gap="8" :class="$style.content">
-				<Text size="13" weight="600" color="secondary">Legacy Bookmarks</Text>
-				<Text size="12" weight="500" color="tertiary">
-					These bookmarks are from the previous system and may no longer be valid.
-				</Text>
+			<Flex v-if="bookmarksStore.bookmarks.addresses?.length" direction="column" gap="8" :class="$style.content">
+				<Text size="13" weight="600" color="primary">Addresses</Text>
 
-				<template v-if="bookmarksStore.bookmarks.addresses?.length">
-					<Text size="12" weight="600" color="tertiary">Addresses ({{ bookmarksStore.bookmarks.addresses.length }})</Text>
-				</template>
-
-				<template v-if="bookmarksStore.bookmarks.txs?.length">
-					<Text size="12" weight="600" color="tertiary">Transactions ({{ bookmarksStore.bookmarks.txs.length }})</Text>
-				</template>
-
-				<template v-if="bookmarksStore.bookmarks.blocks?.length">
-					<Text size="12" weight="600" color="tertiary">Blocks ({{ bookmarksStore.bookmarks.blocks.length }})</Text>
-				</template>
-
-				<Button @click="handleClearBookmarks" type="secondary" size="mini">
-					<Icon name="trash" size="12" color="red" />
-					Clear Legacy Bookmarks
-				</Button>
+				<Flex direction="column" gap="4">
+					<BookmarkItem
+						v-for="bookmark in bookmarksStore.bookmarks.addresses"
+						:item="bookmark"
+						@onRemove="handleRemove('addresses', bookmark)"
+					/>
+				</Flex>
 			</Flex>
+
+			<Flex v-if="bookmarksStore.bookmarks.txs?.length" direction="column" gap="8" :class="$style.content">
+				<Text size="13" weight="600" color="primary">Transactions</Text>
+
+				<Flex direction="column" gap="4">
+					<BookmarkItem
+						v-for="bookmark in bookmarksStore.bookmarks.txs"
+						:item="bookmark"
+						@onRemove="handleRemove('txs', bookmark)"
+					/>
+				</Flex>
+			</Flex>
+
+			<Flex v-if="bookmarksStore.bookmarks.blocks?.length" direction="column" gap="8" :class="$style.content">
+				<Text size="13" weight="600" color="primary">Blocks</Text>
+
+				<Flex direction="column" gap="4">
+					<BookmarkItem
+						v-for="bookmark in bookmarksStore.bookmarks.blocks"
+						:item="bookmark"
+						@onRemove="handleRemove('blocks', bookmark)"
+					/>
+				</Flex>
+			</Flex>
+
 		</Flex>
 	</Flex>
 </template>

@@ -129,7 +129,7 @@ export const useStakingStore = defineStore('staking', {
 				})
 				this.balance = balance.value.toString()
 			} catch (error) {
-				console.error('Failed to fetch balance:', error)
+				// Failed to fetch balance
 			}
 		},
 
@@ -155,7 +155,7 @@ export const useStakingStore = defineStore('staking', {
 				this.currentEpoch = Number(result[0])
 				this.inBoundary = result[1]
 			} catch (error) {
-				console.error('Failed to fetch epoch info:', error)
+				// Failed to fetch epoch info
 			}
 		},
 
@@ -204,7 +204,7 @@ export const useStakingStore = defineStore('staking', {
 								})
 							}
 						} catch (error) {
-							console.error(`Failed to fetch delegation info for validator ${valId}:`, error)
+							// Failed to fetch delegation info
 						}
 					}
 				}
@@ -212,7 +212,6 @@ export const useStakingStore = defineStore('staking', {
 				this.userDelegations = delegations
 				return delegations
 			} catch (error) {
-				console.error('Failed to fetch user delegations:', error)
 				return []
 			}
 		},
@@ -257,7 +256,6 @@ export const useStakingStore = defineStore('staking', {
 					nextDeltaEpoch: Number(result[6]),
 				}
 			} catch (error) {
-				console.error(`Failed to fetch delegator info for validator ${valId}:`, error)
 				return null
 			}
 		},
@@ -277,7 +275,6 @@ export const useStakingStore = defineStore('staking', {
 				this.userWithdrawals = withdrawals
 				return withdrawals
 			} catch (error) {
-				console.error('Failed to fetch user withdrawals:', error)
 				// Don't fail completely, just return empty array
 				this.userWithdrawals = []
 				return []
@@ -358,7 +355,6 @@ export const useStakingStore = defineStore('staking', {
 					transaction.gasUsed = receipt.gasUsed
 					
 				} catch (receiptError) {
-					console.error('Failed to get transaction receipt:', receiptError)
 					// Mark as failed if we can't get receipt
 					transaction.status = 'failed'
 					transaction.error = 'Transaction confirmation timeout'
@@ -378,7 +374,7 @@ export const useStakingStore = defineStore('staking', {
 				
 				return hash
 			} catch (error) {
-				console.error('Delegation failed:', error)
+				// Delegation failed
 				
 				// Show error in modal
 				const errorTransaction = {
@@ -460,7 +456,6 @@ export const useStakingStore = defineStore('staking', {
 					transaction.gasUsed = receipt.gasUsed
 					
 				} catch (receiptError) {
-					console.error('Failed to get transaction receipt:', receiptError)
 					// Mark as failed if we can't get receipt
 					transaction.status = 'failed'
 					transaction.error = 'Transaction confirmation timeout'
@@ -479,7 +474,7 @@ export const useStakingStore = defineStore('staking', {
 				
 				return hash
 			} catch (error) {
-				console.error('Undelegation failed:', error)
+				// Undelegation failed
 				
 				// Show error in modal
 				const errorTransaction = {
@@ -555,7 +550,6 @@ export const useStakingStore = defineStore('staking', {
 					transaction.gasUsed = receipt.gasUsed
 					
 				} catch (receiptError) {
-					console.error('Failed to get transaction receipt:', receiptError)
 					// Mark as failed if we can't get receipt
 					transaction.status = 'failed'
 					transaction.error = 'Transaction confirmation timeout'
@@ -574,7 +568,7 @@ export const useStakingStore = defineStore('staking', {
 				
 				return hash
 			} catch (error) {
-				console.error('Compound failed:', error)
+				// Compound failed
 				
 				// Show error in modal
 				const errorTransaction = {
@@ -648,7 +642,6 @@ export const useStakingStore = defineStore('staking', {
 					transaction.gasUsed = receipt.gasUsed
 					
 				} catch (receiptError) {
-					console.error('Failed to get transaction receipt:', receiptError)
 					// Mark as failed if we can't get receipt
 					transaction.status = 'failed'
 					transaction.error = 'Transaction confirmation timeout'
@@ -668,7 +661,7 @@ export const useStakingStore = defineStore('staking', {
 				
 				return hash
 			} catch (error) {
-				console.error('Claim rewards failed:', error)
+				// Claim rewards failed
 				
 				// Show error in modal
 				const errorTransaction = {
@@ -746,7 +739,6 @@ export const useStakingStore = defineStore('staking', {
 					transaction.gasUsed = receipt.gasUsed
 					
 				} catch (receiptError) {
-					console.error('Failed to get transaction receipt:', receiptError)
 					// Mark as failed if we can't get receipt
 					transaction.status = 'failed'
 					transaction.error = 'Transaction confirmation timeout'
@@ -766,7 +758,7 @@ export const useStakingStore = defineStore('staking', {
 				
 				return hash
 			} catch (error) {
-				console.error('Withdraw failed:', error)
+				// Withdraw failed
 				
 				// Show error in modal
 				const errorTransaction = {
@@ -840,14 +832,14 @@ export const useStakingStore = defineStore('staking', {
 								})
 							}
 						} catch (error) {
-							console.error(`Failed to fetch validator info for ${valId}:`, error)
+							// Failed to fetch validator info
 						}
 					}
 				}
 				
 				this.validators = validators
 			} catch (error) {
-				console.error('Failed to fetch validators:', error)
+				// Failed to fetch validators
 			} finally {
 				this.validatorsLoading = false
 			}
@@ -902,7 +894,6 @@ export const useStakingStore = defineStore('staking', {
 					formattedConsensusStake: formatEther(result[6]),
 				}
 			} catch (error) {
-				console.error(`Failed to fetch validator info for ${valId}:`, error)
 				return null
 			}
 		},

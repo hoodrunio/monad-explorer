@@ -23,7 +23,6 @@ export const loadAbiInterface = async (abiPath) => {
 	try {
 		const response = await fetch(abiPath)
 		if (!response.ok) {
-			console.warn(`Failed to load ABI from ${abiPath}:`, response.statusText)
 			return null
 		}
 
@@ -35,7 +34,6 @@ export const loadAbiInterface = async (abiPath) => {
 		
 		return contractInterface
 	} catch (error) {
-		console.error(`Error loading ABI from ${abiPath}:`, error)
 		return null
 	}
 }
@@ -111,7 +109,6 @@ export const decodeWithAbi = async (inputData, abiPath) => {
 			fragment: parsedTransaction.fragment
 		}
 	} catch (error) {
-		console.warn('Failed to decode with ABI:', error)
 		return null
 	}
 }
@@ -219,7 +216,7 @@ export const enhancedDecode = async (methodId, inputData, abiPath = '/abi/stakin
 			}
 		}
 	} catch (error) {
-		console.warn('Failed to fetch from 4bytes.directory:', error)
+		// Failed to fetch from 4bytes.directory
 	}
 
 	return null

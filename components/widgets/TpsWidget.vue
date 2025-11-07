@@ -53,7 +53,7 @@ const loadInitialData = async () => {
 		tpsTimeSeriesData.value = timeSeriesResult?.data
 
 	} catch (err) {
-		console.error('TPS data error:', err)
+		// TPS data error
 	} finally {
 		isLoading.value = false
 	}
@@ -65,7 +65,7 @@ const updateCurrentTps = async () => {
 		const result = await fetchCurrentTpsClient({ sampleWindow: currentSampleWindow.value })
 		currentTpsData.value = result?.data
 	} catch (err) {
-		console.error('Current TPS update error:', err)
+		// Current TPS update error
 	}
 }
 
@@ -78,7 +78,7 @@ const updateTimeSeries = async () => {
 		const result = await fetchTpsTimeSeriesClient({ timeWindow: timeWindow.value, granularity })
 		tpsTimeSeriesData.value = result?.data
 	} catch (err) {
-		console.error('Time series update error:', err)
+		// Time series update error
 	}
 }
 

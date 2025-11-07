@@ -6,14 +6,20 @@ import { DateTime } from "luxon"
 import { comma, shortHex } from "@/services/utils"
 
 /** API */
-import { fetchTransactions } from "@/services/api/tx"
+import { fetchTransactions, fetchAdvancedFilters } from "@/services/api/tx"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
+import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
+import { useAdvancedFilters } from "@/composables/useAdvancedFilters"
 
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
+import MethodChip from "@/components/ui/MethodChip.vue"
+import FilterChipsBar from "@/components/FilterChipsBar.vue"
+import BackgroundPattern from "@/components/BackgroundPattern.vue"
+import AdvancedFilterModal from "@/components/AdvancedFilterModal.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +34,50 @@ const hasMore = computed(() => nextPageParams.value !== null)
 const { batchGetMethodInfo } = useTransactionMethods()
 const methodInfoMap = ref(new Map())
 
+// USD Conversion
+const { convertToUsd, isPriceAvailable } = useMonUsdConverter()
+
+// Advanced Filters
+const {
+	filters,
+	transactionTypes,
+	parseUrlFilters,
+	toApiParams,
+	updateUrl,
+	resetFilters,
+	hasActiveFilters,
+	activeFilterCount,
+} = useAdvancedFilters()
+
+const showFilterModal = ref(false)
+
+const openFilterModal = () => {
+	showFilterModal.value = true
+}
+
+const closeFilterModal = () => {
+	showFilterModal.value = false
+}
+
+const applyFilters = (newFilters) => {
+	// Update filter state
+	Object.assign(filters, newFilters)
+
+	// Update URL
+	updateUrl()
+
+	// Reload transactions with filters
+	previousPages.value = []
+	loadTransactions()
+}
+
+const clearAllFilters = () => {
+	resetFilters()
+	updateUrl()
+	previousPages.value = []
+	loadTransactions()
+}
+
 // EVM transaction helper functions
 const formatGasValue = (value) => {
 	if (!value) return "0"
@@ -37,7 +87,7 @@ const formatGasValue = (value) => {
 const formatMonValue = (value) => {
 	if (!value || value === "0") return "0"
 	const monValue = parseFloat(value) / Math.pow(10, 18)
-	return monValue.toFixed(6)
+	return monValue.toFixed(4)
 }
 
 const getTransactionType = (tx) => {
@@ -56,36 +106,71 @@ const getEnhancedMethodName = (tx) => {
 	return methodInfo?.methodName || tx.method || null
 }
 
-const loadTransactions = async (params = null) => {
+const loadTransactions = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
-		const queryParams = params || { items_count: 20 }
+		// Use advanced filters if any are active
+		if (hasActiveFilters.value) {
+			const apiParams = {
+				...toApiParams(),
+				...paginationParams,
+			}
 
-		const { data, error } = await fetchTransactions(queryParams)
+			const { data, error } = await fetchAdvancedFilters(apiParams)
 
-		if (error.value) {
-			console.error("Error fetching transactions:", error.value)
-			transactions.value = []
-			nextPageParams.value = null
-			methodInfoMap.value.clear()
-		} else if (data.value) {
-			transactions.value = data.value.items || []
-			nextPageParams.value = data.value.next_page_params || null
+			if (error.value) {
+				console.error("Error fetching filtered transactions:", error.value)
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			} else if (data.value) {
+				transactions.value = data.value.items || []
+				nextPageParams.value = data.value.next_page_params || null
 
-			// Fetch method information for all transactions
-			if (transactions.value.length > 0) {
-				try {
-					const methodInfo = await batchGetMethodInfo(transactions.value)
-					methodInfoMap.value = methodInfo
-				} catch (methodError) {
-					console.warn('Failed to fetch method information:', methodError)
+				// Fetch method information for all transactions
+				if (transactions.value.length > 0) {
+					try {
+						const methodInfo = await batchGetMethodInfo(transactions.value)
+						methodInfoMap.value = methodInfo
+					} catch (methodError) {
+						console.warn('Failed to fetch method information:', methodError)
+					}
 				}
+			} else {
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
 			}
 		} else {
-			transactions.value = []
-			nextPageParams.value = null
-			methodInfoMap.value.clear()
+			// No filters - use regular transaction endpoint
+			const queryParams = paginationParams || { items_count: 20 }
+
+			const { data, error } = await fetchTransactions(queryParams)
+
+			if (error.value) {
+				console.error("Error fetching transactions:", error.value)
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			} else if (data.value) {
+				transactions.value = data.value.items || []
+				nextPageParams.value = data.value.next_page_params || null
+
+				// Fetch method information for all transactions
+				if (transactions.value.length > 0) {
+					try {
+						const methodInfo = await batchGetMethodInfo(transactions.value)
+						methodInfoMap.value = methodInfo
+					} catch (methodError) {
+						console.warn('Failed to fetch method information:', methodError)
+					}
+				}
+			} else {
+				transactions.value = []
+				nextPageParams.value = null
+				methodInfoMap.value.clear()
+			}
 		}
 	} catch (error) {
 		console.error("Failed to load transactions:", error)
@@ -143,12 +228,14 @@ const currentPageNumber = computed(() => previousPages.value.length + 1)
 onMounted(async () => {
 	await nextTick()
 
+	// Parse filters from URL
+	parseUrlFilters()
+
 	// Check if there's a cursor in URL for deep linking
 	const cursor = route.query.cursor
 	if (cursor) {
 		const [block_number, index] = cursor.split('-')
 		await loadTransactions({
-			items_count: 20,
 			block_number: parseInt(block_number),
 			index: parseInt(index)
 		})
@@ -175,6 +262,8 @@ useHead({
 </script>
 
 <template>
+	<BackgroundPattern />
+
 	<Flex direction="column" gap="20" wide :class="$style.wrapper">
 		<Flex direction="column" gap="12">
 			<Flex align="end" justify="between" :class="$style.header">
@@ -200,6 +289,23 @@ useHead({
 					</Flex>
 				</Flex>
 
+				<!-- Filter Chips Bar -->
+				<FilterChipsBar
+					:active-filter-count="activeFilterCount"
+					:has-active-filters="hasActiveFilters"
+					@open-modal="openFilterModal"
+					@clear-all="clearAllFilters"
+				/>
+
+				<!-- Advanced Filter Modal -->
+				<AdvancedFilterModal
+					:show="showFilterModal"
+					:filters="filters"
+					:transaction-types="transactionTypes"
+					@close="closeFilterModal"
+					@apply="applyFilters"
+				/>
+
 				<Flex v-if="isLoading" align="center" justify="center" :class="$style.loading">
 					<Text size="13" weight="600" color="secondary">Loading transactions...</Text>
 				</Flex>
@@ -222,7 +328,7 @@ useHead({
 							</thead>
 
 							<tbody>
-								<tr v-for="tx in transactions" :key="tx.hash">
+								<tr v-for="tx in transactions" :key="tx.hash" :class="$style.row">
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center" gap="6">
@@ -230,6 +336,7 @@ useHead({
 													:name="tx.status === 'ok' ? 'check-circle' : 'close-circle'"
 													size="14"
 													:color="tx.status === 'ok' ? 'green' : 'red'"
+													:class="tx.status === 'ok' ? $style.status_icon_success : $style.status_icon_error"
 												/>
 												<Outline>
 													<Flex align="center" gap="4">
@@ -241,13 +348,12 @@ useHead({
 												</Outline>
 											</Flex>
 										</NuxtLink>
+										<div :class="$style.hover_arrow">→</div>
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
 											<Flex align="center">
-												<Text size="12" weight="600" color="primary">
-													{{ getEnhancedMethodName(tx) || tx.method || 'Transfer' }}
-												</Text>
+												<MethodChip :method="getEnhancedMethodName(tx) || tx.method || 'Transfer'" />
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -266,7 +372,7 @@ useHead({
 												<Tooltip position="start" delay="500">
 													<ClientOnlyTime fallback-text="..." fallback-size="11" fallback-color="primary">
 														<Text size="11" weight="600" color="primary">
-															{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }) }}
+															{{ DateTime.fromISO(tx.timestamp).toRelative({ locale: "en", style: "short" }).replace(' ago', '') }}
 														</Text>
 													</ClientOnlyTime>
 
@@ -298,9 +404,12 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
+											<Flex direction="column" gap="2">
 												<Text size="12" weight="600" color="primary">
 													{{ formatMonValue(tx.value) }} MON
+												</Text>
+												<Text v-if="tx.value && tx.value !== '0' && convertToUsd(tx.value)" size="10" weight="600" color="tertiary" :class="$style.usd_value">
+													{{ convertToUsd(tx.value) }}
 												</Text>
 											</Flex>
 										</NuxtLink>
@@ -405,9 +514,10 @@ useHead({
 }
 
 .content {
-	border-radius: 8px;
+	border-radius: var(--card-border-radius);
 	background: var(--card-background);
 	overflow: hidden;
+	position: relative;
 }
 
 /* Desktop Table View */
@@ -450,10 +560,16 @@ useHead({
 	& tbody {
 		& tr {
 			cursor: pointer;
-			transition: all 0.05s ease;
+			transition: all 0.2s ease;
+			position: relative;
 
 			&:hover {
 				background: var(--op-5);
+				transform: translateX(8px);
+
+				& .hover_arrow {
+					opacity: 1;
+				}
 			}
 
 			&:active {
@@ -569,5 +685,46 @@ useHead({
 	.wrapper {
 		padding: 32px 12px;
 	}
+}
+
+/* Neon Glow Effects */
+.status_icon_success {
+	filter: drop-shadow(0 0 8px var(--neon-success));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 12px var(--neon-success));
+		transform: scale(1.02);
+	}
+}
+
+.status_icon_error {
+	filter: drop-shadow(0 0 8px var(--neon-error));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 12px var(--neon-error));
+		transform: scale(1.02);
+	}
+}
+
+/* Hover Arrow Indicator */
+.hover_arrow {
+	position: absolute;
+	right: -20px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--hover-arrow-color);
+	font-size: 16px;
+	font-weight: 600;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	pointer-events: none;
+}
+
+/* USD Value Styling */
+.usd_value {
+	opacity: 0.65;
+	line-height: 1;
 }
 </style>

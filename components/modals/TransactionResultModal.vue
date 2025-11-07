@@ -154,7 +154,7 @@ async function checkTransactionStatus() {
 		modalsStore.updateTransactionResult(updatedTransaction)
 		
 	} catch (error) {
-		console.error('Manual transaction check failed:', error)
+		// Manual transaction check failed
 	}
 }
 

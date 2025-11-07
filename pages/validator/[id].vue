@@ -77,7 +77,6 @@ watch(
 					const balanceResult = await fetchAddressNativeBalance(newData.validator.staking.auth_address)
 					authorBalance.value = balanceResult
 				} catch (error) {
-					console.error('Failed to fetch author balance:', error)
 					authorBalance.value = null
 				}
 			}

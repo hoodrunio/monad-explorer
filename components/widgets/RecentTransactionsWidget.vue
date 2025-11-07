@@ -4,6 +4,7 @@ import { DateTime } from "luxon"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
+import MethodChip from "@/components/ui/MethodChip.vue"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
@@ -11,7 +12,11 @@ import { comma, shortHex } from "@/services/utils"
 /** API */
 import { fetchTransactions } from "@/services/api/tx"
 
+/** Composables */
+import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
+
 const isRefreshing = ref(false)
+const { convertToUsd } = useMonUsdConverter()
 
 // Ensure transactions is always an array
 const transactions = ref([])
@@ -154,6 +159,7 @@ onUnmounted(() => {
 													:name="tx.status === 'success' ? 'check-circle' : 'close-circle'"
 													size="13"
 													:color="tx.status === 'success' ? 'green' : 'red'"
+													:class="tx.status === 'success' ? $style.status_icon_success : $style.status_icon_error"
 												/>
 												<Text size="13" weight="600" color="primary" mono>
 													{{ shortHex(tx.hash) }}
@@ -180,9 +186,7 @@ onUnmounted(() => {
 								</td>
 								<td>
 									<NuxtLink :to="`/tx/${tx?.hash || '#'}`">
-										<Text size="13" weight="600" color="primary">
-											{{ getTransactionType(tx || {}) }}
-										</Text>
+										<MethodChip :method="getTransactionType(tx || {})" />
 									</NuxtLink>
 								</td>
 								<td v-if="tx?.blockNumber">
@@ -217,7 +221,7 @@ onUnmounted(() => {
 <style module>
 .wrapper {
 	background: var(--card-background);
-	border-radius: 8px;
+	border-radius: var(--card-border-radius);
 	padding: 16px;
 	height: 500px;
 	min-height: 500px;
@@ -278,12 +282,13 @@ onUnmounted(() => {
 	& tbody {
 		& tr {
 			cursor: pointer;
-			transition: all 0.05s ease;
-			
+			transition: all 0.2s ease;
+
 			&:hover {
 				background: var(--op-3);
+				transform: translateX(4px);
 			}
-			
+
 			&:active {
 				background: var(--op-5);
 			}
@@ -388,11 +393,32 @@ onUnmounted(() => {
 	transform: translateZ(0);
 }
 
+/* Neon Glow Effects */
+.status_icon_success {
+	filter: drop-shadow(0 0 6px var(--neon-success));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 10px var(--neon-success));
+		transform: scale(1.02);
+	}
+}
+
+.status_icon_error {
+	filter: drop-shadow(0 0 6px var(--neon-error));
+	transition: all 0.2s ease;
+
+	&:hover {
+		filter: drop-shadow(0 0 10px var(--neon-error));
+		transform: scale(1.02);
+	}
+}
+
 @media (max-width: 768px) {
 	.wrapper {
 		padding: 12px;
 	}
-	
+
 	.table {
 		font-size: 12px;
 	}

@@ -43,7 +43,6 @@ const loadBlocks = async (params = null) => {
 		const { data, error } = await fetchBlocks(queryParams)
 
 		if (error.value) {
-			console.error("Error fetching blocks:", error.value)
 			blocks.value = []
 			nextPageParams.value = null
 		} else if (data.value) {
@@ -54,7 +53,6 @@ const loadBlocks = async (params = null) => {
 			nextPageParams.value = null
 		}
 	} catch (error) {
-		console.error("Failed to load blocks:", error)
 		blocks.value = []
 		nextPageParams.value = null
 	} finally {

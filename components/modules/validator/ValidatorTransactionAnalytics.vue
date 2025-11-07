@@ -57,7 +57,6 @@ const loadInitialValidatorAnalytics = async () => {
 
 	} catch (err) {
 		error.value = 'Failed to load transaction analytics'
-		console.error('Validator transaction analytics error:', err)
 	} finally {
 		isLoading.value = false
 	}
@@ -88,7 +87,6 @@ const updateValidatorAnalytics = async () => {
 	} catch (err) {
 		if (err.name !== 'AbortError') {
 			error.value = 'Failed to load transaction analytics'
-			console.error('Validator transaction analytics error:', err)
 		}
 	} finally {
 		isUpdating.value = false

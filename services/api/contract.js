@@ -36,7 +36,6 @@ export const fetchContract = (address) => {
 			}
 		})
 	} catch (error) {
-		console.error('Failed to fetch contract:', error)
 		throw error
 	}
 }
@@ -58,7 +57,6 @@ export const fetchContractClient = async (address) => {
 		const response = await $fetch(url.href)
 		return transformContract(response)
 	} catch (error) {
-		console.error('Failed to fetch contract:', error)
 		throw error
 	}
 }
@@ -95,7 +93,6 @@ export const fetchSmartContracts = (params = {}) => {
 			}
 		})
 	} catch (error) {
-		console.error('Failed to fetch smart contracts:', error)
 		throw error
 	}
 }
@@ -112,7 +109,6 @@ export const fetchSmartContractCounters = () => {
 			key: 'smart-contracts-counters',
 		})
 	} catch (error) {
-		console.error('Failed to fetch smart contract counters:', error)
 		throw error
 	}
 }
@@ -163,7 +159,6 @@ export const getContractType = async (address) => {
 		const contract = await fetchContractClient(address)
 		return contract?.language || null
 	} catch (error) {
-		console.error('Failed to get contract type:', error)
 		return null
 	}
 }
@@ -196,7 +191,6 @@ export const isTokenContract = async (address) => {
 		// If has at least 2 of these common token methods, likely a token
 		return [hasTransfer, hasBalanceOf, hasTotalSupply].filter(Boolean).length >= 2
 	} catch (error) {
-		console.error('Failed to check if contract is token:', error)
 		return false
 	}
 }
@@ -216,7 +210,6 @@ export const isProxiedContract = async (address) => {
 		// Check if has minimal proxy address
 		return !!(contract?.minimalProxyAddress)
 	} catch (error) {
-		console.error('Failed to check if contract is proxied:', error)
 		return false
 	}
 }
@@ -235,7 +228,6 @@ export const getProxyImplementation = async (address) => {
 		const contract = await fetchContractClient(address)
 		return contract?.minimalProxyAddress || null
 	} catch (error) {
-		console.error('Failed to get proxy implementation:', error)
 		return null
 	}
 }
@@ -259,7 +251,6 @@ export const fetchContractOverview = async (address) => {
 			success: true
 		}
 	} catch (error) {
-		console.error('Failed to fetch contract overview:', error)
 		throw error
 	}
 }
@@ -272,7 +263,6 @@ export const fetchContractOverview = async (address) => {
  * Use fetchContract() instead
  */
 export const fetchContractMetadata = (address) => {
-	console.warn('fetchContractMetadata is deprecated. Use fetchContract() instead - metadata is included in main response.')
 	return fetchContract(address)
 }
 
@@ -280,7 +270,6 @@ export const fetchContractMetadata = (address) => {
  * @deprecated - Contract enrichment is not supported in new API
  */
 export const enrichContract = async (address) => {
-	console.warn('enrichContract is no longer supported in the new API.')
 	throw new Error('Contract enrichment is not supported in the new API')
 }
 
@@ -288,7 +277,6 @@ export const enrichContract = async (address) => {
  * @deprecated - Discovery info is not available in new API
  */
 export const fetchContractDiscoveryInfo = (address) => {
-	console.warn('fetchContractDiscoveryInfo is no longer supported. Use fetchContract() instead.')
 	throw new Error('Contract discovery info is not available in the new API')
 }
 
@@ -297,8 +285,6 @@ export const fetchContractDiscoveryInfo = (address) => {
  * This function is kept for backward compatibility but may be slow
  */
 export const fetchTokenContracts = async (params = {}) => {
-	console.warn('fetchTokenContracts is deprecated. Consider using the /tokens endpoint instead.')
-
 	try {
 		const contracts = await fetchSmartContracts(params)
 
@@ -331,7 +317,6 @@ export const fetchTokenContracts = async (params = {}) => {
 
 		return contracts
 	} catch (error) {
-		console.error('Failed to fetch token contracts:', error)
 		throw error
 	}
 }

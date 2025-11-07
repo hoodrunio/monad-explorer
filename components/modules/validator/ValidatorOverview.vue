@@ -311,7 +311,6 @@ const formatBalance = (balance) => {
 			return balanceInEther.toFixed(6)
 		}
 	} catch (error) {
-		console.error('Error formatting balance:', error)
 		return '0'
 	}
 }

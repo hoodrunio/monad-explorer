@@ -111,8 +111,6 @@ export default defineEventHandler(async (event) => {
 		return response
 
 	} catch (error) {
-		console.error('Address internal transactions API error:', error)
-
 		// Handle timeout errors specifically
 		if (error.name === 'TimeoutError' || error.code === 'TIMEOUT') {
 			setResponseStatus(event, 504)

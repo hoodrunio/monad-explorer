@@ -51,7 +51,6 @@ export const fetchAddressTransactions = (address, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error('Failed to fetch address transactions:', error)
 		throw error
 	}
 }
@@ -92,7 +91,6 @@ export const fetchAddressTransactionsClient = async (address, params = {}) => {
 
 		return { data: { value: transformed } }
 	} catch (error) {
-		console.error('Failed to fetch address transactions:', error)
 		throw error
 	}
 }
@@ -140,7 +138,6 @@ export const fetchAddressTokenTransfers = (address, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error('Failed to fetch address token transfers:', error)
 		throw error
 	}
 }
@@ -186,8 +183,6 @@ export const fetchAddressBalance = async (address, {
 				})
 			}
 		} catch (newApiError) {
-			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
-
 			// Fallback to old API
 			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
 
@@ -202,7 +197,6 @@ export const fetchAddressBalance = async (address, {
 			})
 		}
 	} catch (error) {
-		console.error('Failed to fetch address balance:', error)
 		throw error
 	}
 }
@@ -249,8 +243,6 @@ export const fetchAddressBalanceClient = async (address, {
 				}
 			}
 		} catch (newApiError) {
-			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
-
 			// Fallback to old API
 			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${normalizedAddress}/balance`)
 
@@ -264,7 +256,6 @@ export const fetchAddressBalanceClient = async (address, {
 			return { data: { value: data } }
 		}
 	} catch (error) {
-		console.error('Failed to fetch address balance:', error)
 		throw error
 	}
 }
@@ -311,7 +302,6 @@ export const fetchAddressInternalTransactions = (address, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error('Failed to fetch address internal transactions:', error)
 		throw error
 	}
 }
@@ -341,7 +331,6 @@ export const fetchAddressStats = (address) => {
 			},
 		})
 	} catch (error) {
-		console.error('Failed to fetch address counters:', error)
 		throw error
 	}
 }
@@ -365,7 +354,6 @@ export const fetchAddressStatsClient = async (address) => {
 		const transformed = transformAddressCounters(data)
 		return { data: { value: transformed } }
 	} catch (error) {
-		console.error('Failed to fetch address counters:', error)
 		throw error
 	}
 }
@@ -403,7 +391,6 @@ export const fetchAddressNativeBalance = async (address) => {
 			success: false
 		}
 	} catch (error) {
-		console.error('Failed to fetch native balance:', error)
 		return {
 			address,
 			balance: "0",
@@ -438,7 +425,6 @@ export const fetchAddressTokenBalance = async (address, tokenAddress) => {
 
 		return result
 	} catch (error) {
-		console.error('Failed to fetch token balance:', error)
 		throw error
 	}
 }
@@ -460,7 +446,6 @@ export const hasAddressActivity = async (address) => {
 		const txCount = stats.data?.value?.transactions_count || 0
 		return txCount > 0
 	} catch (error) {
-		console.error('Failed to check address activity:', error)
 		return false
 	}
 }
@@ -493,7 +478,6 @@ export const fetchAddressOverview = async (address) => {
 			success: true
 		}
 	} catch (error) {
-		console.error('Failed to fetch address overview:', error)
 		throw error
 	}
 }
@@ -526,7 +510,6 @@ export const fetchAddressOverviewClient = async (address) => {
 			success: true
 		}
 	} catch (error) {
-		console.error('Failed to fetch address overview:', error)
 		throw error
 	}
 }

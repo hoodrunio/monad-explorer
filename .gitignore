@@ -34,5 +34,5 @@ server/cache/*
 .env
 .env.development*
 monadoodle/image.png
-design
+design-DEPRECATED
 TRANSACTION_IMPROVEMENTS.md

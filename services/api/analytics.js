@@ -44,7 +44,6 @@ export const fetchTransactionAnalytics = async ({ period = 'daily', limit = 30 }
 			},
 		}
 	} catch (error) {
-		console.error('Failed to fetch transaction analytics:', error)
 		return null
 	}
 }
@@ -84,7 +83,6 @@ export const fetchCurrentGasAnalytics = async () => {
 			},
 		}
 	} catch (error) {
-		console.error('Failed to fetch current gas analytics:', error)
 		return null
 	}
 }
@@ -134,7 +132,6 @@ export const fetchGasHistoryAnalytics = async ({ limit = 30 } = {}) => {
 			},
 		}
 	} catch (error) {
-		console.error('Failed to fetch gas history analytics:', error)
 		return null
 	}
 }
