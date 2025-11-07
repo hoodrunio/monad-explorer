@@ -17,6 +17,12 @@ import { CONTRACT_TABS } from "@/composables/useContractTabs"
 /** API */
 import { fetchContract } from "@/services/api/contract"
 
+/** Store */
+import { useModalsStore } from "@/store/modals.store"
+import { useCacheStore } from "@/store/cache.store"
+const modalsStore = useModalsStore()
+const cacheStore = useCacheStore()
+
 const route = useRoute()
 
 // Validate address format
@@ -100,7 +106,9 @@ const handleTabChange = (tabId) => {
 
 // View raw data
 const handleViewRawData = () => {
-	// This would open a modal with raw contract data
+	cacheStore.current._target = "contract"
+	cacheStore.current.contract = contractData.value
+	modalsStore.open("rawData")
 }
 </script>
 

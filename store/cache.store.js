@@ -28,6 +28,9 @@ export const useCacheStore = defineStore("cache", () => {
 		/** address */
 		address: null,
 
+		/** contract */
+		contract: null,
+
 		/** validators */
 		validator: null,
 		validators: [],
