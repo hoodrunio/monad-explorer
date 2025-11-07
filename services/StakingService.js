@@ -126,8 +126,26 @@ export class StakingService {
 			writeParams.value = value
 		}
 
-		// Execute transaction
-		const hash = await writeContract(this.wagmiConfig, writeParams)
+		let hash
+		try {
+			// Execute transaction
+			hash = await writeContract(this.wagmiConfig, writeParams)
+		} catch (writeError) {
+			// Handle user rejection silently
+			if (
+				writeError.code === 4001 ||
+				writeError.message?.includes('User rejected') ||
+				writeError.message?.includes('User denied') ||
+				writeError.message?.includes('user rejected')
+			) {
+				const rejectionError = new Error('Transaction was rejected by user')
+				rejectionError.code = 4001
+				rejectionError.userRejected = true
+				throw rejectionError
+			}
+			// Re-throw other errors
+			throw writeError
+		}
 
 		// Create transaction object
 		const transaction = {

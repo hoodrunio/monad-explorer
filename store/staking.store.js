@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getBalance, getChainId } from '@wagmi/core'
+import { getBalance } from '@wagmi/core'
 import { formatEther, parseEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { monadTestnet } from '~/config/chains'
@@ -233,7 +233,7 @@ export const useStakingStore = defineStore('staking', {
 
 				return transaction.hash
 			} catch (error) {
-				// Show error in modal
+				// Show error in modal (composable handles user rejections)
 				const { $wagmiConfig } = useNuxtApp()
 				const stakingService = createStakingService($wagmiConfig)
 				const errorTransaction = stakingService.createErrorTransaction('delegate', error, {
@@ -287,6 +287,7 @@ export const useStakingStore = defineStore('staking', {
 
 				return transaction.hash
 			} catch (error) {
+				// Show error in modal (composable handles user rejections)
 				const { $wagmiConfig } = useNuxtApp()
 				const stakingService = createStakingService($wagmiConfig)
 				const errorTransaction = stakingService.createErrorTransaction('undelegate', error, {
@@ -341,6 +342,7 @@ export const useStakingStore = defineStore('staking', {
 
 				return transaction.hash
 			} catch (error) {
+				// Show error in modal (composable handles user rejections)
 				const { $wagmiConfig } = useNuxtApp()
 				const stakingService = createStakingService($wagmiConfig)
 				const errorTransaction = stakingService.createErrorTransaction('compound', error, {
@@ -394,6 +396,7 @@ export const useStakingStore = defineStore('staking', {
 
 				return transaction.hash
 			} catch (error) {
+				// Show error in modal (composable handles user rejections)
 				const { $wagmiConfig } = useNuxtApp()
 				const stakingService = createStakingService($wagmiConfig)
 				const errorTransaction = stakingService.createErrorTransaction('claimRewards', error, {
@@ -447,6 +450,7 @@ export const useStakingStore = defineStore('staking', {
 
 				return transaction.hash
 			} catch (error) {
+				// Show error in modal (composable handles user rejections)
 				const { $wagmiConfig } = useNuxtApp()
 				const stakingService = createStakingService($wagmiConfig)
 				const errorTransaction = stakingService.createErrorTransaction('withdraw', error, {

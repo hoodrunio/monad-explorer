@@ -1,5 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
+import { useStakingTransactions } from '~/composables/useStakingTransactions'
 
 // Components
 import Button from '@/components/ui/Button.vue'
@@ -20,6 +21,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'success'])
 
 const stakingStore = useStakingStore()
+const stakingTransactions = useStakingTransactions()
 
 // State
 const stakeAmount = ref('')
@@ -51,21 +53,26 @@ const canStake = computed(() => {
 // Actions
 async function handleStake() {
 	if (!canStake.value) return
-	
-	try {
-		loading.value = true
-		error.value = ''
-		
-		await stakingStore.delegate(props.validator.valId, stakeAmount.value)
-		
-		// Close this modal immediately after transaction starts
-		handleClose()
-		emit('success')
-	} catch (err) {
-		error.value = err.message || 'Failed to stake'
-	} finally {
-		loading.value = false
-	}
+
+	loading.value = true
+	error.value = ''
+
+	const success = await stakingTransactions.delegate(
+		props.validator.valId,
+		stakeAmount.value,
+		{
+			onSuccess: () => {
+				handleClose()
+				emit('success')
+			},
+			onError: (errorMessage) => {
+				error.value = errorMessage
+			},
+			onFinally: () => {
+				loading.value = false
+			},
+		}
+	)
 }
 
 function setMaxAmount() {
