@@ -109,28 +109,28 @@ const handleViewRawData = () => {
 		<Skeleton v-if="pending" />
 
 		<template v-else-if="contractData">
-			<!-- Compact Header with Inline Badge -->
+			<!-- Compact Header -->
 			<Flex align="center" justify="between" :class="$style.header">
-				<Flex align="center" gap="12">
-					<Icon name="contract" size="16" color="brand" />
-					<Flex direction="column" gap="2">
-						<Flex align="center" gap="8">
-							<Text as="h1" size="16" weight="600" color="primary">Contract</Text>
-							<VerificationBadge
-								:is-verified="isVerified"
-								:is-fully-verified="isFullyVerified"
-								size="small"
-								:show-animation="false"
-							/>
-						</Flex>
-						<Flex align="center" gap="6">
-							<Text size="12" color="secondary" family="mono">{{ route.params.address }}</Text>
-							<CopyButton :text="route.params.address" size="10" />
-						</Flex>
+				<Flex align="center" gap="12" :class="$style.headerLeft">
+					<!-- Title and Badge -->
+					<Flex align="center" gap="10" :class="$style.titleGroup">
+						<Text as="h1" size="16" weight="600" color="primary">Contract</Text>
+						<VerificationBadge
+							:is-verified="isVerified"
+							:is-fully-verified="isFullyVerified"
+							size="small"
+							:show-animation="false"
+						/>
+					</Flex>
+
+					<!-- Language Badge -->
+					<Flex v-if="contractLanguage !== 'Unknown'" align="center" :class="$style.languageGroup">
+						<Badge size="tiny" type="gray">{{ contractLanguage }}</Badge>
 					</Flex>
 				</Flex>
 
-				<Flex align="center" gap="8">
+				<!-- Actions -->
+				<Flex align="center" gap="8" :class="$style.headerActions">
 					<Button
 						v-if="!isVerified"
 						:link="`/verify-contract?address=${route.params.address}`"
@@ -168,6 +168,15 @@ const handleViewRawData = () => {
 			<!-- Single Unified Contract Info Card -->
 			<div :class="$style.infoCard">
 				<Text size="13" weight="600" color="primary" :class="$style.infoCardTitle">Contract Info</Text>
+
+				<!-- Address Section -->
+				<div :class="$style.addressSection">
+					<Text size="11" color="tertiary">Address:</Text>
+					<Flex align="center" gap="6">
+						<Text size="11" weight="500" color="primary" family="mono">{{ route.params.address }}</Text>
+						<CopyButton :text="route.params.address" size="10" />
+					</Flex>
+				</div>
 
 				<!-- Compact Grid Layout -->
 				<div :class="$style.infoGrid">
@@ -340,11 +349,31 @@ const handleViewRawData = () => {
 
 /* Compact Header */
 .header {
-	padding: 14px 18px;
+	padding: 12px 18px;
 	border-radius: 8px;
 	background: var(--card-background);
 	border: 1px solid var(--op-10);
 	transition: var(--transition-fast);
+}
+
+.headerLeft {
+	flex: 1;
+	min-width: 0;
+	align-items: center;
+}
+
+.titleGroup {
+	flex-shrink: 0;
+}
+
+.languageGroup {
+	flex-shrink: 0;
+	padding-left: 12px;
+	border-left: 1px solid var(--op-08);
+}
+
+.headerActions {
+	flex-shrink: 0;
 }
 
 .verifyButton {
@@ -370,6 +399,15 @@ const handleViewRawData = () => {
 	display: block;
 }
 
+.addressSection {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px 0;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--op-08);
+}
+
 /* Compact Grid for Info Items */
 .infoGrid {
 	display: grid;
@@ -382,6 +420,7 @@ const handleViewRawData = () => {
 	flex-direction: column;
 	gap: 4px;
 	min-width: 0; /* Allow text truncation */
+	overflow: hidden; /* Prevent content overflow */
 }
 
 /* Empty States */
@@ -440,8 +479,34 @@ const handleViewRawData = () => {
 	.header {
 		padding: 12px 14px;
 		flex-direction: column;
-		align-items: flex-start;
+		align-items: stretch;
 		gap: 12px;
+	}
+
+	.headerLeft {
+		width: 100%;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.titleGroup {
+		width: 100%;
+	}
+
+	.languageGroup {
+		padding-left: 0;
+		border-left: none;
+		padding-top: 8px;
+		border-top: 1px solid var(--op-08);
+		width: 100%;
+	}
+
+	.headerActions {
+		width: 100%;
+		justify-content: flex-end;
+		padding-top: 8px;
+		border-top: 1px solid var(--op-08);
 	}
 
 	.infoCard {

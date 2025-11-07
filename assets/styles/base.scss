@@ -94,6 +94,17 @@ $grayscale: (
 	--supply: #1ca7ed;
 	--staking: #85f891;
 	--geo-map: #8b8c8d;
+
+	/** Verification Badge Colors */
+	--verified-bg: rgba(10, 222, 113, 0.12);
+	--verified-border: rgba(10, 222, 113, 0.3);
+	--verified-green: #0ade71;
+	--verified-glow: rgba(10, 222, 113, 0.4);
+	--partially-verified-bg: rgba(230, 197, 37, 0.12);
+	--partially-verified-border: rgba(230, 197, 37, 0.3);
+	--partially-verified-yellow: #e6c525;
+	--unverified-bg: rgba(255, 131, 81, 0.1);
+	--unverified-border: rgba(255, 131, 81, 0.25);
 }
 
 [theme="dimmed"] {
@@ -238,16 +249,27 @@ $grayscale: (
 	--btn-secondary-bg-active: rgba(0, 0, 0, 8%);
 
 	/** Other */
-	--network-widget-background: rgba(0, 0, 0, 3%);
-	--network-widget-separator: #eaeaea;
-	--network-widget-indicator: #000;
-	--feed-background: rgba(0, 0, 0, 2%);
-	--notification-background: rgba(255, 255, 255, 95%);
-	--block-progress-background: rgba(0, 0, 0, 8%);
+	--network-widget-background: rgba(0, 0, 0, 10%);
+	--network-widget-separator: #2f3133;
+	--network-widget-indicator: #fff;
+	--feed-background: rgba(0, 0, 0, 8%);
+	--notification-background: rgba(0, 0, 0, 95%);
+	--block-progress-background: rgba(0, 0, 0, 20%);
 	--block-progress-fill-background: #33a853;
 	--logo-name: var(--txt-primary);
 	--bar-fill: rgb(243, 147, 45);
 	--geo-map: #8b8c8d;
+
+	/** Verification Badge Colors */
+	--verified-bg: rgba(10, 222, 113, 0.1);
+	--verified-border: rgba(10, 222, 113, 0.25);
+	--verified-green: #0ade71;
+	--verified-glow: rgba(10, 222, 113, 0.35);
+	--partially-verified-bg: rgba(229, 193, 11, 0.1);
+	--partially-verified-border: rgba(229, 193, 11, 0.25);
+	--partially-verified-yellow: #e5c10b;
+	--unverified-bg: rgba(255, 90, 23, 0.08);
+	--unverified-border: rgba(255, 90, 23, 0.2);
 }
 
 @font-face {
