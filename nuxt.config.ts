@@ -167,5 +167,11 @@ export default defineNuxtConfig({
 			plugins: () => [wasm()],
 		},
 	},
+
+	vue: {
+		compilerOptions: {
+			isCustomElement: (tag) => tag.startsWith('appkit-'),
+		},
+	},
 	compatibilityDate: "2025-04-02",
 })

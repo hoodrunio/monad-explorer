@@ -1,24 +1,21 @@
 <script setup>
-// Wallet connection modal component
+// Wallet connection component using AppKit
 import WalletModal from '@/components/WalletModal.vue'
 
-// Props for customization
+// Props for customization (simplified for AppKit)
 const props = defineProps({
 	label: {
 		type: String,
 		default: 'Connect Wallet'
 	},
-	accountStatus: {
-		type: [String, Object],
-		default: 'full'
-	},
-	chainStatus: {
-		type: [String, Object],
-		default: () => ({ smallScreen: 'icon', largeScreen: 'full' })
-	},
 	showBalance: {
 		type: [Boolean, Object],
 		default: () => ({ smallScreen: false, largeScreen: true })
+	},
+	size: {
+		type: String,
+		default: 'md',
+		validator: (value) => ['md', 'sm'].includes(value)
 	}
 })
 </script>
@@ -26,8 +23,7 @@ const props = defineProps({
 <template>
 	<WalletModal
 		:label="label"
-		:account-status="accountStatus"
-		:chain-status="chainStatus"
 		:show-balance="showBalance"
+		:size="size"
 	/>
 </template>
