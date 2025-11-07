@@ -58,7 +58,7 @@ export default defineNuxtPlugin(() => {
 		themeVariables: {
 			// Typography - match app font stack
 			'--apkt-font-family': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
-			'--apkt-font-size-master': '8px',
+			'--apkt-font-size-master': '10px',
 
 			// Brand color - match app's brand color (#18d2a5) for buttons, icons, labels
 			'--apkt-accent': '#18d2a5',
