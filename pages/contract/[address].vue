@@ -105,7 +105,7 @@ const handleViewRawData = () => {
 </script>
 
 <template>
-	<Flex direction="column" gap="4" wide>
+	<Flex direction="column" gap="4" wide :class="$style.wrapper">
 		<Skeleton v-if="pending" />
 
 		<template v-else-if="contractData">
@@ -333,6 +333,11 @@ const handleViewRawData = () => {
 </template>
 
 <style module>
+/* Page Wrapper */
+.wrapper {
+	padding: 0 24px;
+}
+
 /* Compact Header */
 .header {
 	padding: 14px 18px;
@@ -428,6 +433,10 @@ const handleViewRawData = () => {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+	.wrapper {
+		padding: 0 16px;
+	}
+
 	.header {
 		padding: 12px 14px;
 		flex-direction: column;
@@ -464,6 +473,10 @@ const handleViewRawData = () => {
 
 /* Tablet */
 @media (max-width: 1024px) and (min-width: 769px) {
+	.wrapper {
+		padding: 0 20px;
+	}
+
 	.infoGrid {
 		grid-template-columns: repeat(2, 1fr);
 	}
