@@ -171,19 +171,19 @@ const handleChangeTheme = (target) => {
 
 	<Flex justify="center" :class="$style.bottom">
 		<Flex wide align="center" gap="20" justify="between" :class="$style.bottom_container">
-			<Flex align="center" gap="20">
-				<NuxtLink to="/terms-of-use" style="line-height: 12px">
-					<Text size="12" weight="500" color="tertiary">Terms of use</Text>
+			<Flex align="center" gap="20" :class="$style.bottom_links">
+				<NuxtLink to="/terms-of-use" style="line-height: 10px">
+					<Text size="10" weight="400" color="tertiary">Terms of use</Text>
 				</NuxtLink>
 
-				<NuxtLink to="/privacy-policy" style="line-height: 12px">
-					<Text size="12" weight="500" color="tertiary">Privacy policy</Text>
+				<NuxtLink to="/privacy-policy" style="line-height: 10px">
+					<Text size="10" weight="400" color="tertiary">Privacy policy</Text>
 				</NuxtLink>
 			</Flex>
 
 			<Flex align="center">
-				<Text size="12" weight="500" color="secondary" :class="$style.attribution">
-					UI based on the open-source 
+				<Text size="10" weight="400" color="tertiary" :class="$style.attribution">
+					UI based on the open-source
 					<a href="https://github.com/celenium-io/celenium-interface" target="_blank" rel="noopener noreferrer" :class="$style.attribution_link">
 						Celenium Interface
 					</a>
@@ -276,6 +276,15 @@ const handleChangeTheme = (target) => {
 	padding: 0 20px;
 }
 
+.bottom_links {
+	opacity: 0.5;
+	transition: opacity 0.2s ease;
+
+	& a:hover {
+		opacity: 1;
+	}
+}
+
 .link_text {
 	transition: all 0.2s ease;
 
@@ -293,22 +302,23 @@ const handleChangeTheme = (target) => {
 .attribution {
 	text-align: right;
 	line-height: 1.4;
-	padding: 8px 12px;
-	background: var(--op-5);
-	border-radius: 6px;
-	border: 1px solid var(--op-8);
+	opacity: 0.5;
+	transition: opacity 0.2s ease;
+
+	&:hover {
+		opacity: 0.7;
+	}
 }
 
 .attribution_link {
-	color: var(--txt-primary);
-	text-decoration: underline;
-	font-weight: 600;
+	color: var(--txt-tertiary);
+	text-decoration: none;
+	font-weight: 500;
 	transition: all 0.2s ease;
 
 	&:hover {
-		color: var(--brand);
+		color: var(--txt-secondary);
 		text-decoration: underline;
-		text-decoration-thickness: 2px;
 	}
 }
 
