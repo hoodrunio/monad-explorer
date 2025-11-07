@@ -93,8 +93,6 @@ export default defineEventHandler(async (event) => {
 		return response
 
 	} catch (error) {
-		console.error('Smart contract API error:', error)
-
 		// Handle different error types
 		if (error.statusCode === 404) {
 			setResponseStatus(event, 404)

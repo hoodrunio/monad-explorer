@@ -63,7 +63,6 @@ export const useMonUsdConverter = () => {
 				return `≈ $${(usdValue / 1000000000).toFixed(2)}B`
 			}
 		} catch (error) {
-			console.error("Error converting to USD:", error, { weiAmount, currentPrice })
 			return null
 		}
 	}

@@ -41,8 +41,7 @@ const activeFilters = ref([])
 const handleFiltersUpdate = (filters) => {
 	activeFilters.value = filters
 	// In a real implementation, you would apply these filters to the API call
-	// For now, we'll just log them as the API needs to support filtering
-	console.log("Active filters:", filters)
+	// For now, we'll just store them as the API needs to support filtering
 }
 
 // EVM transaction helper functions
@@ -82,7 +81,6 @@ const loadTransactions = async (params = null) => {
 		const { data, error } = await fetchTransactions(queryParams)
 
 		if (error.value) {
-			console.error("Error fetching transactions:", error.value)
 			transactions.value = []
 			nextPageParams.value = null
 			methodInfoMap.value.clear()
@@ -96,7 +94,7 @@ const loadTransactions = async (params = null) => {
 					const methodInfo = await batchGetMethodInfo(transactions.value)
 					methodInfoMap.value = methodInfo
 				} catch (methodError) {
-					console.warn('Failed to fetch method information:', methodError)
+					// Failed to fetch method information
 				}
 			}
 		} else {
@@ -105,7 +103,6 @@ const loadTransactions = async (params = null) => {
 			methodInfoMap.value.clear()
 		}
 	} catch (error) {
-		console.error("Failed to load transactions:", error)
 		transactions.value = []
 		nextPageParams.value = null
 		methodInfoMap.value.clear()

@@ -36,7 +36,6 @@ export const fetchBlocks = (params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch blocks:", error)
 		throw error
 	}
 }
@@ -55,7 +54,6 @@ export const fetchBlockByHeight = (blockNumberOrHash) => {
 			transform: (response) => transformBlock(response),
 		})
 	} catch (error) {
-		console.error("Failed to fetch block by height:", error)
 		throw error
 	}
 }
@@ -76,7 +74,6 @@ export const fetchBlockByHeightClient = async (blockNumberOrHash) => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch block by height (client):", error)
 		throw error
 	}
 }
@@ -115,7 +112,6 @@ export const fetchBlockTransactions = (params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch block transactions:", error)
 		throw error
 	}
 }
@@ -143,7 +139,6 @@ export const fetchBlockWithdrawals = (params = {}) => {
 			key: `block-withdrawals-${blockNumberOrHash}`,
 		})
 	} catch (error) {
-		console.error("Failed to fetch block withdrawals:", error)
 		throw error
 	}
 }
@@ -166,7 +161,6 @@ export const fetchAvgBlockTime = async () => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch average block time:", error)
 		throw error
 	}
 }

@@ -69,7 +69,6 @@ export const getFunctionSignature = async (methodId) => {
 		
 		return null
 	} catch (error) {
-		console.warn('Failed to fetch function signature from 4bytes.directory:', error)
 		return null
 	}
 }
@@ -136,7 +135,7 @@ export const getEnhancedSignature = async (methodId, inputData = null, abiPath =
 				return abiResult
 			}
 		} catch (error) {
-			console.warn('ABI decoding failed, falling back to 4bytes.directory:', error)
+			// ABI decoding failed, falling back to 4bytes.directory
 		}
 	}
 

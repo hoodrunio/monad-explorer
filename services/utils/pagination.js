@@ -60,7 +60,6 @@ export const deserializeCursorParams = (serialized) => {
 	try {
 		return JSON.parse(atob(serialized))
 	} catch (error) {
-		console.error('Failed to deserialize cursor params:', error)
 		return null
 	}
 }

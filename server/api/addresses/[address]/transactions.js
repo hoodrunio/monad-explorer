@@ -105,8 +105,6 @@ export default defineEventHandler(async (event) => {
 		return response
 
 	} catch (error) {
-		console.error('Address transactions API error:', error)
-
 		// Handle different error types
 		if (error.statusCode === 404) {
 			return createApiResponse(

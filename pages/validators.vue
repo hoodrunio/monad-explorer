@@ -307,7 +307,6 @@ const getValidatorCounts = async () => {
 			).length
 		}
 	} catch (error) {
-		console.error('Failed to get validator counts:', error)
 		// Fallback to current data if available
 		if (activeTab.value === "all") {
 			allValidatorsCount.value = allValidators.value.length

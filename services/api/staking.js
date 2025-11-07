@@ -214,7 +214,6 @@ export async function getCurrentEpoch() {
 			estimatedNextEpoch: new Date(Date.now() + (5.5 * 60 * 60 * 1000))
 		}
 	} catch (error) {
-		console.error('Failed to get current epoch:', error)
 		throw error
 	}
 }
@@ -256,7 +255,6 @@ export async function getValidatorById(valId) {
 			isActive: Number(result[6]) > 0, // Has consensus stake
 		}
 	} catch (error) {
-		console.error(`Failed to get validator ${valId}:`, error)
 		throw error
 	}
 }
@@ -288,7 +286,7 @@ export async function getExecutionValidators() {
 					const validatorInfo = await getValidatorById(Number(valId))
 					validators.push(validatorInfo)
 				} catch (error) {
-					console.error(`Failed to fetch validator ${valId}:`, error)
+					// Failed to fetch validator
 				}
 			}
 		}
@@ -300,7 +298,6 @@ export async function getExecutionValidators() {
 			return stakeA > stakeB ? -1 : stakeA < stakeB ? 1 : 0
 		})
 	} catch (error) {
-		console.error('Failed to get execution validators:', error)
 		throw error
 	}
 }
@@ -332,7 +329,7 @@ export async function getConsensusValidators() {
 					const validatorInfo = await getValidatorById(Number(valId))
 					validators.push(validatorInfo)
 				} catch (error) {
-					console.error(`Failed to fetch validator ${valId}:`, error)
+					// Failed to fetch validator
 				}
 			}
 		}
@@ -344,7 +341,6 @@ export async function getConsensusValidators() {
 			return stakeA > stakeB ? -1 : stakeA < stakeB ? 1 : 0
 		})
 	} catch (error) {
-		console.error('Failed to get consensus validators:', error)
 		throw error
 	}
 }
@@ -381,7 +377,6 @@ export async function getDelegatorInfo(valId, delegatorAddress) {
 			hasPendingStake: result[3] > 0 || result[4] > 0,
 		}
 	} catch (error) {
-		console.error(`Failed to get delegator info for validator ${valId}:`, error)
 		throw error
 	}
 }
@@ -420,14 +415,13 @@ export async function getDelegatorDelegations(delegatorAddress) {
 						})
 					}
 				} catch (error) {
-					console.error(`Failed to fetch delegation info for validator ${valId}:`, error)
+					// Failed to fetch delegation info
 				}
 			}
 		}
 		
 		return delegations
 	} catch (error) {
-		console.error('Failed to get delegator delegations:', error)
 		throw error
 	}
 }
@@ -474,7 +468,6 @@ export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) 
 		
 		return withdrawalData
 	} catch (error) {
-		console.error(`Failed to get withdrawal request for validator ${valId}, withdraw ID ${withdrawId}:`, error)
 		return null
 	}
 }
@@ -513,7 +506,6 @@ export async function getDelegatorWithdrawals(delegatorAddress) {
 				} catch (error) {
 					// Skip errors for non-existent withdrawal requests
 					if (error.message?.includes('Rate limit')) {
-						console.warn('Rate limit hit, stopping withdrawal checks for validator', valId)
 						break
 					}
 				}
@@ -525,7 +517,6 @@ export async function getDelegatorWithdrawals(delegatorAddress) {
 		
 		return withdrawals
 	} catch (error) {
-		console.error('Failed to get delegator withdrawals:', error)
 		throw error
 	}
 }
@@ -563,7 +554,7 @@ export async function getValidatorDelegators(valId, limit = 100) {
 						count++
 					}
 				} catch (error) {
-					console.error(`Failed to fetch delegator info for ${delegatorAddr}:`, error)
+					// Failed to fetch delegator info
 				}
 			}
 		}
@@ -575,7 +566,6 @@ export async function getValidatorDelegators(valId, limit = 100) {
 			return stakeA > stakeB ? -1 : stakeA < stakeB ? 1 : 0
 		})
 	} catch (error) {
-		console.error(`Failed to get delegators for validator ${valId}:`, error)
 		throw error
 	}
 }
@@ -603,7 +593,6 @@ export function calculateValidatorAPY(validator, totalNetworkStake, blockReward 
 		
 		// Ensure it's a valid integer string for BigInt
 		if (!/^\d+$/.test(stakeStr)) {
-			console.warn('Invalid stake value for BigInt conversion:', stakeValue)
 			return 0
 		}
 		
@@ -619,7 +608,6 @@ export function calculateValidatorAPY(validator, totalNetworkStake, blockReward 
 		
 		return Math.max(0, Math.min(100, apy)) // Cap between 0-100%
 	} catch (error) {
-		console.error('Failed to calculate APY:', error)
 		return 0
 	}
 }
@@ -685,7 +673,6 @@ export async function getStakingStats() {
 				: '0.00'
 		}
 	} catch (error) {
-		console.error('Failed to get staking stats:', error)
 		throw error
 	}
 }

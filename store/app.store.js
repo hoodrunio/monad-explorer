@@ -29,7 +29,6 @@ export const useAppStore = defineStore("app", () => {
 		try {
 			// Use market data endpoint to get current price
 			const marketData = await fetchGasHistoryAnalytics({})
-			console.log("Market API Response:", marketData)
 
 			if (marketData?.success && marketData?.data?.data?.length > 0) {
 				// Get the most recent price (first item in array)
@@ -43,10 +42,9 @@ export const useAppStore = defineStore("app", () => {
 					low: latestData.closingPrice || "0",
 					close: latestData.closingPrice || "0"
 				}
-				console.log("Price updated in store:", currentPrice.value)
 			}
 		} catch (error) {
-			console.error("Failed to fetch price:", error)
+			// Failed to fetch price
 		}
 	}
 

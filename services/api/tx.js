@@ -50,7 +50,6 @@ export const fetchTransactions = (params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch transactions:", error)
 		throw error
 	}
 }
@@ -69,7 +68,6 @@ export const fetchTxByHash = (txHash) => {
 			transform: (response) => transformTransaction(response),
 		})
 	} catch (error) {
-		console.error("Failed to fetch transaction by hash:", error)
 		throw error
 	}
 }
@@ -90,7 +88,6 @@ export const fetchTxByHashClient = async (txHash) => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch transaction by hash (client):", error)
 		throw error
 	}
 }
@@ -125,7 +122,6 @@ export const fetchTxTokenTransfers = (txHash, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch token transfers:", error)
 		throw error
 	}
 }
@@ -158,7 +154,6 @@ export const fetchTxInternalTransactions = (txHash, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch internal transactions:", error)
 		throw error
 	}
 }
@@ -191,7 +186,6 @@ export const fetchTxLogs = (txHash, params = {}) => {
 			},
 		})
 	} catch (error) {
-		console.error("Failed to fetch transaction logs:", error)
 		throw error
 	}
 }
@@ -215,7 +209,6 @@ export const fetchTxStateChanges = (txHash, params = {}) => {
 			key: `tx-state-changes-${txHash}`,
 		})
 	} catch (error) {
-		console.error("Failed to fetch transaction state changes:", error)
 		throw error
 	}
 }
@@ -236,7 +229,6 @@ export const fetchTxRawTrace = async (txHash) => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch transaction raw trace:", error)
 		throw error
 	}
 }
@@ -257,7 +249,6 @@ export const fetchTxSummary = async (txHash) => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch transaction summary:", error)
 		throw error
 	}
 }
@@ -280,7 +271,6 @@ export const fetchTxsCount = async () => {
 			}
 		}
 	} catch (error) {
-		console.error("Failed to fetch transactions count:", error)
 		throw error
 	}
 }

@@ -66,7 +66,6 @@ const loadCompilerVersions = async () => {
 		}
 	} catch (error) {
 		versionsError.value = 'Failed to load verification config. Please check your API URL.'
-		console.error('Failed to load verification config:', error)
 	} finally {
 		isLoadingVersions.value = false
 	}

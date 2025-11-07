@@ -65,8 +65,8 @@ const dismissQuorumBanner = () => {
 }
 
 // Preload GitHub validator data to prevent multiple API calls
-preloadGithubValidatorData().catch(error => {
-	console.warn("Failed to preload GitHub validator data:", error)
+preloadGithubValidatorData().catch(() => {
+	// Failed to preload GitHub validator data
 })
 
 useHead({

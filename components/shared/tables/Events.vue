@@ -74,7 +74,6 @@ const getEvents = async () => {
 			totalEventsCount.value = decodedLogs.length
 		}
 	} catch (error) {
-		console.error("Error loading events:", error)
 		events.value = []
 	}
 

@@ -40,7 +40,6 @@ async function fetchStats() {
 		stats.value = await getStakingStats()
 	} catch (err) {
 		error.value = 'Failed to fetch staking statistics'
-		console.error('Stats fetch error:', err)
 	} finally {
 		loading.value = false
 	}

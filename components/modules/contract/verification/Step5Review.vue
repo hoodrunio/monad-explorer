@@ -125,7 +125,6 @@ const handleVerify = async () => {
 
 		// Check if contract is already verified
 		if (submitResponse?.message && submitResponse.message.toLowerCase().includes('already verified')) {
-			console.log('Contract is already verified, fetching details...')
 
 			// Fetch the actual verification details
 			const verificationDetails = await checkContractVerification(contractAddress)
@@ -146,7 +145,6 @@ const handleVerify = async () => {
 		}
 		// Check if response indicates async verification (message: 'Smart-contract verification started')
 		else if (submitResponse?.message && submitResponse.message.includes('verification started')) {
-			console.log('Verification started, polling for result...')
 
 			// Start polling state
 			verificationStore.startPolling()
@@ -199,7 +197,6 @@ onMounted(async () => {
 			const result = await checkContractVerification(verificationStore.contractAddress)
 			alreadyVerified.value = result
 		} catch (error) {
-			console.error('Failed to check contract verification:', error)
 			alreadyVerified.value = { isVerified: false, contractData: null }
 		} finally {
 			isCheckingVerification.value = false
@@ -215,7 +212,6 @@ watch(() => verificationStore.contractAddress, async (newAddress) => {
 			const result = await checkContractVerification(newAddress)
 			alreadyVerified.value = result
 		} catch (error) {
-			console.error('Failed to check contract verification:', error)
 			alreadyVerified.value = { isVerified: false, contractData: null }
 		} finally {
 			isCheckingVerification.value = false

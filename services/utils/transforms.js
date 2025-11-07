@@ -12,7 +12,6 @@ export const parseISOTimestamp = (isoTimestamp) => {
 	try {
 		return new Date(isoTimestamp)
 	} catch (error) {
-		console.error('Failed to parse timestamp:', error)
 		return null
 	}
 }
@@ -37,7 +36,6 @@ export const parseBigInt = (value) => {
 	try {
 		return BigInt(value.toString())
 	} catch (error) {
-		console.error('Failed to parse BigInt:', error)
 		return null
 	}
 }

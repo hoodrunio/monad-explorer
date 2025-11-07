@@ -304,7 +304,7 @@ export const useVerificationStore = defineStore("verification", () => {
 					verificationHistory.value = JSON.parse(stored)
 				}
 			} catch (error) {
-				console.error('Failed to load verification history from localStorage:', error)
+				// Failed to load verification history from localStorage
 			}
 		}
 	}
@@ -314,7 +314,7 @@ export const useVerificationStore = defineStore("verification", () => {
 			try {
 				localStorage.setItem('verification-history', JSON.stringify(verificationHistory.value))
 			} catch (error) {
-				console.error('Failed to save verification history to localStorage:', error)
+				// Failed to save verification history to localStorage
 			}
 		}
 	}
@@ -325,7 +325,7 @@ export const useVerificationStore = defineStore("verification", () => {
 			try {
 				localStorage.removeItem('verification-history')
 			} catch (error) {
-				console.error('Failed to clear verification history from localStorage:', error)
+				// Failed to clear verification history from localStorage
 			}
 		}
 	}

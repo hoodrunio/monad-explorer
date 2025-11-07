@@ -61,7 +61,6 @@ const loadDelegators = async (loadMore = false) => {
 		}
 	} catch (err) {
 		error.value = err.message || 'Failed to load delegators'
-		console.error('Error fetching validator delegators:', err)
 	} finally {
 		isLoading.value = false
 	}

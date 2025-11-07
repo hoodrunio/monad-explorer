@@ -128,8 +128,6 @@ export default defineEventHandler(async (event) => {
 			usedNewApi = true
 
 		} catch (newApiError) {
-			console.warn('New Indexer API failed, falling back to old API:', newApiError.message)
-
 			// Fallback to old API
 			const oldApiUrl = new URL(`${useExplorerURL()}/api/addresses/${address}/balance`)
 
@@ -163,8 +161,6 @@ export default defineEventHandler(async (event) => {
 		return response
 
 	} catch (error) {
-		console.error('Address balance API error:', error)
-
 		// Handle different error types
 		if (error.statusCode === 404) {
 			return createApiResponse(

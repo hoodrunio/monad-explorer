@@ -205,7 +205,6 @@ async function loadValidators() {
 		stats.value = networkStats
 		
 	} catch (err) {
-		console.error('Failed to load validators:', err)
 		error.value = 'Failed to load validators. Please try again.'
 	} finally {
 		loading.value = false

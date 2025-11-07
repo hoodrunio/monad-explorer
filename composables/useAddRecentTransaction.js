@@ -14,7 +14,6 @@ export function useAddRecentTransaction() {
 	 */
 	function addRecentTransaction({ hash, description, confirmations = 1 }) {
 		if (!hash || !description) {
-			console.warn('addRecentTransaction requires hash and description')
 			return
 		}
 		
@@ -58,7 +57,7 @@ export function useAddRecentTransaction() {
 			}
 			
 		} catch (error) {
-			console.error('Transaction failed:', error)
+			// Transaction failed
 			
 			// Mark as failed
 			const txIndex = stakingStore.pendingTransactions.findIndex(tx => tx.hash === hash)

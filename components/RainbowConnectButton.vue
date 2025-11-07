@@ -173,7 +173,7 @@ async function fetchBalance() {
 		balance.value = balanceData.value.toString()
 		stakingStore.balance = balanceData.value.toString()
 	} catch (err) {
-		console.error('Failed to fetch balance:', err)
+		// Failed to fetch balance
 	}
 }
 
@@ -196,7 +196,6 @@ async function connectWallet(connector) {
 		
 		showConnectModal.value = false
 	} catch (err) {
-		console.error('Failed to connect wallet:', err)
 		error.value = err.message || 'Failed to connect wallet'
 	} finally {
 		isConnecting.value = false
@@ -212,7 +211,7 @@ async function disconnectWallet() {
 		stakingStore.resetUserData()
 		showAccountModal.value = false
 	} catch (err) {
-		console.error('Failed to disconnect wallet:', err)
+		// Failed to disconnect wallet
 	}
 }
 
@@ -254,11 +253,9 @@ async function switchToMonadNetwork() {
 					chainId: monadTestnet.id
 				})
 			} catch (addError) {
-				console.error('Failed to add/switch network:', addError)
 				error.value = 'Failed to add Monad Testnet. Please add it manually in your wallet.'
 			}
 		} else {
-			console.error('Failed to switch network:', switchError)
 			error.value = 'Please switch to Monad Testnet manually'
 		}
 	}
@@ -272,7 +269,7 @@ async function copyAddress() {
 		await navigator.clipboard.writeText(account.value.address)
 		// Could show toast notification here
 	} catch (err) {
-		console.error('Failed to copy address:', err)
+		// Failed to copy address
 	}
 }
 

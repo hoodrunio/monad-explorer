@@ -54,7 +54,6 @@ const {
 			nextTxParams: rawTransactions.value?.next_page_params || null,
 		}
 	} catch (err) {
-		console.error("Error loading block:", err)
 		if (err.message === "Block not found" || err.message === "Invalid block identifier") {
 			await router.push("/")
 		}

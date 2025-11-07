@@ -121,7 +121,7 @@ export const useConsensusVotes = () => {
 		try {
 			githubDataCache.value = await fetchGithubValidatorInfo()
 		} catch (err) {
-			console.warn('Failed to fetch GitHub validator data:', err)
+			// Failed to fetch GitHub validator data
 		}
 	})
 
@@ -186,7 +186,7 @@ export const useConsensusMissing = () => {
 		try {
 			githubDataCache.value = await fetchGithubValidatorInfo()
 		} catch (err) {
-			console.warn('Failed to fetch GitHub validator data:', err)
+			// Failed to fetch GitHub validator data
 		}
 	})
 

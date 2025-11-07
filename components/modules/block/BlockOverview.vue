@@ -235,7 +235,6 @@ const getTransactions = async (params = null) => {
 
 		cacheStore.current.transactions = transactions.value
 	} catch (error) {
-		console.error("Error fetching block transactions:", error)
 		transactions.value = []
 		nextPageParams.value = null
 	}
