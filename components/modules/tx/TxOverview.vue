@@ -15,6 +15,7 @@ import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
+import { calculateSavings } from "@/services/utils/amounts"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
@@ -110,6 +111,10 @@ const getGasUsagePercent = (gasUsed, gasLimit) => {
 	if (!gasLimit || gasLimit === "0") return 0
 	return (parseInt(gasUsed) / parseInt(gasLimit)) * 100
 }
+
+const savings = computed(() => {
+	return calculateSavings(props.tx?.maxFeePerGas, props.tx?.effectiveGasPrice, props.tx?.gasUsed)
+})
 
 const gasBarColor = computed(() => {
 	if (!props.tx?.gasUsed || !props.tx?.gas) return "var(--grey)"
@@ -292,6 +297,35 @@ const handleDecodeInput = () => {
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="secondary">{{ getGasUsagePercent(tx.gasUsed, tx.gas).toFixed(2) }}%</Text>
 							<Text size="12" weight="600" color="tertiary">{{ formatGasValue(tx.gasUsed) }} / {{ formatGasValue(tx.gas) }}</Text>
+						</Flex>
+					</Flex>
+
+					<!-- Burnt & Savings Section -->
+					<Flex v-if="tx.burntFee || savings !== '0'" direction="column" gap="16">
+						<Text size="12" weight="600" color="secondary">Burnt & Savings</Text>
+
+						<Flex align="start" justify="between" gap="16">
+							<!-- Burnt Fee -->
+							<Flex direction="column" gap="6" style="flex: 1">
+								<Text size="12" weight="600" color="tertiary">Burnt Fee</Text>
+								<Flex direction="column" gap="4">
+									<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.burntFee, 6) }} MON</Text>
+									<Text v-if="tx.burntFee && tx.burntFee !== '0' && convertToUsd(tx.burntFee)" size="11" weight="600" color="tertiary">
+										{{ convertToUsd(tx.burntFee) }}
+									</Text>
+								</Flex>
+							</Flex>
+
+							<!-- Savings -->
+							<Flex direction="column" gap="6" style="flex: 1">
+								<Text size="12" weight="600" color="tertiary">Savings</Text>
+								<Flex direction="column" gap="4">
+									<Text size="13" weight="600" color="green">{{ formatMonValue(savings, 6) }} MON</Text>
+									<Text v-if="savings && savings !== '0' && convertToUsd(savings)" size="11" weight="600" color="green">
+										{{ convertToUsd(savings) }}
+									</Text>
+								</Flex>
+							</Flex>
 						</Flex>
 					</Flex>
 

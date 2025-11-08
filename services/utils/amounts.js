@@ -23,7 +23,6 @@ export const comma = (target, symbol = ",", fixed = 2) => {
 			.split(".")[0]
 			.toString()
 			.replace(/\B(?=(\d{3})+(?!\d))/g, symbol)}.${num.split(".")[1]}`
-		x
 	} else {
 		return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, symbol)
 	}
@@ -156,4 +155,25 @@ export const convertFromWei = (weiAmount, decimals = 18) => {
 	const result = Number(wei) / Number(divisor)
 	
 	return result
+}
+
+/**
+ * Calculate savings from EIP-1559 transaction
+ * @param {string} maxFeePerGas - Maximum fee per gas willing to pay
+ * @param {string} effectiveGasPrice - Actual gas price paid
+ * @param {string} gasUsed - Amount of gas used
+ * @returns {string} - Savings in wei as string
+ */
+export const calculateSavings = (maxFeePerGas, effectiveGasPrice, gasUsed) => {
+	if (!maxFeePerGas || !effectiveGasPrice || !gasUsed) return "0"
+	if (maxFeePerGas === "0" || effectiveGasPrice === "0" || gasUsed === "0") return "0"
+
+	try {
+		const maxFeePaid = BigInt(maxFeePerGas) * BigInt(gasUsed)
+		const actualFeePaid = BigInt(effectiveGasPrice) * BigInt(gasUsed)
+		const savings = maxFeePaid - actualFeePaid
+		return savings > 0n ? savings.toString() : "0"
+	} catch (e) {
+		return "0"
+	}
 }

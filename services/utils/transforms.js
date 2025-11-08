@@ -158,10 +158,14 @@ export const transformTransaction = (tx) => {
 		gasPrice: tx.gas_price || "0",
 		gas_price: tx.gas_price || "0",
 		effectiveGasPrice: tx.gas_price || "0", // Same as gas_price in most cases
+		maxFeePerGas: tx.max_fee_per_gas || "0",
+		max_fee_per_gas: tx.max_fee_per_gas || "0",
 
 		// Transaction fee normalization
 		transactionFee: normalizedFee,
 		fee: normalizedFee,
+		burntFee: tx.transaction_burnt_fee || "0",
+		transaction_burnt_fee: tx.transaction_burnt_fee || "0",
 
 		// Transaction index/position
 		// Advanced filters uses transaction_index instead of position
