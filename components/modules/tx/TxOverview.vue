@@ -307,7 +307,10 @@ const handleDecodeInput = () => {
 						<Flex align="start" justify="between" gap="16">
 							<!-- Burnt Fee -->
 							<Flex direction="column" gap="6" style="flex: 1">
-								<Text size="12" weight="600" color="tertiary">Burnt Fee</Text>
+								<Flex align="center" gap="4">
+									<Icon name="burn" size="12" color="orange" />
+									<Text size="12" weight="600" color="tertiary">Burnt Fee</Text>
+								</Flex>
 								<Flex direction="column" gap="4">
 									<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.burntFee, 6) }} MON</Text>
 									<Text v-if="tx.burntFee && tx.burntFee !== '0' && convertToUsd(tx.burntFee)" size="11" weight="600" color="tertiary">
@@ -318,7 +321,10 @@ const handleDecodeInput = () => {
 
 							<!-- Savings -->
 							<Flex direction="column" gap="6" style="flex: 1">
-								<Text size="12" weight="600" color="tertiary">Savings</Text>
+								<Flex align="center" gap="4">
+									<Icon name="coins" size="12" color="green" />
+									<Text size="12" weight="600" color="tertiary">Savings</Text>
+								</Flex>
 								<Flex direction="column" gap="4">
 									<Text size="13" weight="600" color="green">{{ formatMonValue(savings, 6) }} MON</Text>
 									<Text v-if="savings && savings !== '0' && convertToUsd(savings)" size="11" weight="600" color="green">
