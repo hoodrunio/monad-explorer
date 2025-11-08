@@ -1,5 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
+import { useStakingTransactions } from '~/composables/useStakingTransactions'
 import { formatEther, parseEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 
@@ -20,6 +21,7 @@ const props = defineProps({
 })
 
 const stakingStore = useStakingStore()
+const stakingTransactions = useStakingTransactions()
 
 // State
 const showStakeModal = ref(false)
@@ -75,50 +77,63 @@ const unstakeAmountError = computed(() => {
 // Actions
 async function handleStake() {
 	if (!stakeAmount.value || stakeAmountError.value) return
-	
-	try {
-		error.value = ''
-		await stakingStore.delegate(props.validator.valId, stakeAmount.value)
-		stakeAmount.value = ''
-		showStakeModal.value = false
-	} catch (err) {
-		error.value = err.message || 'Failed to stake'
-	}
+
+	error.value = ''
+	await stakingTransactions.delegate(
+		props.validator.valId,
+		stakeAmount.value,
+		{
+			onSuccess: () => {
+				stakeAmount.value = ''
+				showStakeModal.value = false
+			},
+			onError: (errorMessage) => {
+				error.value = errorMessage
+			},
+		}
+	)
 }
 
 async function handleUnstake() {
 	if (!unstakeAmount.value || unstakeAmountError.value) return
-	
-	try {
-		error.value = ''
-		await stakingStore.undelegate(props.validator.valId, unstakeAmount.value)
-		unstakeAmount.value = ''
-		showUnstakeModal.value = false
-	} catch (err) {
-		error.value = err.message || 'Failed to unstake'
-	}
+
+	error.value = ''
+	const success = await stakingTransactions.undelegate(
+		props.validator.valId,
+		unstakeAmount.value,
+		0,
+		{
+			onSuccess: () => {
+				unstakeAmount.value = ''
+				showUnstakeModal.value = false
+			},
+			onError: (errorMessage) => {
+				error.value = errorMessage
+			},
+		}
+	)
 }
 
 async function handleCompound() {
 	if (!props.delegation || !hasRewards.value) return
-	
-	try {
-		error.value = ''
-		await stakingStore.compound(props.validator.valId)
-	} catch (err) {
-		error.value = err.message || 'Failed to compound rewards'
-	}
+
+	error.value = ''
+	await stakingTransactions.compound(props.validator.valId, {
+		onError: (errorMessage) => {
+			error.value = errorMessage
+		},
+	})
 }
 
 async function handleClaimRewards() {
 	if (!props.delegation || !hasRewards.value) return
-	
-	try {
-		error.value = ''
-		await stakingStore.claimRewards(props.validator.valId)
-	} catch (err) {
-		error.value = err.message || 'Failed to claim rewards'
-	}
+
+	error.value = ''
+	await stakingTransactions.claimRewards(props.validator.valId, {
+		onError: (errorMessage) => {
+			error.value = errorMessage
+		},
+	})
 }
 
 function setMaxStake() {

@@ -1,33 +1,29 @@
 <script setup>
-// Use the new RainbowKit-style connect button
-import RainbowConnectButton from '@/components/RainbowConnectButton.vue'
+// Wallet connection component using AppKit
+import WalletModal from '@/components/WalletModal.vue'
 
-// Props for customization (RainbowKit compatible)
+// Props for customization (simplified for AppKit)
 const props = defineProps({
 	label: {
 		type: String,
 		default: 'Connect Wallet'
 	},
-	accountStatus: {
-		type: [String, Object],
-		default: 'full'
-	},
-	chainStatus: {
-		type: [String, Object],
-		default: () => ({ smallScreen: 'icon', largeScreen: 'full' })
-	},
 	showBalance: {
 		type: [Boolean, Object],
 		default: () => ({ smallScreen: false, largeScreen: true })
+	},
+	size: {
+		type: String,
+		default: 'md',
+		validator: (value) => ['md', 'sm'].includes(value)
 	}
 })
 </script>
 
 <template>
-	<RainbowConnectButton 
+	<WalletModal
 		:label="label"
-		:account-status="accountStatus"
-		:chain-status="chainStatus"
 		:show-balance="showBalance"
+		:size="size"
 	/>
 </template>

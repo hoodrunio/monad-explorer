@@ -6,6 +6,7 @@ import { abbreviate } from '~/services/utils/amounts'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
+import NetworkGuard from '@/components/staking/NetworkGuard.vue'
 import ValidatorList from '@/components/staking/ValidatorList.vue'
 import StakeModal from '@/components/staking/StakeModal.vue'
 import ManageModal from '@/components/staking/ManageModal.vue'
@@ -319,6 +320,9 @@ watch(userDelegations, async (newDelegations) => {
 
 				<!-- Connected State -->
 				<template v-else>
+					<!-- Network Guard - Show warning if on wrong network -->
+					<NetworkGuard />
+
 					<!-- User Info Section -->
 					<Flex direction="column" gap="16">
 						<Flex align="center" justify="between" wide :class="$style.user_section">
