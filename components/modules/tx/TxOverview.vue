@@ -18,6 +18,7 @@ import { comma, shortHex } from "@/services/utils"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
+import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
 
 // API imports removed - using data directly from tx prop
 
@@ -39,6 +40,9 @@ const props = defineProps({
 
 const preselectedTab = route.query.tab && ["transfers", "internal", "logs"].includes(route.query.tab) ? route.query.tab : "transfers"
 const activeTab = ref(preselectedTab)
+
+// USD Conversion
+const { convertToUsd } = useMonUsdConverter()
 
 // Use data directly from tx prop since API already includes everything
 const tokenTransfers = computed(() => props.tx?.tokenTransfers || props.tx?.token_transfers || [])
@@ -263,7 +267,12 @@ const handleDecodeInput = () => {
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">Value</Text>
-						<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.value, 18) }} MON</Text>
+						<Flex direction="column" gap="4">
+							<Text size="13" weight="600" color="primary">{{ formatMonValue(tx.value, 18) }} MON</Text>
+							<Text v-if="tx.value && tx.value !== '0' && convertToUsd(tx.value)" size="11" weight="600" color="green">
+								{{ convertToUsd(tx.value) }}
+							</Text>
+						</Flex>
 					</Flex>
 
 					<Flex v-if="tx?.gasUsed && tx?.gas" direction="column" gap="10">
