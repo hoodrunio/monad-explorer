@@ -204,3 +204,8 @@ export function hexToRgba(hex, alpha = 255) {
 
 	return `rgba(${r}, ${g}, ${b}, ${a})`
 }
+
+export const truncateName = (name, maxLength = 20) => {
+	if (!name || name.length <= maxLength) return name
+	return name.substring(0, maxLength) + "..."
+}

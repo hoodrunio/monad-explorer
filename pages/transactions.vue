@@ -3,7 +3,7 @@
 import { DateTime } from "luxon"
 
 /** Services */
-import { comma, shortHex, getTransactionDisplayInfo } from "@/services/utils"
+import { comma, shortHex, getTransactionDisplayInfo, truncateName } from "@/services/utils"
 
 /** API */
 import { fetchTransactions, fetchAdvancedFilters } from "@/services/api/tx"
@@ -356,12 +356,15 @@ useHead({
 										<NuxtLink :to="`/address/${tx.from?.hash}`">
 											<Tooltip v-if="tx.from?.name" position="start" delay="500">
 												<Flex align="center">
-													<Text size="12" weight="600" color="primary">
-														{{ tx.from.name }}
-													</Text>
+													<div :class="$style.address_label">
+														<Text size="11" weight="600" color="primary">
+															{{ truncateName(tx.from.name) }}
+														</Text>
+													</div>
 												</Flex>
 												<template #content>
-													{{ tx.from.hash }}
+													<div>{{ tx.from.name }}</div>
+													<div>{{ tx.from.hash }}</div>
 												</template>
 											</Tooltip>
 											<Flex v-else align="center">
@@ -375,12 +378,15 @@ useHead({
 										<NuxtLink :to="`/address/${tx.to?.hash}`" v-if="tx.to">
 											<Tooltip v-if="tx.to?.name" position="start" delay="500">
 												<Flex align="center">
-													<Text size="12" weight="600" color="primary">
-														{{ tx.to.name }}
-													</Text>
+													<div :class="$style.address_label">
+														<Text size="11" weight="600" color="primary">
+															{{ truncateName(tx.to.name) }}
+														</Text>
+													</div>
 												</Flex>
 												<template #content>
-													{{ tx.to.hash }}
+													<div>{{ tx.to.name }}</div>
+													<div>{{ tx.to.hash }}</div>
 												</template>
 											</Tooltip>
 											<Flex v-else align="center">
@@ -730,5 +736,25 @@ useHead({
 	border-radius: 12px;
 	background: var(--op-5);
 	border: 1px solid var(--op-8);
+}
+
+/* Address Label (for named addresses) */
+.address_label {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	border-radius: 6px;
+	background: rgba(59, 130, 246, 0.08);
+	border: 1px solid rgba(59, 130, 246, 0.2);
+	transition: all 0.2s ease;
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.address_label:hover {
+	background: rgba(59, 130, 246, 0.12);
+	border-color: rgba(59, 130, 246, 0.3);
 }
 </style>
