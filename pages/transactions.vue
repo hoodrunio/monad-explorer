@@ -19,6 +19,7 @@ import MethodChip from "@/components/ui/MethodChip.vue"
 import FilterChipsBar from "@/components/FilterChipsBar.vue"
 import BackgroundPattern from "@/components/BackgroundPattern.vue"
 import AdvancedFilterModal from "@/components/AdvancedFilterModal.vue"
+import CopyButton from "@/components/CopyButton.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -300,6 +301,7 @@ useHead({
 														</Text>
 													</Flex>
 												</Outline>
+												<CopyButton :text="tx.hash" size="10" />
 											</Flex>
 										</NuxtLink>
 										<div :class="$style.hover_arrow">→</div>
@@ -430,11 +432,12 @@ useHead({
 								<Flex direction="column" gap="16">
 									<!-- Header -->
 									<Flex align="center" justify="between">
-										<Flex align="center" gap="8">
+										<Flex align="center" gap="6">
 											<Icon name="zap" size="14" color="primary" />
 											<Text size="13" weight="600" color="primary">
 												{{ shortHex(tx.hash) }}
 											</Text>
+											<CopyButton :text="tx.hash" size="10" />
 										</Flex>
 										<Badge :color="tx.status === 'ok' ? 'green' : 'red'" size="mini">
 											{{ tx.status === 'ok' ? 'Success' : 'Failed' }}

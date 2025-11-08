@@ -11,6 +11,8 @@ import { fetchBlocks } from "@/services/api/block"
 /** Components */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import Button from "@/components/ui/Button.vue"
+import GasBar from "@/components/GasBar.vue"
+import CopyButton from "@/components/CopyButton.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -182,7 +184,7 @@ useHead({
 								<tr v-for="block in blocks" :key="block.hash || block.height">
 									<td>
 										<NuxtLink :to="`/block/${block.height}`">
-											<Flex align="center">
+											<Flex align="center" gap="6">
 												<Outline>
 													<Flex align="center" gap="4">
 														<Icon name="block" size="12" color="primary" />
@@ -191,6 +193,7 @@ useHead({
 														</Text>
 													</Flex>
 												</Outline>
+												<CopyButton :text="block.height.toString()" size="10" />
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -222,13 +225,16 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/block/${block.height}`">
-											<Flex align="center" gap="2">
-												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.gas_used) }}
-												</Text>
-												<Text size="11" weight="600" color="tertiary">
-													({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
-												</Text>
+											<Flex direction="column" gap="6">
+												<Flex align="center" gap="2">
+													<Text size="12" weight="600" color="primary">
+														{{ formatGasValue(block.gas_used) }}
+													</Text>
+													<Text size="11" weight="600" color="tertiary">
+														({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
+													</Text>
+												</Flex>
+												<GasBar :percent="getGasUsagePercent(block.gas_used, block.gas_limit)" />
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -271,11 +277,12 @@ useHead({
 								<Flex direction="column" gap="16">
 									<!-- Header with block number and timestamp -->
 									<Flex align="center" justify="between">
-										<Flex align="center" gap="8">
+										<Flex align="center" gap="6">
 											<Icon name="block" size="14" color="primary" />
 											<Text size="13" weight="600" color="primary">
 												Block {{ comma(block.height) }}
 											</Text>
+											<CopyButton :text="block.height.toString()" size="10" />
 										</Flex>
 										<ClientOnlyTime fallback-text="..." fallback-size="12" fallback-color="tertiary">
 											<Text size="12" weight="600" color="tertiary">
@@ -292,16 +299,19 @@ useHead({
 												{{ comma(block.transactions_count || block.tx_count || 0) }}
 											</Text>
 										</Flex>
-										<Flex align="center" justify="between">
-											<Text size="12" weight="600" color="tertiary">Gas Used</Text>
-											<Flex align="center" gap="4">
-												<Text size="12" weight="600" color="primary">
-													{{ formatGasValue(block.gas_used) }}
-												</Text>
-												<Text size="11" weight="600" color="tertiary">
-													({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
-												</Text>
+										<Flex direction="column" gap="6">
+											<Flex align="center" justify="between">
+												<Text size="12" weight="600" color="tertiary">Gas Used</Text>
+												<Flex align="center" gap="4">
+													<Text size="12" weight="600" color="primary">
+														{{ formatGasValue(block.gas_used) }}
+													</Text>
+													<Text size="11" weight="600" color="tertiary">
+														({{ getGasUsagePercent(block.gas_used, block.gas_limit).toFixed(1) }}%)
+													</Text>
+												</Flex>
 											</Flex>
+											<GasBar :percent="getGasUsagePercent(block.gas_used, block.gas_limit)" />
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Size</Text>
