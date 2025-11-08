@@ -12,6 +12,7 @@ import Events from "@/components/shared/tables/Events.vue"
 /** Shared Components */
 import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
+import TokenFlow from "@/components/modules/tx/TokenFlow.vue"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
@@ -450,26 +451,38 @@ const handleDecodeInput = () => {
 				</Flex>
 
 				<Flex v-if="activeTab === 'transfers'" :class="$style.inner">
-					<Flex v-if="tokenTransfers.length" direction="column" gap="12" :class="$style.content_padding">
-						<div v-for="transfer in tokenTransfers" :class="$style.transfer_item">
-							<Flex align="center" justify="between" wide>
-								<Flex direction="column" gap="4">
-									<Text size="12" weight="600" color="secondary">{{ transfer.token?.type || 'Token' }} Transfer</Text>
-									<Flex align="center" gap="8">
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.from?.hash || transfer.from) }}</Text>
-										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.to?.hash || transfer.to) }}</Text>
-									</Flex>
-								</Flex>
-								<Flex direction="column" gap="4" align="end">
-									<Flex align="center" gap="4">
-										<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.total?.value || transfer.value, 6) }}</Text>
-										<Text size="13" weight="600" color="brand">{{ transfer.token?.symbol }}</Text>
-									</Flex>
-									<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.token?.address_hash) }}</Text>
-								</Flex>
+					<Flex v-if="tokenTransfers.length" direction="column" gap="16" :class="$style.content_padding">
+						<!-- Sankey Flow Visualization -->
+						<TokenFlow :transfers="tokenTransfers" />
+
+						<!-- Detailed Transfer List -->
+						<Flex direction="column" gap="8">
+							<Flex align="center" gap="6">
+								<Icon name="list" size="12" color="tertiary" />
+								<Text size="12" weight="600" color="secondary">Transfer Details</Text>
 							</Flex>
-						</div>
+							<Flex direction="column" gap="12">
+								<div v-for="transfer in tokenTransfers" :key="transfer.log_index || transfer.transaction_hash" :class="$style.transfer_item">
+									<Flex align="center" justify="between" wide>
+										<Flex direction="column" gap="4">
+											<Text size="12" weight="600" color="secondary">{{ transfer.token?.type || 'Token' }} Transfer</Text>
+											<Flex align="center" gap="8">
+												<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.from?.hash || transfer.from) }}</Text>
+												<Icon name="arrow-narrow-right" size="12" color="tertiary" />
+												<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.to?.hash || transfer.to) }}</Text>
+											</Flex>
+										</Flex>
+										<Flex direction="column" gap="4" align="end">
+											<Flex align="center" gap="4">
+												<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.total?.value || transfer.value, 6) }}</Text>
+												<Text size="13" weight="600" color="brand">{{ transfer.token?.symbol }}</Text>
+											</Flex>
+											<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.token?.address_hash) }}</Text>
+										</Flex>
+									</Flex>
+								</div>
+							</Flex>
+						</Flex>
 					</Flex>
 					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
 						<Icon name="coins" size="24" color="support" />
