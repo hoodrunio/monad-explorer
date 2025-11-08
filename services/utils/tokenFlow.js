@@ -10,35 +10,9 @@
  * @returns {object} - Color object with base, light, and gradient
  */
 export function getColorFromHash(hash, tokenType = 'ERC-20') {
-	if (!hash) {
-		return getDefaultColorForTokenType(tokenType)
-	}
-
-	// Use hash to generate a consistent color
-	let hashNum = 0
-	for (let i = 0; i < Math.min(hash.length, 10); i++) {
-		hashNum += hash.charCodeAt(i)
-	}
-
-	// Base hue on token type for consistency
-	const typeHueOffset = {
-		'ERC-20': 0,
-		'ERC-721': 120,
-		'ERC-1155': 240,
-	}
-
-	const baseHue = (hashNum % 360 + (typeHueOffset[tokenType] || 0)) % 360
-	const saturation = 65 + (hashNum % 20)
-	const lightness = 55 + (hashNum % 15)
-
-	return {
-		base: `hsl(${baseHue}, ${saturation}%, ${lightness}%)`,
-		light: `hsl(${baseHue}, ${saturation}%, ${lightness + 15}%)`,
-		gradient: `linear-gradient(135deg, hsl(${baseHue}, ${saturation}%, ${lightness}%), hsl(${(baseHue + 30) % 360}, ${saturation}%, ${lightness + 10}%))`,
-		hue: baseHue,
-		saturation,
-		lightness,
-	}
+	// Always use the default color for each token type to match legend
+	// This ensures visual consistency
+	return getDefaultColorForTokenType(tokenType)
 }
 
 /**
@@ -46,9 +20,30 @@ export function getColorFromHash(hash, tokenType = 'ERC-20') {
  */
 function getDefaultColorForTokenType(tokenType) {
 	const palettes = {
-		'ERC-20': { base: '#18d2a5', light: '#4de0b8', gradient: 'linear-gradient(135deg, #18d2a5, #4de0b8)' },
-		'ERC-721': { base: '#8b5cf6', light: '#a78bfa', gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' },
-		'ERC-1155': { base: '#f59e0b', light: '#fbbf24', gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+		'ERC-20': {
+			base: '#18d2a5',
+			light: '#4de0b8',
+			gradient: 'linear-gradient(135deg, #18d2a5, #4de0b8)',
+			hue: 167,
+			saturation: 79,
+			lightness: 46
+		},
+		'ERC-721': {
+			base: '#8b5cf6',
+			light: '#a78bfa',
+			gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+			hue: 258,
+			saturation: 90,
+			lightness: 66
+		},
+		'ERC-1155': {
+			base: '#f59e0b',
+			light: '#fbbf24',
+			gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+			hue: 38,
+			saturation: 92,
+			lightness: 50
+		},
 	}
 	return palettes[tokenType] || palettes['ERC-20']
 }

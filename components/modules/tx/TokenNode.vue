@@ -104,7 +104,8 @@ const outCount = props.node.transfers.filter(t => t.direction === 'out').length
 	box-shadow: 0 0 16px rgba(24, 210, 165, 0.3);
 	background: linear-gradient(135deg, var(--card-background), rgba(24, 210, 165, 0.05));
 	transform: translateY(-2px);
-	z-index: 10;
+	position: relative;
+	z-index: 1000;
 }
 
 .node_icon {

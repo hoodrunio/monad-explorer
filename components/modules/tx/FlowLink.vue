@@ -22,9 +22,31 @@ const emit = defineEmits(['hover', 'unhover'])
 
 const isHovered = ref(false)
 
+// Format amount for display
+const formattedAmount = computed(() => {
+	const decimals = props.link.transfer.token?.decimals || 18
+	return formatTokenAmount(props.link.transfer.total?.value || props.link.transfer.value, decimals, 4)
+})
+
 const handleMouseEnter = () => {
 	isHovered.value = true
-	emit('hover', props.link)
+	// Emit link data with tooltip info
+	const sourceNode = props.nodeMap.get(props.link.source)
+	const targetNode = props.nodeMap.get(props.link.target)
+
+	// Calculate connection points (where the path actually connects)
+	const sourceX = sourceNode.x + 200 // Right edge of source node
+	const sourceY = sourceNode.y + sourceNode.height / 2 // Middle of source node
+	const targetX = targetNode.x // Left edge of target node
+	const targetY = targetNode.y + targetNode.height / 2 // Middle of target node
+
+	// Tooltip at the midpoint of the actual path
+	emit('hover', {
+		...props.link,
+		tooltipX: (sourceX + targetX) / 2,
+		tooltipY: (sourceY + targetY) / 2,
+		formattedAmount: formattedAmount.value
+	})
 }
 
 const handleMouseLeave = () => {
@@ -42,12 +64,6 @@ const strokeWidth = computed(() => {
 	// Logarithmic scale for better visualization
 	const logValue = Math.log10(parseFloat(props.link.value) + 1)
 	return Math.min(baseWidth + logValue * 2, maxWidth)
-})
-
-// Format amount for display
-const formattedAmount = computed(() => {
-	const decimals = props.link.transfer.token?.decimals || 18
-	return formatTokenAmount(props.link.transfer.total?.value || props.link.transfer.value, decimals, 4)
 })
 </script>
 
@@ -95,36 +111,6 @@ const formattedAmount = computed(() => {
 			fill="none"
 			stroke="transparent"
 		/>
-
-		<!-- Tooltip on hover -->
-		<foreignObject
-			v-if="isHovered"
-			:x="(nodeMap.get(link.source).x + nodeMap.get(link.target).x) / 2 - 80"
-			:y="(nodeMap.get(link.source).y + nodeMap.get(link.target).y) / 2 - 40"
-			width="160"
-			height="80"
-			:class="$style.tooltip"
-		>
-			<div :class="$style.tooltip_content">
-				<Flex direction="column" gap="6" align="center">
-					<Flex align="center" gap="4">
-						<div
-							:class="$style.token_indicator"
-							:style="{ background: link.color.gradient }"
-						/>
-						<Text size="11" weight="600" color="primary">
-							{{ link.token.symbol }}
-						</Text>
-					</Flex>
-					<Text size="12" weight="700" color="brand">
-						{{ formattedAmount }}
-					</Text>
-					<Text size="10" weight="600" color="tertiary">
-						{{ link.token.type || 'Token' }}
-					</Text>
-				</Flex>
-			</div>
-		</foreignObject>
 	</g>
 </template>
 
@@ -164,27 +150,6 @@ const formattedAmount = computed(() => {
 	cursor: pointer;
 }
 
-.tooltip {
-	pointer-events: none;
-	z-index: 100;
-}
-
-.tooltip_content {
-	background: var(--card-background);
-	border: 2px solid var(--brand);
-	border-radius: 8px;
-	padding: 10px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 16px rgba(24, 210, 165, 0.2);
-	animation: tooltipFadeIn 0.2s ease;
-}
-
-.token_indicator {
-	width: 12px;
-	height: 12px;
-	border-radius: 50%;
-	box-shadow: 0 0 6px rgba(24, 210, 165, 0.4);
-}
-
 @keyframes flow {
 	from {
 		stroke-dashoffset: 40;
@@ -200,17 +165,6 @@ const formattedAmount = computed(() => {
 	}
 	50% {
 		opacity: 0.4;
-	}
-}
-
-@keyframes tooltipFadeIn {
-	from {
-		opacity: 0;
-		transform: scale(0.9);
-	}
-	to {
-		opacity: 1;
-		transform: scale(1);
 	}
 }
 </style>

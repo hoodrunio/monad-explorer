@@ -78,7 +78,12 @@ const viewBox = computed(() => {
 			:class="$style.svg"
 			preserveAspectRatio="xMidYMid meet"
 		>
-			<!-- Render links first (so they appear behind nodes) -->
+			<!-- Define layers -->
+			<defs>
+				<!-- Optional: Add gradient definitions here if needed -->
+			</defs>
+
+			<!-- Layer 1: Render links (bottom layer) -->
 			<g :class="$style.links">
 				<FlowLink
 					v-for="link in layout.links"
@@ -91,15 +96,16 @@ const viewBox = computed(() => {
 				/>
 			</g>
 
-			<!-- Render nodes -->
+			<!-- Layer 2: Render non-hovered nodes -->
 			<g :class="$style.nodes">
 				<foreignObject
 					v-for="node in layout.nodes"
-					:key="node.id"
+					:key="`node-${node.id}`"
 					:x="node.x"
 					:y="node.y"
 					width="200"
 					:height="node.height"
+					:style="{ zIndex: (hoveredNode?.id === node.id || isNodeHighlighted(node)) ? 1000 : 1 }"
 				>
 					<TokenNode
 						:node="node"
@@ -107,6 +113,44 @@ const viewBox = computed(() => {
 						@hover="handleNodeHover"
 						@unhover="handleNodeUnhover"
 					/>
+				</foreignObject>
+			</g>
+
+			<!-- Layer 3: Render tooltip on top (if any link is hovered) -->
+			<g v-if="hoveredLink" :class="$style.tooltip_layer">
+				<!-- Tooltip arrow pointer -->
+				<path
+					:d="`M ${hoveredLink.tooltipX} ${hoveredLink.tooltipY - 20} L ${hoveredLink.tooltipX - 6} ${hoveredLink.tooltipY - 28} L ${hoveredLink.tooltipX + 6} ${hoveredLink.tooltipY - 28} Z`"
+					fill="var(--brand)"
+					opacity="0.9"
+				/>
+
+				<foreignObject
+					:x="hoveredLink.tooltipX - 80"
+					:y="hoveredLink.tooltipY - 100"
+					width="160"
+					height="72"
+					style="pointer-events: none; overflow: visible;"
+				>
+					<div :class="$style.tooltip_content">
+						<Flex direction="column" gap="6" align="center">
+							<Flex align="center" gap="4">
+								<div
+									:class="$style.token_indicator"
+									:style="{ background: hoveredLink.color.gradient }"
+								/>
+								<Text size="11" weight="600" color="primary">
+									{{ hoveredLink.token.symbol }}
+								</Text>
+							</Flex>
+							<Text size="13" weight="700" color="brand">
+								{{ hoveredLink.formattedAmount }}
+							</Text>
+							<Text size="10" weight="600" color="tertiary">
+								{{ hoveredLink.token.type || 'Token' }}
+							</Text>
+						</Flex>
+					</div>
 				</foreignObject>
 			</g>
 		</svg>
@@ -162,6 +206,42 @@ const viewBox = computed(() => {
 
 .nodes {
 	/* Nodes render above links */
+}
+
+.hovered_node_layer {
+	/* Reserved for future use */
+}
+
+.tooltip_layer {
+	/* Tooltip renders on top of everything */
+	pointer-events: none;
+}
+
+.tooltip_content {
+	background: var(--card-background);
+	border: 2px solid var(--brand);
+	border-radius: 8px;
+	padding: 10px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(24, 210, 165, 0.4);
+	animation: tooltipFadeIn 0.2s ease;
+}
+
+.token_indicator {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	box-shadow: 0 0 6px rgba(24, 210, 165, 0.4);
+}
+
+@keyframes tooltipFadeIn {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 
 .legend {
