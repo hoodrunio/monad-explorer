@@ -3,13 +3,12 @@
 import { DateTime } from "luxon"
 
 /** Services */
-import { comma, shortHex } from "@/services/utils"
+import { comma, shortHex, getTransactionDisplayInfo } from "@/services/utils"
 
 /** API */
 import { fetchTransactions, fetchAdvancedFilters } from "@/services/api/tx"
 
 /** Composables */
-import { useTransactionMethods } from "@/composables/useTransactionMethods"
 import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
 import { useAdvancedFilters } from "@/composables/useAdvancedFilters"
 
@@ -30,12 +29,8 @@ const previousPages = ref([])
 const isLoading = ref(false)
 const hasMore = computed(() => nextPageParams.value !== null)
 
-// Transaction method information
-const { batchGetMethodInfo } = useTransactionMethods()
-const methodInfoMap = ref(new Map())
-
 // USD Conversion
-const { convertToUsd, isPriceAvailable } = useMonUsdConverter()
+const { convertToUsd } = useMonUsdConverter()
 
 // Advanced Filters
 const {
@@ -90,22 +85,6 @@ const formatMonValue = (value) => {
 	return monValue.toFixed(4)
 }
 
-const getTransactionType = (tx) => {
-	if (tx.method === "createContract") return "Contract Creation"
-	if (tx.to?.is_contract) return "Contract Call"
-	if (tx.to && tx.value !== "0") return "Mon Transfer"
-	if (tx.to) return "Transfer"
-	return "Unknown"
-}
-
-// Get enhanced method name for a transaction
-const getEnhancedMethodName = (tx) => {
-	if (!tx.method) return null
-
-	const methodInfo = methodInfoMap.value.get(tx.method)
-	return methodInfo?.methodName || tx.method || null
-}
-
 const loadTransactions = async (paginationParams = null) => {
 	isLoading.value = true
 
@@ -123,24 +102,12 @@ const loadTransactions = async (paginationParams = null) => {
 				console.error("Error fetching filtered transactions:", error.value)
 				transactions.value = []
 				nextPageParams.value = null
-				methodInfoMap.value.clear()
 			} else if (data.value) {
 				transactions.value = data.value.items || []
 				nextPageParams.value = data.value.next_page_params || null
-
-				// Fetch method information for all transactions
-				if (transactions.value.length > 0) {
-					try {
-						const methodInfo = await batchGetMethodInfo(transactions.value)
-						methodInfoMap.value = methodInfo
-					} catch (methodError) {
-						console.warn('Failed to fetch method information:', methodError)
-					}
-				}
 			} else {
 				transactions.value = []
 				nextPageParams.value = null
-				methodInfoMap.value.clear()
 			}
 		} else {
 			// No filters - use regular transaction endpoint
@@ -152,31 +119,18 @@ const loadTransactions = async (paginationParams = null) => {
 				console.error("Error fetching transactions:", error.value)
 				transactions.value = []
 				nextPageParams.value = null
-				methodInfoMap.value.clear()
 			} else if (data.value) {
 				transactions.value = data.value.items || []
 				nextPageParams.value = data.value.next_page_params || null
-
-				// Fetch method information for all transactions
-				if (transactions.value.length > 0) {
-					try {
-						const methodInfo = await batchGetMethodInfo(transactions.value)
-						methodInfoMap.value = methodInfo
-					} catch (methodError) {
-						console.warn('Failed to fetch method information:', methodError)
-					}
-				}
 			} else {
 				transactions.value = []
 				nextPageParams.value = null
-				methodInfoMap.value.clear()
 			}
 		}
 	} catch (error) {
 		console.error("Failed to load transactions:", error)
 		transactions.value = []
 		nextPageParams.value = null
-		methodInfoMap.value.clear()
 	} finally {
 		isLoading.value = false
 	}
@@ -352,8 +306,23 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/tx/${tx.hash}`">
-											<Flex align="center">
-												<MethodChip :method="getEnhancedMethodName(tx) || tx.method || 'Transfer'" />
+											<Tooltip v-if="getTransactionDisplayInfo(tx).hasMultiple" position="start" delay="300">
+												<Flex align="center" gap="4">
+													<MethodChip :method="getTransactionDisplayInfo(tx).display" />
+													<div :class="$style.type_badge">
+														<Text size="10" weight="600" color="tertiary">+{{ getTransactionDisplayInfo(tx).additionalCount }}</Text>
+													</div>
+												</Flex>
+												<template #content>
+													<Flex direction="column" gap="4">
+														<Text v-for="type in getTransactionDisplayInfo(tx).allTypes" :key="type" size="11" weight="600" color="primary">
+															{{ type }}
+														</Text>
+													</Flex>
+												</template>
+											</Tooltip>
+											<Flex v-else align="center">
+												<MethodChip :method="getTransactionDisplayInfo(tx).display" />
 											</Flex>
 										</NuxtLink>
 									</td>
@@ -385,7 +354,17 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/address/${tx.from?.hash}`">
-											<Flex align="center">
+											<Tooltip v-if="tx.from?.name" position="start" delay="500">
+												<Flex align="center">
+													<Text size="12" weight="600" color="primary">
+														{{ tx.from.name }}
+													</Text>
+												</Flex>
+												<template #content>
+													{{ tx.from.hash }}
+												</template>
+											</Tooltip>
+											<Flex v-else align="center">
 												<Text size="12" weight="600" color="primary">
 													{{ shortHex(tx.from?.hash) }}
 												</Text>
@@ -394,7 +373,17 @@ useHead({
 									</td>
 									<td>
 										<NuxtLink :to="`/address/${tx.to?.hash}`" v-if="tx.to">
-											<Flex align="center">
+											<Tooltip v-if="tx.to?.name" position="start" delay="500">
+												<Flex align="center">
+													<Text size="12" weight="600" color="primary">
+														{{ tx.to.name }}
+													</Text>
+												</Flex>
+												<template #content>
+													{{ tx.to.hash }}
+												</template>
+											</Tooltip>
+											<Flex v-else align="center">
 												<Text size="12" weight="600" color="primary">
 													{{ shortHex(tx.to.hash) }}
 												</Text>
@@ -456,9 +445,14 @@ useHead({
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Method</Text>
-											<Text size="12" weight="600" color="primary">
-												{{ getEnhancedMethodName(tx) || tx.method || 'Transfer' }}
-											</Text>
+											<Flex align="center" gap="4">
+												<Text size="12" weight="600" color="primary">
+													{{ getTransactionDisplayInfo(tx).display }}
+												</Text>
+												<Text v-if="getTransactionDisplayInfo(tx).hasMultiple" size="10" weight="600" color="tertiary">
+													+{{ getTransactionDisplayInfo(tx).additionalCount }}
+												</Text>
+											</Flex>
 										</Flex>
 										<Flex align="center" justify="between">
 											<Text size="12" weight="600" color="tertiary">Value</Text>
@@ -726,5 +720,15 @@ useHead({
 .usd_value {
 	opacity: 0.65;
 	line-height: 1;
+}
+
+/* Transaction Type Badge */
+.type_badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 6px;
+	border-radius: 12px;
+	background: var(--op-5);
+	border: 1px solid var(--op-8);
 }
 </style>

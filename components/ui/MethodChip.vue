@@ -16,6 +16,23 @@ const props = defineProps({
 const methodIcon = computed(() => {
 	const method = props.method?.toLowerCase() || ""
 
+	// Transaction type specific icons (from transaction_types array)
+	if (method === "coin transfer") {
+		return "coins"
+	}
+
+	if (method === "token transfer") {
+		return "coins"
+	}
+
+	if (method === "contract call") {
+		return "zap"
+	}
+
+	if (method === "contract creation") {
+		return "upload"
+	}
+
 	// Contract creation/deployment
 	if (method.includes("create") || method.includes("deploy")) {
 		return "upload"
