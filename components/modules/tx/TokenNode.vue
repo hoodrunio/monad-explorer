@@ -1,6 +1,7 @@
 <script setup>
 /** Services */
 import { truncateAddress } from "@/services/utils/tokenFlow"
+import { computed } from "vue"
 
 const props = defineProps({
 	node: {
@@ -26,6 +27,68 @@ const handleMouseLeave = () => {
 // Calculate node stats
 const inCount = props.node.transfers.filter(t => t.direction === 'in').length
 const outCount = props.node.transfers.filter(t => t.direction === 'out').length
+
+// Helper function to truncate long names
+const truncateName = (name, maxLength = 18) => {
+	if (!name || name.length <= maxLength) return name
+	return name.slice(0, maxLength - 3) + '...'
+}
+
+// Node type display - prioritize name field, then fallback to generic labels
+const nodeTypeLabel = computed(() => {
+	// 1. First priority: Burn address
+	if (props.node.nodeType === 'burn') {
+		return 'Burn'
+	}
+
+	// 2. Second priority: Verified name from API
+	if (props.node.name) {
+		return truncateName(props.node.name)
+	}
+
+	// 3. Fallback: Generic labels based on node type
+	switch (props.node.nodeType) {
+		case 'intermediary':
+			return 'Intermediary'
+		case 'sender':
+			return 'Sender'
+		case 'receiver':
+			return 'Receiver'
+		default:
+			return 'Address'
+	}
+})
+
+const nodeTypeColor = computed(() => {
+	// Burn always red
+	if (props.node.nodeType === 'burn') {
+		return 'red'
+	}
+
+	// If has verified name, use brand color to highlight it
+	if (props.node.name) {
+		return props.isHovered ? 'brand' : 'primary'
+	}
+
+	// Intermediary without name - orange to show it's in the middle
+	if (props.node.nodeType === 'intermediary') {
+		return 'orange'
+	}
+
+	// Default
+	return props.isHovered ? 'brand' : 'secondary'
+})
+
+const nodeIcon = computed(() => {
+	switch (props.node.nodeType) {
+		case 'burn':
+			return 'burn'
+		case 'intermediary':
+			return 'hash'
+		default:
+			return 'zap'
+	}
+})
 </script>
 
 <template>
@@ -38,14 +101,14 @@ const outCount = props.node.transfers.filter(t => t.direction === 'out').length
 			<!-- Address Header -->
 			<Flex align="center" justify="between" wide>
 				<Flex align="center" gap="6">
-					<div :class="$style.node_icon">
-						<Icon name="zap" size="12" :color="isHovered ? 'brand' : 'secondary'" />
+					<div :class="[$style.node_icon, node.nodeType === 'burn' && $style.burn_icon]">
+						<Icon :name="nodeIcon" size="12" :color="nodeTypeColor" />
 					</div>
-					<Text size="11" weight="600" :color="isHovered ? 'brand' : 'secondary'">
-						{{ outCount > 0 && inCount === 0 ? 'Sender' : inCount > 0 && outCount === 0 ? 'Receiver' : 'Intermediary' }}
+					<Text size="11" weight="600" :color="nodeTypeColor">
+						{{ nodeTypeLabel }}
 					</Text>
 				</Flex>
-				<CopyButton :text="node.address" size="10" />
+				<CopyButton v-if="node.nodeType !== 'burn'" :text="node.address" size="10" />
 			</Flex>
 
 			<!-- Address Display -->
@@ -127,6 +190,17 @@ const outCount = props.node.transfers.filter(t => t.direction === 'out').length
 .node.hovered .node_icon {
 	background: rgba(24, 210, 165, 0.1);
 	border-color: var(--brand);
+}
+
+.burn_icon {
+	background: rgba(239, 68, 68, 0.1) !important;
+	border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.node:hover .burn_icon,
+.node.hovered .burn_icon {
+	background: rgba(239, 68, 68, 0.2) !important;
+	border-color: rgba(239, 68, 68, 0.6) !important;
 }
 
 .address {

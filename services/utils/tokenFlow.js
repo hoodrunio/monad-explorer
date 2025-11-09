@@ -49,6 +49,20 @@ function getDefaultColorForTokenType(tokenType) {
 }
 
 /**
+ * Get burn color palette
+ */
+function getBurnColor() {
+	return {
+		base: '#ef4444',
+		light: '#f87171',
+		gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
+		hue: 0,
+		saturation: 84,
+		lightness: 60
+	}
+}
+
+/**
  * Calculate Sankey layout for token transfers
  * @param {Array} transfers - Array of token transfers
  * @returns {object} - Layout data with nodes and links
@@ -65,6 +79,8 @@ export function calculateSankeyLayout(transfers) {
 	transfers.forEach((transfer, idx) => {
 		const fromAddr = transfer.from?.hash || transfer.from
 		const toAddr = transfer.to?.hash || transfer.to
+		const fromName = transfer.from?.name || null
+		const toName = transfer.to?.name || null
 		const tokenAddr = transfer.token?.address_hash
 		const tokenSymbol = transfer.token?.symbol || 'Token'
 		const tokenType = transfer.token?.type || 'ERC-20'
@@ -75,9 +91,15 @@ export function calculateSankeyLayout(transfers) {
 			addressMap.set(fromAddr, {
 				id: fromAddr,
 				address: fromAddr,
+				name: fromName,
 				type: 'address',
+				nodeType: null, // Will be calculated later
 				transfers: [],
+				isBurn: isBurnAddress(fromAddr),
 			})
+		} else if (fromName && !addressMap.get(fromAddr).name) {
+			// Update name if we didn't have it before
+			addressMap.get(fromAddr).name = fromName
 		}
 		addressMap.get(fromAddr).transfers.push({ direction: 'out', transfer })
 
@@ -86,11 +108,20 @@ export function calculateSankeyLayout(transfers) {
 			addressMap.set(toAddr, {
 				id: toAddr,
 				address: toAddr,
+				name: toName,
 				type: 'address',
+				nodeType: null, // Will be calculated later
 				transfers: [],
+				isBurn: isBurnAddress(toAddr),
 			})
+		} else if (toName && !addressMap.get(toAddr).name) {
+			// Update name if we didn't have it before
+			addressMap.get(toAddr).name = toName
 		}
 		addressMap.get(toAddr).transfers.push({ direction: 'in', transfer })
+
+		// Check if this is a burn transfer
+		const isBurnTransfer = isBurnAddress(toAddr)
 
 		// Create link
 		links.push({
@@ -104,12 +135,18 @@ export function calculateSankeyLayout(transfers) {
 				symbol: tokenSymbol,
 				type: tokenType,
 			},
-			color: getColorFromHash(tokenAddr, tokenType),
+			color: isBurnTransfer ? getBurnColor() : getColorFromHash(tokenAddr, tokenType),
+			isBurn: isBurnTransfer,
 		})
 	})
 
-	// Convert map to array and calculate positions
+	// Convert map to array and calculate node types
 	const nodes = Array.from(addressMap.values())
+
+	// Calculate node types
+	nodes.forEach(node => {
+		node.nodeType = getNodeType(node.address, node.transfers)
+	})
 
 	// Separate nodes into columns (layers)
 	// Column 0: Only senders, Column 1: Only receivers, Column 2: Both
@@ -204,8 +241,8 @@ export function calculateLinkPath(link, nodeMap) {
 
 /**
  * Format token amount with proper decimals
- * @param {string|number} value - Token value
- * @param {number} decimals - Token decimals
+ * @param {string|number} value - Token value (raw, needs to be divided by 10^decimals)
+ * @param {number} decimals - Token decimals (e.g., 6 for USDC, 18 for most tokens)
  * @param {number} displayDecimals - Number of decimals to display
  * @returns {string} - Formatted value
  */
@@ -216,14 +253,20 @@ export function formatTokenAmount(value, decimals = 18, displayDecimals = 4) {
 		const numValue = typeof value === 'string' ? parseFloat(value) : value
 		if (isNaN(numValue)) return '0'
 
-		// If value is already in token units (not wei)
-		if (numValue < 1000000) {
-			return numValue.toFixed(displayDecimals)
+		// Always divide by 10^decimals to convert from raw value to token units
+		// Example: 574748 / 10^6 = 0.574748 USDC
+		const tokenValue = numValue / Math.pow(10, decimals)
+
+		// Format with appropriate decimals
+		// Use more decimals for very small values
+		if (tokenValue < 0.0001 && tokenValue > 0) {
+			return tokenValue.toExponential(2) // Scientific notation for very small values
 		}
 
-		// Convert from wei to token units
-		const tokenValue = numValue / Math.pow(10, decimals)
-		return tokenValue.toFixed(displayDecimals)
+		return tokenValue.toLocaleString('en-US', {
+			minimumFractionDigits: 0,
+			maximumFractionDigits: displayDecimals,
+		})
 	} catch (e) {
 		return '0'
 	}
@@ -240,6 +283,36 @@ export function getTokenIcon(token) {
 }
 
 /**
+ * Check if address is a burn address
+ * @param {string} address - Address to check
+ * @returns {boolean} - True if burn address
+ */
+export function isBurnAddress(address) {
+	if (!address) return false
+	const cleanAddr = address.toLowerCase()
+	// Check for zero address or common burn addresses
+	return cleanAddr === '0x0000000000000000000000000000000000000000' ||
+		cleanAddr === '0x000000000000000000000000000000000000dead'
+}
+
+/**
+ * Get node type based on address and transfers
+ * @param {string} address - Address
+ * @param {Array} transfers - Transfer array
+ * @returns {string} - Node type
+ */
+export function getNodeType(address, transfers) {
+	if (isBurnAddress(address)) return 'burn'
+
+	const hasIn = transfers.some(t => t.direction === 'in')
+	const hasOut = transfers.some(t => t.direction === 'out')
+
+	if (hasIn && hasOut) return 'intermediary'
+	if (hasOut) return 'sender'
+	return 'receiver'
+}
+
+/**
  * Truncate address for display
  * @param {string} address - Full address
  * @param {number} startChars - Characters to show at start
@@ -250,5 +323,11 @@ export function truncateAddress(address, startChars = 6, endChars = 4) {
 	if (!address || address.length <= startChars + endChars) {
 		return address
 	}
+
+	// Special handling for burn address
+	if (isBurnAddress(address)) {
+		return 'Burn Address'
+	}
+
 	return `${address.slice(0, startChars)}...${address.slice(-endChars)}`
 }

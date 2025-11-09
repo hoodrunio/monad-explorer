@@ -24,8 +24,10 @@ const isHovered = ref(false)
 
 // Format amount for display
 const formattedAmount = computed(() => {
-	const decimals = props.link.transfer.token?.decimals || 18
-	return formatTokenAmount(props.link.transfer.total?.value || props.link.transfer.value, decimals, 4)
+	// Priority: total.decimals > token.decimals > default 18
+	const decimals = parseInt(props.link.transfer.total?.decimals || props.link.transfer.token?.decimals || 18)
+	const value = props.link.transfer.total?.value || props.link.transfer.value
+	return formatTokenAmount(value, decimals, 4)
 })
 
 const handleMouseEnter = () => {

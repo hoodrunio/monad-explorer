@@ -3,20 +3,18 @@
 import { DateTime } from "luxon"
 
 /** UI */
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
 import BookmarkButton from "@/components/BookmarkButton.vue"
 import Button from "@/components/ui/Button.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import Events from "@/components/shared/tables/Events.vue"
 
 /** Shared Components */
-import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
-import MessagesTable from "@/components/modules/tx/MessagesTable.vue"
 import TokenFlow from "@/components/modules/tx/TokenFlow.vue"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 import { calculateSavings } from "@/services/utils/amounts"
+import { formatTokenAmount } from "@/services/utils/tokenFlow"
 
 /** Composables */
 import { useTransactionMethods } from "@/composables/useTransactionMethods"
@@ -474,7 +472,13 @@ const handleDecodeInput = () => {
 										</Flex>
 										<Flex direction="column" gap="4" align="end">
 											<Flex align="center" gap="4">
-												<Text size="13" weight="600" color="primary">{{ formatMonValue(transfer.total?.value || transfer.value, 6) }}</Text>
+												<Text size="13" weight="600" color="primary">
+													{{ formatTokenAmount(
+														transfer.total?.value || transfer.value,
+														parseInt(transfer.total?.decimals || transfer.token?.decimals || 18),
+														4
+													) }}
+												</Text>
 												<Text size="13" weight="600" color="brand">{{ transfer.token?.symbol }}</Text>
 											</Flex>
 											<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.token?.address_hash) }}</Text>

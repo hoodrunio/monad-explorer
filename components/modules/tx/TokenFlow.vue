@@ -169,6 +169,11 @@ const viewBox = computed(() => {
 				<div :class="[$style.legend_line, $style.erc1155]" />
 				<Text size="11" weight="600" color="tertiary">ERC-1155</Text>
 			</Flex>
+			<div :class="$style.legend_divider" />
+			<Flex align="center" gap="6">
+				<div :class="[$style.legend_line, $style.burn]" />
+				<Text size="11" weight="600" color="red">Burn</Text>
+			</Flex>
 		</Flex>
 
 		<!-- Info banner -->
@@ -268,6 +273,16 @@ const viewBox = computed(() => {
 
 .legend_line.erc1155 {
 	background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.legend_line.burn {
+	background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.legend_divider {
+	width: 1px;
+	height: 16px;
+	background: var(--op-10);
 }
 
 .info_banner {
