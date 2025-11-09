@@ -339,21 +339,22 @@ export function isBurnAddress(address) {
  * @returns {string} - Node type
  */
 export function getNodeType(address, transfers) {
-	// Check if this is a mint address (all transfers are token_minting type with this as 'to')
-	const isMint = transfers.every(t =>
+	// PRIORITY 1: Address-based detection (most reliable)
+	// Burn address: Always show as "Burn" regardless of transfer type
+	if (isBurnAddress(address)) {
+		return 'burn'
+	}
+
+	// PRIORITY 2: Check if this is a mint receiver
+	// Mint receiver: Gets tokens FROM zero address in minting operation
+	const isMintReceiver = transfers.every(t =>
 		t.direction === 'in' && t.transfer.type === 'token_minting'
 	)
-	if (isMint) return 'mint'
+	if (isMintReceiver) {
+		return 'mint'
+	}
 
-	// Check if this is a burn address (all transfers are token_burning type with this as 'from')
-	const isBurn = transfers.every(t =>
-		t.direction === 'out' && t.transfer.type === 'token_burning'
-	)
-	if (isBurn) return 'burn'
-
-	// Legacy: fallback to address-based detection
-	if (isBurnAddress(address)) return 'burn'
-
+	// PRIORITY 3: Normal address flow patterns
 	const hasIn = transfers.some(t => t.direction === 'in')
 	const hasOut = transfers.some(t => t.direction === 'out')
 
