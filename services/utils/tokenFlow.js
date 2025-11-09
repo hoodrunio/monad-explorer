@@ -63,6 +63,20 @@ function getBurnColor() {
 }
 
 /**
+ * Get mint color palette
+ */
+function getMintColor() {
+	return {
+		base: '#10b981',
+		light: '#34d399',
+		gradient: 'linear-gradient(135deg, #10b981, #34d399)',
+		hue: 142,
+		saturation: 76,
+		lightness: 39
+	}
+}
+
+/**
  * Calculate Sankey layout for token transfers
  * @param {Array} transfers - Array of token transfers
  * @returns {object} - Layout data with nodes and links
@@ -120,8 +134,17 @@ export function calculateSankeyLayout(transfers) {
 		}
 		addressMap.get(toAddr).transfers.push({ direction: 'in', transfer })
 
-		// Check if this is a burn transfer
-		const isBurnTransfer = isBurnAddress(toAddr)
+		// Determine link color based on transfer type
+		let linkColor
+		let transferType = transfer.type
+
+		if (transferType === 'token_burning') {
+			linkColor = getBurnColor()
+		} else if (transferType === 'token_minting') {
+			linkColor = getMintColor()
+		} else {
+			linkColor = getColorFromHash(tokenAddr, tokenType)
+		}
 
 		// Create link
 		links.push({
@@ -135,8 +158,10 @@ export function calculateSankeyLayout(transfers) {
 				symbol: tokenSymbol,
 				type: tokenType,
 			},
-			color: isBurnTransfer ? getBurnColor() : getColorFromHash(tokenAddr, tokenType),
-			isBurn: isBurnTransfer,
+			color: linkColor,
+			transferType: transferType, // 'token_transfer', 'token_burning', 'token_minting'
+			isBurn: transferType === 'token_burning',
+			isMint: transferType === 'token_minting',
 		})
 	})
 
@@ -253,9 +278,21 @@ export function formatTokenAmount(value, decimals = 18, displayDecimals = 4) {
 		const numValue = typeof value === 'string' ? parseFloat(value) : value
 		if (isNaN(numValue)) return '0'
 
+		// Handle null/undefined decimals (common for ERC-721/1155)
+		// If decimals is null, 0, or NaN, treat as NFT/Game Item (no division needed)
+		const actualDecimals = decimals == null || isNaN(decimals) || decimals === 0 ? 0 : parseInt(decimals)
+
+		// If no decimals (NFT/ERC-721/1155), return raw value
+		if (actualDecimals === 0) {
+			return numValue.toLocaleString('en-US', {
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0,
+			})
+		}
+
 		// Always divide by 10^decimals to convert from raw value to token units
 		// Example: 574748 / 10^6 = 0.574748 USDC
-		const tokenValue = numValue / Math.pow(10, decimals)
+		const tokenValue = numValue / Math.pow(10, actualDecimals)
 
 		// Format with appropriate decimals
 		// Use more decimals for very small values
@@ -302,6 +339,19 @@ export function isBurnAddress(address) {
  * @returns {string} - Node type
  */
 export function getNodeType(address, transfers) {
+	// Check if this is a mint address (all transfers are token_minting type with this as 'to')
+	const isMint = transfers.every(t =>
+		t.direction === 'in' && t.transfer.type === 'token_minting'
+	)
+	if (isMint) return 'mint'
+
+	// Check if this is a burn address (all transfers are token_burning type with this as 'from')
+	const isBurn = transfers.every(t =>
+		t.direction === 'out' && t.transfer.type === 'token_burning'
+	)
+	if (isBurn) return 'burn'
+
+	// Legacy: fallback to address-based detection
 	if (isBurnAddress(address)) return 'burn'
 
 	const hasIn = transfers.some(t => t.direction === 'in')

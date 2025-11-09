@@ -140,14 +140,14 @@ const viewBox = computed(() => {
 									:style="{ background: hoveredLink.color.gradient }"
 								/>
 								<Text size="11" weight="600" color="primary">
-									{{ hoveredLink.token.symbol }}
+									{{ hoveredLink.transfer.token?.name || hoveredLink.transfer.token?.symbol || hoveredLink.token.symbol || 'Token' }}
 								</Text>
 							</Flex>
 							<Text size="13" weight="700" color="brand">
 								{{ hoveredLink.formattedAmount }}
 							</Text>
 							<Text size="10" weight="600" color="tertiary">
-								{{ hoveredLink.token.type || 'Token' }}
+								{{ hoveredLink.transfer.token?.type || hoveredLink.token.type || 'Token' }}
 							</Text>
 						</Flex>
 					</div>
@@ -170,6 +170,10 @@ const viewBox = computed(() => {
 				<Text size="11" weight="600" color="tertiary">ERC-1155</Text>
 			</Flex>
 			<div :class="$style.legend_divider" />
+			<Flex align="center" gap="6">
+				<div :class="[$style.legend_line, $style.mint]" />
+				<Text size="11" weight="600" color="green">Mint</Text>
+			</Flex>
 			<Flex align="center" gap="6">
 				<div :class="[$style.legend_line, $style.burn]" />
 				<Text size="11" weight="600" color="red">Burn</Text>
@@ -273,6 +277,10 @@ const viewBox = computed(() => {
 
 .legend_line.erc1155 {
 	background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.legend_line.mint {
+	background: linear-gradient(90deg, #10b981, #34d399);
 }
 
 .legend_line.burn {

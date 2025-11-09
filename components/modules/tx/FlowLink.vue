@@ -24,8 +24,27 @@ const isHovered = ref(false)
 
 // Format amount for display
 const formattedAmount = computed(() => {
-	// Priority: total.decimals > token.decimals > default 18
-	const decimals = parseInt(props.link.transfer.total?.decimals || props.link.transfer.token?.decimals || 18)
+	// Priority: total.decimals > token.decimals
+	// For ERC-721/1155, decimals might be null or undefined
+	let decimals = null
+
+	// Check total.decimals first
+	if (props.link.transfer.total?.decimals != null) {
+		decimals = parseInt(props.link.transfer.total.decimals)
+	}
+	// Then check token.decimals
+	else if (props.link.transfer.token?.decimals != null) {
+		decimals = parseInt(props.link.transfer.token.decimals)
+	}
+	// If still null, check if it's an NFT type (ERC-721/1155)
+	else if (props.link.transfer.token?.type === 'ERC-721' || props.link.transfer.token?.type === 'ERC-1155') {
+		decimals = 0  // NFTs have no decimals
+	}
+	// Last resort: default to 18 (standard ERC-20)
+	else {
+		decimals = 18
+	}
+
 	const value = props.link.transfer.total?.value || props.link.transfer.value
 	return formatTokenAmount(value, decimals, 4)
 })

@@ -36,9 +36,12 @@ const truncateName = (name, maxLength = 18) => {
 
 // Node type display - prioritize name field, then fallback to generic labels
 const nodeTypeLabel = computed(() => {
-	// 1. First priority: Burn address
+	// 1. First priority: Special types (burn/mint)
 	if (props.node.nodeType === 'burn') {
 		return 'Burn'
+	}
+	if (props.node.nodeType === 'mint') {
+		return 'Mint'
 	}
 
 	// 2. Second priority: Verified name from API
@@ -65,6 +68,11 @@ const nodeTypeColor = computed(() => {
 		return 'red'
 	}
 
+	// Mint always green
+	if (props.node.nodeType === 'mint') {
+		return 'green'
+	}
+
 	// If has verified name, use brand color to highlight it
 	if (props.node.name) {
 		return props.isHovered ? 'brand' : 'primary'
@@ -83,6 +91,8 @@ const nodeIcon = computed(() => {
 	switch (props.node.nodeType) {
 		case 'burn':
 			return 'burn'
+		case 'mint':
+			return 'plus'
 		case 'intermediary':
 			return 'hash'
 		default:
@@ -101,14 +111,18 @@ const nodeIcon = computed(() => {
 			<!-- Address Header -->
 			<Flex align="center" justify="between" wide>
 				<Flex align="center" gap="6">
-					<div :class="[$style.node_icon, node.nodeType === 'burn' && $style.burn_icon]">
+					<div :class="[
+						$style.node_icon,
+						node.nodeType === 'burn' && $style.burn_icon,
+						node.nodeType === 'mint' && $style.mint_icon
+					]">
 						<Icon :name="nodeIcon" size="12" :color="nodeTypeColor" />
 					</div>
 					<Text size="11" weight="600" :color="nodeTypeColor">
 						{{ nodeTypeLabel }}
 					</Text>
 				</Flex>
-				<CopyButton v-if="node.nodeType !== 'burn'" :text="node.address" size="10" />
+				<CopyButton v-if="node.nodeType !== 'burn' && node.nodeType !== 'mint'" :text="node.address" size="10" />
 			</Flex>
 
 			<!-- Address Display -->
@@ -201,6 +215,17 @@ const nodeIcon = computed(() => {
 .node.hovered .burn_icon {
 	background: rgba(239, 68, 68, 0.2) !important;
 	border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+.mint_icon {
+	background: rgba(16, 185, 129, 0.1) !important;
+	border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.node:hover .mint_icon,
+.node.hovered .mint_icon {
+	background: rgba(16, 185, 129, 0.2) !important;
+	border-color: rgba(16, 185, 129, 0.6) !important;
 }
 
 .address {
