@@ -86,11 +86,13 @@ const viewBox = computed(() => {
 			<!-- Layer 1: Render links (bottom layer) -->
 			<g :class="$style.links">
 				<FlowLink
-					v-for="link in layout.links"
+					v-for="(link, index) in layout.links"
 					:key="link.id"
 					:link="link"
 					:node-map="nodeMap"
 					:is-highlighted="isLinkHighlighted(link)"
+					:is-swap-pattern="layout.isSwapPattern"
+					:link-index="index"
 					@hover="handleLinkHover"
 					@unhover="handleLinkUnhover"
 				/>

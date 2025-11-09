@@ -16,6 +16,14 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
+	isSwapPattern: {
+		type: Boolean,
+		default: false,
+	},
+	linkIndex: {
+		type: Number,
+		default: 0,
+	},
 })
 
 const emit = defineEmits(['hover', 'unhover'])
@@ -76,7 +84,7 @@ const handleMouseLeave = () => {
 }
 
 // Calculate path
-const pathD = computed(() => calculateLinkPath(props.link, props.nodeMap))
+const pathD = computed(() => calculateLinkPath(props.link, props.nodeMap, props.isSwapPattern, props.linkIndex))
 
 // Calculate stroke width based on value (Sankey style)
 const strokeWidth = computed(() => {

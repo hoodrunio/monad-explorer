@@ -34,14 +34,31 @@ const truncateName = (name, maxLength = 18) => {
 	return name.slice(0, maxLength - 3) + '...'
 }
 
-// Node type display - prioritize name field, then fallback to generic labels
-const nodeTypeLabel = computed(() => {
-	// 1. First priority: Special types (burn/mint)
-	if (props.node.nodeType === 'burn') {
-		return 'Burn'
+// Helper to get nodeType value (handles both string and object formats)
+const getNodeTypeValue = (key) => {
+	const nodeType = props.node.nodeType
+	if (typeof nodeType === 'string') {
+		return key === 'type' ? nodeType : nodeType
 	}
-	if (props.node.nodeType === 'mint') {
-		return 'Mint'
+	return nodeType?.[key]
+}
+
+// Node type display - prioritize name field, then fallback to role-based labels
+const nodeTypeLabel = computed(() => {
+	const nodeType = props.node.nodeType
+
+	// Handle legacy string format (backward compatibility)
+	if (typeof nodeType === 'string') {
+		if (nodeType === 'burn') return 'Burn'
+		if (nodeType === 'mint') return 'Mint'
+		if (props.node.name) return truncateName(props.node.name)
+		return nodeType.charAt(0).toUpperCase() + nodeType.slice(1)
+	}
+
+	// New object format
+	// 1. First priority: Special addresses (burn destination)
+	if (nodeType.type === 'burn') {
+		return 'Burn'
 	}
 
 	// 2. Second priority: Verified name from API
@@ -49,29 +66,38 @@ const nodeTypeLabel = computed(() => {
 		return truncateName(props.node.name)
 	}
 
-	// 3. Fallback: Generic labels based on node type
-	switch (props.node.nodeType) {
-		case 'intermediary':
-			return 'Intermediary'
-		case 'sender':
-			return 'Sender'
-		case 'receiver':
-			return 'Receiver'
-		default:
-			return 'Address'
+	// 3. Role-based labels
+	const roleLabels = {
+		'burn-initiator': 'Burn Initiator',
+		'burn-destination': 'Burn',
+		'mint-recipient': 'Mint Recipient',
+		'swap-participant': 'Swap/Trade',
+		'intermediary': 'Intermediary',
+		'sender': 'Sender',
+		'receiver': 'Receiver'
 	}
+
+	return roleLabels[nodeType.role] || roleLabels[nodeType.type] || 'Address'
 })
 
 const nodeTypeColor = computed(() => {
-	// Burn always red
-	if (props.node.nodeType === 'burn') {
-		return 'red'
-	}
+	const type = getNodeTypeValue('type')
+	const role = getNodeTypeValue('role')
 
-	// Mint always green
-	if (props.node.nodeType === 'mint') {
-		return 'green'
-	}
+	// Burn always red
+	if (type === 'burn') return 'red'
+
+	// Swap participant - purple/blue for exchange
+	if (role === 'swap-participant' || type === 'swap') return 'brand'
+
+	// Burn initiator - orange (user burning tokens)
+	if (role === 'burn-initiator') return 'orange'
+
+	// Mint recipient - green (user receiving minted tokens)
+	if (role === 'mint-recipient') return 'green'
+
+	// Legacy mint handling
+	if (type === 'mint') return 'green'
 
 	// If has verified name, use brand color to highlight it
 	if (props.node.name) {
@@ -79,25 +105,24 @@ const nodeTypeColor = computed(() => {
 	}
 
 	// Intermediary without name - orange to show it's in the middle
-	if (props.node.nodeType === 'intermediary') {
-		return 'orange'
-	}
+	if (type === 'intermediary') return 'orange'
 
 	// Default
 	return props.isHovered ? 'brand' : 'secondary'
 })
 
 const nodeIcon = computed(() => {
-	switch (props.node.nodeType) {
-		case 'burn':
-			return 'burn'
-		case 'mint':
-			return 'plus'
-		case 'intermediary':
-			return 'hash'
-		default:
-			return 'zap'
-	}
+	const type = getNodeTypeValue('type')
+	const role = getNodeTypeValue('role')
+
+	if (type === 'burn') return 'burn'
+	if (role === 'swap-participant' || type === 'swap') return 'arrows-exchange'
+	if (role === 'burn-initiator') return 'arrow-up'
+	if (role === 'mint-recipient') return 'arrow-down'
+	if (type === 'mint') return 'plus'
+	if (type === 'intermediary') return 'hash'
+
+	return 'zap'
 })
 </script>
 
@@ -113,8 +138,9 @@ const nodeIcon = computed(() => {
 				<Flex align="center" gap="6">
 					<div :class="[
 						$style.node_icon,
-						node.nodeType === 'burn' && $style.burn_icon,
-						node.nodeType === 'mint' && $style.mint_icon
+						getNodeTypeValue('type') === 'burn' && $style.burn_icon,
+						getNodeTypeValue('role') === 'burn-initiator' && $style.burn_initiator_icon,
+						getNodeTypeValue('role') === 'mint-recipient' && $style.mint_icon
 					]">
 						<Icon :name="nodeIcon" size="12" :color="nodeTypeColor" />
 					</div>
@@ -122,7 +148,7 @@ const nodeIcon = computed(() => {
 						{{ nodeTypeLabel }}
 					</Text>
 				</Flex>
-				<CopyButton v-if="node.nodeType !== 'burn' && node.nodeType !== 'mint'" :text="node.address" size="10" />
+				<CopyButton v-if="getNodeTypeValue('type') !== 'burn'" :text="node.address" size="10" />
 			</Flex>
 
 			<!-- Address Display -->
@@ -215,6 +241,17 @@ const nodeIcon = computed(() => {
 .node.hovered .burn_icon {
 	background: rgba(239, 68, 68, 0.2) !important;
 	border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+.burn_initiator_icon {
+	background: rgba(251, 146, 60, 0.1) !important;
+	border-color: rgba(251, 146, 60, 0.3) !important;
+}
+
+.node:hover .burn_initiator_icon,
+.node.hovered .burn_initiator_icon {
+	background: rgba(251, 146, 60, 0.2) !important;
+	border-color: rgba(251, 146, 60, 0.6) !important;
 }
 
 .mint_icon {

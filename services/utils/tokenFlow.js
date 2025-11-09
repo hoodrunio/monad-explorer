@@ -5,11 +5,11 @@
 
 /**
  * Generate a unique color based on a hash string
- * @param {string} hash - Address or token hash
+ * @param {string} _hash - Address or token hash (unused, kept for API compatibility)
  * @param {string} tokenType - Token type (ERC-20, ERC-721, ERC-1155)
  * @returns {object} - Color object with base, light, and gradient
  */
-export function getColorFromHash(hash, tokenType = 'ERC-20') {
+export function getColorFromHash(_hash, tokenType = 'ERC-20') {
 	// Always use the default color for each token type to match legend
 	// This ensures visual consistency
 	return getDefaultColorForTokenType(tokenType)
@@ -165,75 +165,103 @@ export function calculateSankeyLayout(transfers) {
 		})
 	})
 
-	// Convert map to array and calculate node types
+	// Convert map to array
 	const nodes = Array.from(addressMap.values())
 
-	// Calculate node types
-	nodes.forEach(node => {
-		node.nodeType = getNodeType(node.address, node.transfers)
-	})
+	// Detect swap pattern: 2 nodes, each has exactly 1 in and 1 out, to/from each other
+	const isSwapPattern = nodes.length === 2 &&
+		nodes.every(n => {
+			const hasIn = n.transfers.some(t => t.direction === 'in')
+			const hasOut = n.transfers.some(t => t.direction === 'out')
+			return hasIn && hasOut
+		})
 
-	// Separate nodes into columns (layers)
-	// Column 0: Only senders, Column 1: Only receivers, Column 2: Both
-	const onlySenders = nodes.filter(
-		(n) => n.transfers.every((t) => t.direction === 'out') && n.transfers.some((t) => t.direction === 'out')
-	)
-	const onlyReceivers = nodes.filter(
-		(n) => n.transfers.every((t) => t.direction === 'in') && n.transfers.some((t) => t.direction === 'in')
-	)
-	const both = nodes.filter(
-		(n) => n.transfers.some((t) => t.direction === 'in') && n.transfers.some((t) => t.direction === 'out')
-	)
+	// Calculate node types (pass swap participant flag)
+	nodes.forEach(node => {
+		node.nodeType = getNodeType(node.address, node.transfers, isSwapPattern)
+	})
 
 	// Calculate vertical positions
 	const nodeHeight = 60
 	const nodeSpacing = 20
 	const columnWidth = 250
 
-	let yOffset = 0
+	let totalWidth, totalHeight
 
-	// Position left column (senders)
-	onlySenders.forEach((node, idx) => {
-		node.x = 0
-		node.y = yOffset
-		node.height = nodeHeight
-		node.column = 0
-		yOffset += nodeHeight + nodeSpacing
-	})
+	// Special layout for swap pattern (2 nodes exchanging tokens)
+	if (isSwapPattern) {
+		// Position nodes horizontally side by side
+		nodes[0].x = 0
+		nodes[0].y = 100
+		nodes[0].height = nodeHeight
+		nodes[0].column = 0
 
-	// Position middle column (intermediaries)
-	yOffset = 0
-	both.forEach((node, idx) => {
-		node.x = columnWidth
-		node.y = yOffset
-		node.height = nodeHeight
-		node.column = 1
-		yOffset += nodeHeight + nodeSpacing
-	})
+		nodes[1].x = columnWidth
+		nodes[1].y = 100
+		nodes[1].height = nodeHeight
+		nodes[1].column = 1
 
-	// Position right column (receivers)
-	yOffset = 0
-	onlyReceivers.forEach((node, idx) => {
-		node.x = both.length > 0 ? columnWidth * 2 : columnWidth
-		node.y = yOffset
-		node.height = nodeHeight
-		node.column = both.length > 0 ? 2 : 1
-		yOffset += nodeHeight + nodeSpacing
-	})
+		totalWidth = columnWidth * 2
+		totalHeight = nodeHeight + nodeSpacing * 2
+	} else {
+		// Separate nodes into columns (layers)
+		// Column 0: Only senders, Column 1: Only receivers, Column 2: Both
+		const onlySenders = nodes.filter(
+			(n) => n.transfers.every((t) => t.direction === 'out') && n.transfers.some((t) => t.direction === 'out')
+		)
+		const onlyReceivers = nodes.filter(
+			(n) => n.transfers.every((t) => t.direction === 'in') && n.transfers.some((t) => t.direction === 'in')
+		)
+		const both = nodes.filter(
+			(n) => n.transfers.some((t) => t.direction === 'in') && n.transfers.some((t) => t.direction === 'out')
+		)
 
-	// Calculate total dimensions
-	const totalWidth = (both.length > 0 ? 3 : 2) * columnWidth
-	const totalHeight = Math.max(
-		onlySenders.length * (nodeHeight + nodeSpacing),
-		both.length * (nodeHeight + nodeSpacing),
-		onlyReceivers.length * (nodeHeight + nodeSpacing)
-	)
+		let yOffset = 0
+
+		// Position left column (senders)
+		onlySenders.forEach((node) => {
+			node.x = 0
+			node.y = yOffset
+			node.height = nodeHeight
+			node.column = 0
+			yOffset += nodeHeight + nodeSpacing
+		})
+
+		// Position middle column (intermediaries)
+		yOffset = 0
+		both.forEach((node) => {
+			node.x = columnWidth
+			node.y = yOffset
+			node.height = nodeHeight
+			node.column = 1
+			yOffset += nodeHeight + nodeSpacing
+		})
+
+		// Position right column (receivers)
+		yOffset = 0
+		onlyReceivers.forEach((node) => {
+			node.x = both.length > 0 ? columnWidth * 2 : columnWidth
+			node.y = yOffset
+			node.height = nodeHeight
+			node.column = both.length > 0 ? 2 : 1
+			yOffset += nodeHeight + nodeSpacing
+		})
+
+		// Calculate total dimensions
+		totalWidth = (both.length > 0 ? 3 : 2) * columnWidth
+		totalHeight = Math.max(
+			onlySenders.length * (nodeHeight + nodeSpacing),
+			both.length * (nodeHeight + nodeSpacing),
+			onlyReceivers.length * (nodeHeight + nodeSpacing)
+		)
+	}
 
 	return {
 		nodes,
 		links,
 		width: totalWidth,
 		height: Math.max(totalHeight, 200),
+		isSwapPattern, // Include swap pattern flag for rendering
 	}
 }
 
@@ -241,9 +269,11 @@ export function calculateSankeyLayout(transfers) {
  * Calculate SVG path for a link between nodes
  * @param {object} link - Link object with source and target
  * @param {Map} nodeMap - Map of node IDs to node objects
+ * @param {boolean} isSwapPattern - Whether this is a swap pattern (for bidirectional offset)
+ * @param {number} linkIndex - Index of this link (for determining which direction to curve)
  * @returns {string} - SVG path string
  */
-export function calculateLinkPath(link, nodeMap) {
+export function calculateLinkPath(link, nodeMap, isSwapPattern = false, linkIndex = 0) {
 	const sourceNode = nodeMap.get(link.source)
 	const targetNode = nodeMap.get(link.target)
 
@@ -260,7 +290,20 @@ export function calculateLinkPath(link, nodeMap) {
 	// Calculate control points for smooth curve
 	const controlPointOffset = Math.abs(x2 - x1) / 2
 
-	// Create cubic bezier curve
+	// For swap patterns, offset paths vertically to show both directions
+	if (isSwapPattern) {
+		// Alternate between top and bottom curves
+		// First link curves above, second link curves below
+		const curveOffset = linkIndex === 0 ? -20 : 20
+
+		// Create cubic bezier curve with vertical offset
+		const midY1 = y1 + curveOffset
+		const midY2 = y2 + curveOffset
+
+		return `M ${x1} ${y1} C ${x1 + controlPointOffset} ${midY1}, ${x2 - controlPointOffset} ${midY2}, ${x2} ${y2}`
+	}
+
+	// Create cubic bezier curve (standard)
 	return `M ${x1} ${y1} C ${x1 + controlPointOffset} ${y1}, ${x2 - controlPointOffset} ${y2}, ${x2} ${y2}`
 }
 
@@ -333,34 +376,110 @@ export function isBurnAddress(address) {
 }
 
 /**
+ * Analyze transfers to get detailed statistics
+ * @param {Array} transfers - Transfer array with direction and transfer object
+ * @returns {object} - Analysis with stats and flags
+ */
+function analyzeTransfers(transfers) {
+	const stats = {
+		in: { mint: 0, burn: 0, normal: 0 },
+		out: { mint: 0, burn: 0, normal: 0 }
+	}
+
+	transfers.forEach(t => {
+		const type = t.transfer.type
+		const direction = t.direction
+
+		if (type === 'token_minting') {
+			stats[direction].mint++
+		} else if (type === 'token_burning') {
+			stats[direction].burn++
+		} else {
+			stats[direction].normal++
+		}
+	})
+
+	return {
+		hasIncoming: transfers.some(t => t.direction === 'in'),
+		hasOutgoing: transfers.some(t => t.direction === 'out'),
+		hasMintTransfers: stats.in.mint > 0 || stats.out.mint > 0,
+		hasBurnTransfers: stats.in.burn > 0 || stats.out.burn > 0,
+		hasNormalTransfers: stats.in.normal > 0 || stats.out.normal > 0,
+		stats: stats
+	}
+}
+
+/**
  * Get node type based on address and transfers
  * @param {string} address - Address
  * @param {Array} transfers - Transfer array
- * @returns {string} - Node type
+ * @param {boolean} isSwapParticipant - Whether this node is part of a swap pattern
+ * @returns {object} - Node type object with type, role, operations, and stats
  */
-export function getNodeType(address, transfers) {
-	// PRIORITY 1: Address-based detection (most reliable)
-	// Burn address: Always show as "Burn" regardless of transfer type
+export function getNodeType(address, transfers, isSwapParticipant = false) {
+	// Analyze transfer patterns
+	const analysis = analyzeTransfers(transfers)
+
+	// PRIORITY 1: Zero address detection (burn/mint infrastructure)
 	if (isBurnAddress(address)) {
-		return 'burn'
+		return {
+			type: 'burn',
+			role: 'burn-destination',
+			operations: [],
+			stats: analysis.stats
+		}
 	}
 
-	// PRIORITY 2: Check if this is a mint receiver
-	// Mint receiver: Gets tokens FROM zero address in minting operation
-	const isMintReceiver = transfers.every(t =>
-		t.direction === 'in' && t.transfer.type === 'token_minting'
-	)
-	if (isMintReceiver) {
-		return 'mint'
+	// PRIORITY 2: Determine operations participated in
+	const operations = []
+	if (analysis.hasMintTransfers) operations.push('mint')
+	if (analysis.hasBurnTransfers) operations.push('burn')
+	if (analysis.hasNormalTransfers) operations.push('transfer')
+
+	// PRIORITY 3: Determine role based on flow pattern
+	const hasIn = analysis.hasIncoming
+	const hasOut = analysis.hasOutgoing
+
+	let role, type
+
+	if (hasIn && hasOut) {
+		// If part of swap pattern, use special role
+		if (isSwapParticipant) {
+			role = 'swap-participant'
+			type = 'swap'
+		} else {
+			// Intermediary - both incoming and outgoing
+			role = 'intermediary'
+			type = 'intermediary'
+		}
+	} else if (hasOut) {
+		// Only outgoing
+		// Check if ONLY burning transfers (no normal transfers)
+		if (analysis.hasBurnTransfers && !analysis.hasNormalTransfers) {
+			role = 'burn-initiator'
+			type = 'sender'
+		} else {
+			role = 'sender'
+			type = 'sender'
+		}
+	} else {
+		// Only incoming
+		// Check if ONLY minting transfers (no normal transfers)
+		if (analysis.hasMintTransfers && !analysis.hasNormalTransfers) {
+			role = 'mint-recipient'
+			type = 'receiver'
+		} else {
+			role = 'receiver'
+			type = 'receiver'
+		}
 	}
 
-	// PRIORITY 3: Normal address flow patterns
-	const hasIn = transfers.some(t => t.direction === 'in')
-	const hasOut = transfers.some(t => t.direction === 'out')
-
-	if (hasIn && hasOut) return 'intermediary'
-	if (hasOut) return 'sender'
-	return 'receiver'
+	return {
+		type: type,           // Base flow pattern: 'sender', 'receiver', 'intermediary', 'swap'
+		role: role,           // Specific role: 'burn-initiator', 'mint-recipient', 'swap-participant', etc.
+		operations: operations, // Operations participated: ['mint', 'burn', 'transfer']
+		stats: analysis.stats   // Detailed statistics
+	}
 }
 
 /**
