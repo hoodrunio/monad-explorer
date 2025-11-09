@@ -55,6 +55,8 @@ export function mapRoleToNodeType(role, pattern, transfers) {
 		wmonad: 'package',
 		user: 'user',
 		intermediary: 'hash',
+		recipient: 'user',
+		'swap-participant': 'repeat',
 	}
 
 	// Generate dynamic label

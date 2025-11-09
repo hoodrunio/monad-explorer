@@ -82,28 +82,20 @@ function getMintColor() {
 /**
  * Calculate Sankey layout for token transfers
  * @param {Array} transfers - Array of token transfers
- * @param {Array} decodedLogs - Decoded event logs (optional, for event-based detection)
+ * @param {Array} decodedLogs - Decoded event logs (optional, for event enrichment)
+ * @param {Object} tx - Transaction metadata (required for graph analysis)
  * @returns {object} - Layout data with nodes and links
  */
-export function calculateSankeyLayout(transfers, decodedLogs = []) {
+export function calculateSankeyLayout(transfers, decodedLogs = [], tx = null) {
 	if (!transfers || transfers.length === 0) {
 		return { nodes: [], links: [] }
 	}
 
-	// Event-based pattern detection (Priority 1)
-	const pattern = detectTransactionPattern(decodedLogs, transfers)
-	const addressRoles = detectAddressRoles(pattern, decodedLogs, transfers)
+	// Graph-based pattern detection (platform-agnostic)
+	const pattern = detectTransactionPattern(decodedLogs, transfers, tx)
+	const addressRoles = detectAddressRoles(pattern, decodedLogs, transfers, tx)
 
-	// Skip visualization for NFT-only transactions
-	if (pattern.skip) {
-		return {
-			nodes: [],
-			links: [],
-			pattern,
-			skipped: true,
-			reason: pattern.reason,
-		}
-	}
+	// No longer skip NFT or unknown transactions - visualize everything
 
 	// Extract unique addresses (nodes)
 	const addressMap = new Map()

@@ -19,10 +19,14 @@ const props = defineProps({
 		type: Array,
 		default: () => [],
 	},
+	tx: {
+		type: Object,
+		default: null,
+	},
 })
 
-// Calculate layout with event-based detection
-const layout = computed(() => calculateSankeyLayout(props.transfers, props.decodedLogs))
+// Calculate layout with graph-based detection
+const layout = computed(() => calculateSankeyLayout(props.transfers, props.decodedLogs, props.tx))
 
 // Create node map for easy lookup
 const nodeMap = computed(() => {

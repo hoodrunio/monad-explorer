@@ -1,13 +1,12 @@
 /**
- * Token Flow Pattern Detector (Dynamic Version)
+ * Token Flow Pattern Detector (Graph-Based Version)
  *
- * Uses decoded event parameters directly from indexer instead of hardcoded protocol detection.
- * Works with ANY DEX protocol that emits standard Swap/Mint/Burn events.
+ * Platform-agnostic detection using transfer graph topology as primary method.
+ * Events are used for enrichment only
  */
 
-// Common WMONAD address on Monad testnet
-const WMONAD_ADDRESS = '0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701'
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+import { buildTransferGraph, getMostLikelyRole } from './transferGraph.js'
+import { detectPattern, enrichPatternWithEvents } from './graphPatterns.js'
 
 /**
  * Generic event type detection based on method name (not signature)
@@ -144,224 +143,123 @@ export function detectEventMetadata(log) {
 	}
 }
 
-/**
- * Check if transfers include LP token mint/burn
- */
-function hasLPTokenMint(transfers) {
-	return transfers.some(
-		(t) => t.type === 'token_minting' && t.from?.hash === ZERO_ADDRESS && t.total?.value
-	)
-}
-
-function hasLPTokenBurn(transfers) {
-	return transfers.some(
-		(t) => t.type === 'token_burning' && t.to?.hash === ZERO_ADDRESS && t.total?.value
-	)
-}
 
 /**
- * Check for WMONAD wrap/unwrap
- */
-function detectWrapUnwrap(decodedLogs, transfers) {
-	const depositEvent = decodedLogs.find(isDepositEvent)
-	const withdrawalEvent = decodedLogs.find(isWithdrawalEvent)
-
-	const wmonadMint = transfers.find(
-		(t) =>
-			t.type === 'token_minting' &&
-			t.token?.address?.hash?.toLowerCase() === WMONAD_ADDRESS.toLowerCase()
-	)
-
-	const wmonadBurn = transfers.find(
-		(t) =>
-			t.type === 'token_burning' &&
-			t.token?.address?.hash?.toLowerCase() === WMONAD_ADDRESS.toLowerCase()
-	)
-
-	return {
-		hasWrap: !!(depositEvent && wmonadMint),
-		hasUnwrap: !!(withdrawalEvent && wmonadBurn),
-		wmonadAddress: WMONAD_ADDRESS,
-	}
-}
-
-/**
- * Check if transaction is NFT-only
- */
-function isNFTTransaction(transfers) {
-	if (transfers.length === 0) return false
-
-	const allNFTs = transfers.every(
-		(t) => t.token?.type === 'ERC-721' || t.token?.type === 'ERC-1155'
-	)
-
-	if (allNFTs) {
-		return { isNFT: true, skip: true, reason: 'No fungible token flow' }
-	}
-
-	return { isNFT: false, skip: false }
-}
-
-/**
- * Main pattern detection function (DYNAMIC - no hardcoding!)
+ * Main pattern detection function (GRAPH-BASED - platform agnostic!)
  *
  * @param {Array} decodedLogs - Decoded event logs from transaction
  * @param {Array} transfers - Token transfer data
+ * @param {Object} tx - Transaction metadata
  * @returns {Object} Pattern result with type, metadata, pool, router, etc.
  */
-export function detectTransactionPattern(decodedLogs = [], transfers = []) {
-	// Check for NFT-only transaction
-	const nftCheck = isNFTTransaction(transfers)
-	if (nftCheck.skip) {
-		return {
-			type: 'NFT',
-			skip: true,
-			confidence: 'high',
-			detectionMethod: 'event',
-			reason: nftCheck.reason,
+export function detectTransactionPattern(decodedLogs = [], transfers = [], tx = null) {
+	// Step 1: Build transfer graph (platform-agnostic)
+	const graph = buildTransferGraph(transfers, tx)
+
+	// Step 2: Detect pattern from graph topology (no platform dependencies)
+	let pattern = detectPattern(graph, decodedLogs)
+
+	// Step 3: Enrich with event data if available (optional enhancement)
+	if (decodedLogs.length > 0) {
+		pattern = enrichPatternWithEvents(pattern, decodedLogs)
+
+		// Add legacy contract name from events for UI compatibility
+		const firstSwapEvent = decodedLogs.find(isSwapEvent)
+		if (firstSwapEvent && pattern.type === 'SWAP') {
+			const metadata = detectEventMetadata(firstSwapEvent)
+			pattern.contractName = metadata.contractName
+			pattern.eventType = metadata.eventType
+		}
+
+		const mintEvent = decodedLogs.find(isMintEvent)
+		const burnEvent = decodedLogs.find(isBurnEvent)
+		if (mintEvent && pattern.type === 'LP_ADD') {
+			const metadata = detectEventMetadata(mintEvent)
+			pattern.contractName = metadata.contractName
+			pattern.eventType = metadata.eventType
+		}
+		if (burnEvent && pattern.type === 'LP_REMOVE') {
+			const metadata = detectEventMetadata(burnEvent)
+			pattern.contractName = metadata.contractName
+			pattern.eventType = metadata.eventType
 		}
 	}
 
-	// Check decoded log availability
-	const decodedCount = decodedLogs.filter((l) => l.decoded).length
-	const decodedRatio = decodedLogs.length > 0 ? decodedCount / decodedLogs.length : 0
+	// Step 4: Convert confidence to legacy format
+	pattern.confidence = mapConfidenceToLegacy(pattern.confidence)
+	pattern.detectionMethod = pattern.type === 'TRANSFER' ? 'heuristic' : 'graph'
 
-	if (decodedRatio < 0.3 && decodedLogs.length > 0) {
-		// Less than 30% decoded - use heuristic fallback
-		return {
-			type: 'UNKNOWN',
-			confidence: 'low',
-			detectionMethod: 'heuristic',
-			reason: 'Insufficient decoded logs',
-		}
+	// Step 5: Handle NFT transactions (visualize instead of skipping)
+	if (pattern.type === 'NFT_TRANSFER') {
+		pattern.skip = false // Enable NFT visualization
+		pattern.showAsTransfer = true
 	}
 
-	// Detect wrap/unwrap
-	const wrapInfo = detectWrapUnwrap(decodedLogs, transfers)
-
-	// Check for LP operations (Mint/Burn events)
-	const mintEvent = decodedLogs.find(isMintEvent)
-	const burnEvent = decodedLogs.find(isBurnEvent)
-
-	if (mintEvent && hasLPTokenMint(transfers)) {
-		const metadata = detectEventMetadata(mintEvent)
-		return {
-			type: 'LP_ADD',
-			pool: metadata.eventEmitter,
-			contractName: metadata.contractName,
-			eventType: metadata.eventType,
-			confidence: 'high',
-			detectionMethod: 'event',
-			wrapped: wrapInfo.hasWrap,
-		}
+	// Step 6: Handle generic transfers (fallback visualization)
+	if (pattern.type === 'TRANSFER') {
+		pattern.showAsTransfer = true
 	}
 
-	if (burnEvent && hasLPTokenBurn(transfers)) {
-		const metadata = detectEventMetadata(burnEvent)
-		return {
-			type: 'LP_REMOVE',
-			pool: metadata.eventEmitter,
-			contractName: metadata.contractName,
-			eventType: metadata.eventType,
-			confidence: 'high',
-			detectionMethod: 'event',
-			wrapped: wrapInfo.hasUnwrap,
-		}
-	}
-
-	// Check for swap events (DYNAMIC - works with any DEX!)
-	const swapEvent = decodedLogs.find(isSwapEvent)
-	if (swapEvent) {
-		const addresses = extractSwapAddresses(swapEvent)
-		const metadata = detectEventMetadata(swapEvent)
-
-		return {
-			type: 'SWAP',
-			pool: addresses.pool,
-			router: addresses.router,
-			sender: addresses.sender,
-			recipient: addresses.recipient,
-			contractName: metadata.contractName, // From indexer!
-			eventType: metadata.eventType, // "Swap", "Trade", "CrocSwap"
-			confidence: 'high',
-			detectionMethod: 'event',
-			wrapped: wrapInfo.hasWrap || wrapInfo.hasUnwrap,
-		}
-	}
-
-	// No clear pattern detected
-	if (decodedLogs.length === 0) {
-		return {
-			type: 'UNKNOWN',
-			confidence: 'none',
-			detectionMethod: 'none',
-			reason: 'No decoded logs available',
-		}
-	}
-
-	return {
-		type: 'UNKNOWN',
-		confidence: 'medium',
-		detectionMethod: 'heuristic',
-		reason: 'No matching pattern found',
-	}
+	return pattern
 }
 
 /**
- * Detect address roles based on pattern and events (DYNAMIC)
+ * Map numeric confidence to legacy string format
+ */
+function mapConfidenceToLegacy(confidence) {
+	if (typeof confidence === 'string') return confidence
+	if (confidence >= 0.8) return 'high'
+	if (confidence >= 0.5) return 'medium'
+	if (confidence >= 0.3) return 'low'
+	return 'none'
+}
+
+/**
+ * Detect address roles based on pattern and graph (PLATFORM-AGNOSTIC)
  *
  * @param {Object} pattern - Pattern result from detectTransactionPattern()
  * @param {Array} decodedLogs - Decoded event logs
  * @param {Array} transfers - Token transfers
- * @returns {Map} Map of address to role (pool, router, user, wmonad, intermediary)
+ * @param {Object} tx - Transaction metadata
+ * @returns {Map} Map of address to role (pool, router, user, intermediary)
  */
-export function detectAddressRoles(pattern, decodedLogs = [], transfers = []) {
+export function detectAddressRoles(pattern, decodedLogs = [], transfers = [], tx = null) {
 	const roles = new Map()
 
-	if (!pattern || pattern.type === 'UNKNOWN' || pattern.skip) {
+	if (!pattern || pattern.skip) {
 		return roles
 	}
 
-	// Assign pool address (event emitter)
+	// Build graph for role detection
+	const graph = buildTransferGraph(transfers, tx)
+
+	// Use graph-based role detection
+	graph.nodes.forEach((node) => {
+		const role = getMostLikelyRole(node)
+
+		if (role && role.confidence > 0.3) {
+			roles.set(node.address, role.role)
+		}
+	})
+
+	// Enrich with pattern-specific roles
 	if (pattern.pool) {
 		roles.set(pattern.pool.toLowerCase(), 'pool')
 	}
 
-	// Assign router address (if sender !== recipient)
 	if (pattern.router) {
 		roles.set(pattern.router.toLowerCase(), 'router')
 	}
 
-	// Assign WMONAD address if wrapped
-	if (pattern.wrapped) {
-		roles.set(WMONAD_ADDRESS.toLowerCase(), 'wmonad')
+	if (pattern.user) {
+		roles.set(pattern.user.toLowerCase(), 'user')
 	}
 
-	// Find user addresses (participants not in pool/router roles)
-	const systemAddrs = new Set(
-		[pattern.pool, pattern.router, WMONAD_ADDRESS]
-			.filter(Boolean)
-			.map((a) => a.toLowerCase())
-	)
-
-	transfers.forEach((transfer) => {
-		const from = transfer.from?.hash?.toLowerCase()
-		const to = transfer.to?.hash?.toLowerCase()
-
-		// Skip zero address
-		if (from === ZERO_ADDRESS.toLowerCase() || to === ZERO_ADDRESS.toLowerCase()) {
-			return
-		}
-
-		// Assign user role to non-system addresses
-		if (from && !roles.has(from) && !systemAddrs.has(from)) {
-			roles.set(from, 'user')
-		}
-
-		if (to && !roles.has(to) && !systemAddrs.has(to)) {
-			roles.set(to, 'user')
-		}
-	})
+	// Fallback: If no user role assigned, use tx initiator
+	const hasUserRole = Array.from(roles.values()).includes('user')
+	if (!hasUserRole && tx?.from?.hash) {
+		roles.set(tx.from.hash.toLowerCase(), 'user')
+	}
 
 	return roles
 }
@@ -370,7 +268,7 @@ export function detectAddressRoles(pattern, decodedLogs = [], transfers = []) {
  * Utility: Get readable pattern description
  */
 export function getPatternDescription(pattern) {
-	if (!pattern || pattern.type === 'UNKNOWN') return null
+	if (!pattern) return null
 
 	const contractName = pattern.contractName || 'Contract'
 	const eventType = pattern.eventType || 'Event'
@@ -382,16 +280,25 @@ export function getPatternDescription(pattern) {
 			}
 			return `Direct swap on ${contractName}`
 
+		case 'MULTIHOP_SWAP':
+			return `Multi-hop swap through ${pattern.pools?.length || 2} pools`
+
 		case 'LP_ADD':
 			return `Add liquidity to ${contractName}`
 
 		case 'LP_REMOVE':
 			return `Remove liquidity from ${contractName}`
 
-		case 'NFT':
+		case 'WRAP':
+			return 'Wrap/Unwrap tokens'
+
+		case 'NFT_TRANSFER':
 			return 'NFT transfer'
 
+		case 'TRANSFER':
+			return 'Token transfer'
+
 		default:
-			return `${eventType} on ${contractName}`
+			return pattern.contractName ? `${eventType} on ${contractName}` : 'Transaction'
 	}
 }

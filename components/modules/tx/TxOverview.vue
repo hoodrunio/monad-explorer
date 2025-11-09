@@ -452,7 +452,7 @@ const handleDecodeInput = () => {
 				<Flex v-if="activeTab === 'transfers'" :class="$style.inner">
 					<Flex v-if="tokenTransfers.length" direction="column" gap="16" :class="$style.content_padding">
 						<!-- Sankey Flow Visualization -->
-						<TokenFlow :transfers="tokenTransfers" :decoded-logs="decodedLogs" />
+						<TokenFlow :transfers="tokenTransfers" :decoded-logs="decodedLogs" :tx="tx" />
 
 						<!-- Detailed Transfer List -->
 						<Flex direction="column" gap="8">
