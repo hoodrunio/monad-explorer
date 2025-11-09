@@ -125,7 +125,7 @@ watch(
 			<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
 				<Icon name="zap" size="24" color="tertiary" />
 				<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
-					No events found for this transaction.
+					No events found.
 				</Text>
 			</Flex>
 		</Flex>
