@@ -18,19 +18,25 @@ defineProps({
 
 // Function to get color for transaction type
 const getMessageColor = (type) => {
+	// Guard against undefined/null type
+	if (!type) return MessageColorMap.default || '#808080'
+
 	// Support both underscore and space separated formats
 	const cleanType = type.toLowerCase()
-	return MessageColorMap[cleanType] || MessageColorMap.default
+	return MessageColorMap[cleanType] || MessageColorMap.default || '#808080'
 }
 
 // Function to format transaction type for display
 const formatType = (type) => {
+	// Guard against undefined/null type
+	if (!type) return 'Unknown'
+
 	return type.replace(/_/g, " ")
 }
 </script>
 
 <template>
-	<Badge :class="[$style.wrapper, { [$style.compact]: compact }]" :style="{ '--tx-type-color': getMessageColor(types[0]) }">
+	<Badge v-if="types && types.length > 0" :class="[$style.wrapper, { [$style.compact]: compact }]" :style="{ '--tx-type-color': getMessageColor(types[0]) }">
 		<Icon
 			:name="MessageIconMap[types[0]] || 'zap'"
 			:size="compact ? '10' : '14'"
