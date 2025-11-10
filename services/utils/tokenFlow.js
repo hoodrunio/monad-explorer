@@ -3,6 +3,9 @@
  * Utilities for calculating Sankey diagram layouts and visual properties
  */
 
+import { detectTransactionPattern, detectAddressRoles } from './tokenFlowDetector'
+import { assignNodeType as assignNodeTypeEnhanced } from './tokenFlowEnhancer'
+
 /**
  * Generate a unique color based on a hash string
  * @param {string} _hash - Address or token hash (unused, kept for API compatibility)
@@ -79,12 +82,20 @@ function getMintColor() {
 /**
  * Calculate Sankey layout for token transfers
  * @param {Array} transfers - Array of token transfers
+ * @param {Array} decodedLogs - Decoded event logs (optional, for event enrichment)
+ * @param {Object} tx - Transaction metadata (required for graph analysis)
  * @returns {object} - Layout data with nodes and links
  */
-export function calculateSankeyLayout(transfers) {
+export function calculateSankeyLayout(transfers, decodedLogs = [], tx = null) {
 	if (!transfers || transfers.length === 0) {
 		return { nodes: [], links: [] }
 	}
+
+	// Graph-based pattern detection (platform-agnostic)
+	const pattern = detectTransactionPattern(decodedLogs, transfers, tx)
+	const addressRoles = detectAddressRoles(pattern, decodedLogs, transfers, tx)
+
+	// No longer skip NFT or unknown transactions - visualize everything
 
 	// Extract unique addresses (nodes)
 	const addressMap = new Map()
@@ -176,9 +187,17 @@ export function calculateSankeyLayout(transfers) {
 			return hasIn && hasOut
 		})
 
-	// Calculate node types (pass swap participant flag)
-	nodes.forEach(node => {
-		node.nodeType = getNodeType(node.address, node.transfers, isSwapPattern)
+	// Calculate node types with event-based detection (Priority 1) or heuristic fallback (Priority 2)
+	nodes.forEach((node) => {
+		node.nodeType = assignNodeTypeEnhanced(
+			node.address,
+			node.transfers,
+			isSwapPattern,
+			pattern, // Event-based pattern (Priority 1)
+			addressRoles, // Event-based roles (Priority 1)
+			(addr, xfers, isSwap) => getNodeType(addr, xfers, isSwap) // Heuristic fallback (Priority 2)
+		)
+		node.pattern = pattern // Store pattern for visualization
 	})
 
 	// Calculate vertical positions
@@ -262,6 +281,7 @@ export function calculateSankeyLayout(transfers) {
 		width: totalWidth,
 		height: Math.max(totalHeight, 200),
 		isSwapPattern, // Include swap pattern flag for rendering
+		pattern, // Include detected pattern
 	}
 }
 
@@ -376,7 +396,17 @@ export function isBurnAddress(address) {
 }
 
 /**
- * Analyze transfers to get detailed statistics
+ * Analyze address transfers to get detailed statistics
+ * Exported for use in tokenFlowEnhancer
+ * @param {Array} transfers - Transfer array with direction and transfer object
+ * @returns {object} - Analysis with stats and flags
+ */
+export function analyzeAddressTransfers(transfers) {
+	return analyzeTransfers(transfers)
+}
+
+/**
+ * Analyze transfers to get detailed statistics (internal)
  * @param {Array} transfers - Transfer array with direction and transfer object
  * @returns {object} - Analysis with stats and flags
  */

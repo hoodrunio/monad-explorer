@@ -108,7 +108,7 @@ const props = defineProps({
 					</td>
 					<td>
 						<NuxtLink :to="`/tx/${tx.hash}`">
-							<Tooltip position="start" textAlign="left">
+							<Tooltip v-if="tx.transaction_types && tx.transaction_types.length > 0" position="start" textAlign="left">
 								<MessageTypeBadge :types="tx.transaction_types" />
 
 								<template #content>
@@ -119,6 +119,7 @@ const props = defineProps({
 									</Flex>
 								</template>
 							</Tooltip>
+							<Text v-else size="12" weight="500" color="tertiary">No type</Text>
 						</NuxtLink>
 					</td>
 					<td>

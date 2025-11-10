@@ -66,15 +66,24 @@ const nodeTypeLabel = computed(() => {
 		return truncateName(props.node.name)
 	}
 
-	// 3. Role-based labels
+	// 3. Protocol-aware labels (event-based detection)
+	if (nodeType.label) {
+		return nodeType.label
+	}
+
+	// 4. Role-based labels (fallback)
 	const roleLabels = {
+		'pool': 'Pool',
+		'router': 'Router',
+		'wmonad': 'WMONAD',
+		'user': 'User',
 		'burn-initiator': 'Burn Initiator',
 		'burn-destination': 'Burn',
 		'mint-recipient': 'Mint Recipient',
 		'swap-participant': 'Swap/Trade',
 		'intermediary': 'Intermediary',
 		'sender': 'Sender',
-		'receiver': 'Receiver'
+		'receiver': 'Receiver',
 	}
 
 	return roleLabels[nodeType.role] || roleLabels[nodeType.type] || 'Address'
@@ -86,6 +95,11 @@ const nodeTypeColor = computed(() => {
 
 	// Burn always red
 	if (type === 'burn') return 'red'
+
+	// Protocol-specific colors
+	if (type === 'pool' || role === 'pool') return 'brand'
+	if (type === 'router' || role === 'router') return 'purple'
+	if (type === 'wrapper' || role === 'wmonad') return 'orange'
 
 	// Swap participant - purple/blue for exchange
 	if (role === 'swap-participant' || type === 'swap') return 'brand'
@@ -112,10 +126,21 @@ const nodeTypeColor = computed(() => {
 })
 
 const nodeIcon = computed(() => {
+	const nodeType = props.node.nodeType
 	const type = getNodeTypeValue('type')
 	const role = getNodeTypeValue('role')
 
+	// Protocol-aware icons (event-based detection)
+	if (nodeType?.icon) return nodeType.icon
+
+	// Fallback icons
 	if (type === 'burn') return 'burn'
+	if (type === 'pool') return 'droplet'
+	if (type === 'router') return 'route'
+	if (type === 'wrapper') return 'package'
+	if (role === 'pool') return 'droplet'
+	if (role === 'router') return 'route'
+	if (role === 'wmonad') return 'package'
 	if (role === 'swap-participant' || type === 'swap') return 'arrows-exchange'
 	if (role === 'burn-initiator') return 'arrow-up'
 	if (role === 'mint-recipient') return 'arrow-down'

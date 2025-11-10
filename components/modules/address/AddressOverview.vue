@@ -315,8 +315,10 @@ const getTransactions = async (params = null) => {
 				gas_used: tx.gas_used || tx.gasUsed,
 				gas_wanted: tx.gas_limit || tx.gas,
 				fee: tx.fee || tx.transactionFee || "0",
-				// Keep transaction_types from API
-				transaction_types: tx.transaction_types || [],
+				// Ensure transaction_types is always an array with at least one item
+				transaction_types: (tx.transaction_types && tx.transaction_types.length > 0)
+					? tx.transaction_types
+					: ['unknown'],
 				time: tx.timestamp,
 				height: tx.block_number || tx.blockNumber,
 			}))
@@ -385,6 +387,23 @@ const isActive = computed(() => {
 })
 
 /** Watchers */
+watch(
+	() => props.address.hash,
+	async () => {
+		// Reset state when address changes
+		nextPageParams.value = null
+		previousPages.value = []
+		transactions.value = []
+
+		// Reload data for new address
+		await Promise.all([
+			getTransactions(),
+			getAddressBalance(),
+			getAddressStats(),
+		])
+	}
+)
+
 watch(
 	activeTab,
 	async () => {

@@ -47,6 +47,7 @@ const { convertToUsd } = useMonUsdConverter()
 // Use data directly from tx prop since API already includes everything
 const tokenTransfers = computed(() => props.tx?.tokenTransfers || props.tx?.token_transfers || [])
 const internalTransactions = computed(() => props.tx?.internalTransactions || [])
+const decodedLogs = computed(() => props.tx?.decodedLogs || [])
 
 // Transaction method information
 const { getMethodInfo, formatInputData } = useTransactionMethods()
@@ -451,7 +452,7 @@ const handleDecodeInput = () => {
 				<Flex v-if="activeTab === 'transfers'" :class="$style.inner">
 					<Flex v-if="tokenTransfers.length" direction="column" gap="16" :class="$style.content_padding">
 						<!-- Sankey Flow Visualization -->
-						<TokenFlow :transfers="tokenTransfers" />
+						<TokenFlow :transfers="tokenTransfers" :decoded-logs="decodedLogs" :tx="tx" />
 
 						<!-- Detailed Transfer List -->
 						<Flex direction="column" gap="8">
