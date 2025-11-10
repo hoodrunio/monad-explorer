@@ -127,9 +127,39 @@ const getResultMetadata = (target) => {
 				metadata.title = target.result.alias
 				metadata.subtitle = shortHex(target.result.hash)
 			} else {
-				metadata.title = shortHex(target.result.hash)
+				metadata.title = target.result.name || shortHex(target.result.hash)
+				if (target.result.name) {
+					metadata.subtitle = shortHex(target.result.hash)
+				}
 			}
 			metadata.routerLink = `/address/${target.bookmark ? target.result.id : target.result.hash}`
+			break
+
+		case "contract":
+			metadata.type = target.type
+			// For contracts, display name if available
+			if (target.result.alias) {
+				metadata.title = target.result.alias
+				metadata.subtitle = shortHex(target.result.address)
+			} else {
+				metadata.title = target.result.name || shortHex(target.result.address)
+				if (target.result.name) {
+					metadata.subtitle = shortHex(target.result.address)
+				}
+			}
+			metadata.routerLink = `/address/${target.result.address}`
+			break
+
+		case "token":
+			metadata.type = target.type
+			// For tokens, display name and symbol
+			metadata.title = target.result.name || "Unknown Token"
+			if (target.result.symbol) {
+				metadata.subtitle = `${target.result.symbol} · ${shortHex(target.result.address)}`
+			} else {
+				metadata.subtitle = shortHex(target.result.address)
+			}
+			metadata.routerLink = `/token/${target.result.address}`
 			break
 
 		case "rollup":
@@ -172,12 +202,12 @@ const handleSelect = () => {
 				<Icon v-if="!isSearching" name="search" size="14" color="secondary" />
 				<Spinner v-else size="14" />
 
-				<input 
-					ref="inputRef" 
-					v-model="searchTerm" 
-					@input="handleInput" 
-					placeholder="Search blocks, transactions, addresses..." 
-					spellcheck="false" 
+				<input
+					ref="inputRef"
+					v-model="searchTerm"
+					@input="handleInput"
+					placeholder="Search validators, blocks, txs, addresses, contracts, tokens..."
+					spellcheck="false"
 					autocomplete="off"
 					:class="$style.input_bar"
 				/>

@@ -764,6 +764,14 @@ const searchAction = {
 				router.push(`/address/${data.value[0].result.hash}`)
 				break
 
+			case "contract":
+				router.push(`/address/${data.value[0].result.address}`)
+				break
+
+			case "token":
+				router.push(`/token/${data.value[0].result.address}`)
+				break
+
 			case "rollup":
 				router.push(`/rollup/${data.value[0].result.slug}`)
 				break
@@ -792,7 +800,7 @@ const autocompleteGroup = computed(() => {
 	}
 })
 
-const debouncedSearch = useDebounceFn(async (e) => {
+const debouncedSearch = useDebounceFn(async () => {
 	const bookmarks = bookmarksStore.searchBookmarks(searchTerm.value)
 	const { data } = await search(searchTerm.value.trim())
 
@@ -812,6 +820,31 @@ const debouncedSearch = useDebounceFn(async (e) => {
 				title =
 					data.value[i].result.infrastructure?.validator_name || data.value[i].result.validator_id
 				routerLink = `/validator/${data.value[i].result.validator_id}`
+				break
+
+			case "tx":
+				title = data.value[i].result.hash
+				routerLink = `/tx/${data.value[i].result.hash}`
+				break
+
+			case "block":
+				title = `Block #${data.value[i].result.height || data.value[i].result.number}`
+				routerLink = `/block/${data.value[i].result.height || data.value[i].result.number}`
+				break
+
+			case "address":
+				title = data.value[i].result.name || data.value[i].result.hash
+				routerLink = `/address/${data.value[i].result.hash}`
+				break
+
+			case "contract":
+				title = data.value[i].result.name || data.value[i].result.address
+				routerLink = `/address/${data.value[i].result.address}`
+				break
+
+			case "token":
+				title = `${data.value[i].result.name || "Token"} (${data.value[i].result.symbol || ""})`
+				routerLink = `/token/${data.value[i].result.address}`
 				break
 
 			default:
