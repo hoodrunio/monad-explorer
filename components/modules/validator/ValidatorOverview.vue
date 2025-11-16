@@ -167,22 +167,42 @@ const infrastructureDetails = computed(() => {
 	// Handle multiple possible data structures
 	const infraData = props.infrastructure?.data || props.infrastructure || {}
 	const location = infraData.location || infraData || {}
-	
+
 	if (!location || Object.keys(location).length === 0) return null
-	
+
 	// Prioritize GitHub validator name, then infrastructure name, then fallback
 	const githubValidatorName = props.validator?.github?.name || props.validator?.displayName
 	const infraValidatorName = props.validator?.infrastructure?.validator_name || location.validatorName || location.validator_name
-	const finalValidatorName = githubValidatorName || infraValidatorName || 'Unknown'
-	
+	const finalValidatorName = githubValidatorName || infraValidatorName || null
+
+	const provider = location.isp || location.provider || null
+	const city = location.city || null
+	const country = location.country || null
+	const ip = location.ip || null
+
+	// Build location string only if we have valid data
+	let locationString = null
+	if (city && country) {
+		locationString = `${city}, ${country}`
+	} else if (city) {
+		locationString = city
+	} else if (country) {
+		locationString = country
+	}
+
+	// Check if we have any valid infrastructure data
+	const hasAnyValidData = finalValidatorName || provider || locationString || ip
+
+	if (!hasAnyValidData) return null
+
 	return {
 		validatorName: finalValidatorName,
-		provider: location.isp || location.provider || 'Unknown',
-		location: `${location.city || 'Unknown'}, ${location.country || 'Unknown'}`,
-		ip: location.ip || 'Unknown',
-		hostname: location.hostname || 'Unknown',
-		port: location.port || 'Unknown',
-		timezone: location.timezone || 'Unknown',
+		provider: provider,
+		location: locationString,
+		ip: ip,
+		hostname: location.hostname || null,
+		port: location.port || null,
+		timezone: location.timezone || null,
 		latitude: location.latitude || 0,
 		longitude: location.longitude || 0,
 		lastUpdated: location.lastUpdated || location.last_updated || null,
@@ -468,25 +488,12 @@ const formatBalance = (balance) => {
 					<Flex v-if="infrastructureDetails" direction="column" gap="16">
 						<Text size="12" weight="600" color="secondary">Infrastructure Details</Text>
 
-						<Flex align="center" justify="between">
+						<Flex v-if="infrastructureDetails.validatorName" align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Validator Name</Text>
 							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.validatorName }}</Text>
 						</Flex>
 
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary">Hostname</Text>
-							<Flex align="center" gap="4" :class="$style.hostname_container">
-								<Tooltip>
-									<Text size="12" weight="600" color="primary" mono :class="$style.hostname_text">{{ infrastructureDetails.hostname }}</Text>
-									<template #content>
-										{{ infrastructureDetails.hostname }}
-									</template>
-								</Tooltip>
-								<CopyButton :text="infrastructureDetails.hostname" />
-							</Flex>
-						</Flex>
-
-						<Flex align="center" justify="between">
+						<Flex v-if="infrastructureDetails.ip" align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">IP Address</Text>
 							<Flex align="center" gap="4">
 								<Text size="12" weight="600" color="primary" mono>{{ infrastructureDetails.ip }}</Text>
@@ -494,7 +501,7 @@ const formatBalance = (balance) => {
 							</Flex>
 						</Flex>
 
-						<Flex align="center" justify="between">
+						<Flex v-if="infrastructureDetails.provider" align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Provider</Text>
 							<Flex align="center" gap="4" :class="$style.provider_container">
 								<Tooltip v-if="infrastructureDetails.provider.length > 30">
@@ -507,7 +514,7 @@ const formatBalance = (balance) => {
 							</Flex>
 						</Flex>
 
-						<Flex align="center" justify="between">
+						<Flex v-if="infrastructureDetails.location" align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Location</Text>
 							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.location }}</Text>
 						</Flex>
