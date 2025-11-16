@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-11-03T23:04:40.851Z",
-  "totalLocations": 31,
+  "generatedAt": "2025-11-16T01:11:32.608Z",
+  "totalLocations": 59,
   "source": "nominatim",
   "locations": {
     "Singapore, Singapore": [
@@ -127,6 +127,118 @@
     "Dublin, Ireland": [
       -6.2605593,
       53.3493795
+    ],
+    "Warsaw, Poland": [
+      21.0067249,
+      52.2319581
+    ],
+    "Dallas, United States": [
+      -96.7968559,
+      32.7762719
+    ],
+    "Draper, United States": [
+      -111.8627989,
+      40.5247777
+    ],
+    "Wattrelos, France": [
+      3.2153907,
+      50.7016015
+    ],
+    "Waldbrunn, Germany": [
+      9.80361,
+      49.7586
+    ],
+    "Langenzersdorf, Austria": [
+      16.3572556,
+      48.3096359
+    ],
+    "St Louis, United States": [
+      -90.1910154,
+      38.6280278
+    ],
+    "Oslo, Norway": [
+      10.7389701,
+      59.9133301
+    ],
+    "St Petersburg, Russia": [
+      30.316229,
+      59.938732
+    ],
+    "Bratislava, Slovakia": [
+      17.1093063,
+      48.1516988
+    ],
+    "Seoul, South Korea": [
+      126.9782914,
+      37.5666791
+    ],
+    "Secaucus, United States": [
+      -74.0566735,
+      40.7899291
+    ],
+    "Moscow, Russia": [
+      37.6063916,
+      55.625578
+    ],
+    "Salt Lake City, United States": [
+      -111.886797,
+      40.7596198
+    ],
+    "Berlin, Germany": [
+      13.3951309,
+      52.5173885
+    ],
+    "Tsuen Wan, Hong Kong": [
+      114.1134699,
+      22.3716605
+    ],
+    "Limburg an der Lahn, Germany": [
+      8.063531,
+      50.3880447
+    ],
+    "Bluffdale, United States": [
+      -111.939284,
+      40.4898176
+    ],
+    "Los Angeles, United States": [
+      -118.242766,
+      34.0536909
+    ],
+    "Reston, United States": [
+      -77.3464516,
+      38.953282
+    ],
+    "Strasbourg, France": [
+      7.7507127,
+      48.584614
+    ],
+    "Cambridge, United States": [
+      -71.1040018,
+      42.3656347
+    ],
+    "Bangkok, Thailand": [
+      100.4935089,
+      13.7524938
+    ],
+    "Duivendrecht, The Netherlands": [
+      4.9365267,
+      52.3235787
+    ],
+    "Jaipur, India": [
+      75.8189817,
+      26.9154576
+    ],
+    "City of London, United Kingdom": [
+      -0.0919983,
+      51.5156177
+    ],
+    "Valletta, Malta": [
+      14.5136607,
+      35.8989979
+    ],
+    "Newark, United States": [
+      -74.1723667,
+      40.735657
     ]
   }
 }
