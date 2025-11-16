@@ -496,7 +496,15 @@ const formatBalance = (balance) => {
 
 						<Flex align="center" justify="between">
 							<Text size="12" weight="600" color="tertiary">Provider</Text>
-							<Text size="12" weight="600" color="primary">{{ infrastructureDetails.provider }}</Text>
+							<Flex align="center" gap="4" :class="$style.provider_container">
+								<Tooltip v-if="infrastructureDetails.provider.length > 30">
+									<Text size="12" weight="600" color="primary" :class="$style.provider_text">{{ infrastructureDetails.provider }}</Text>
+									<template #content>
+										{{ infrastructureDetails.provider }}
+									</template>
+								</Tooltip>
+								<Text v-else size="12" weight="600" color="primary">{{ infrastructureDetails.provider }}</Text>
+							</Flex>
 						</Flex>
 
 						<Flex align="center" justify="between">
@@ -856,6 +864,18 @@ const formatBalance = (balance) => {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	max-width: 250px; /* Adjust as needed */
+}
+
+.provider_container {
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.provider_text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 200px; /* Limit provider name width */
 }
 
 .analytics_section {
