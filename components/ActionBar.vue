@@ -9,10 +9,20 @@ import Search from "@/components/modules/navigation/Search.vue"
 
 /** Utils */
 import { isMobile } from "@/services/utils"
+import { isMainnet } from "@/services/utils/general"
 
 /** Store */
 import { useAppStore } from "@/store/app.store"
 const appStore = useAppStore()
+
+/** Auth */
+const { logout } = useAuth()
+const showLogout = ref(false)
+
+onMounted(() => {
+	// Only show logout button on mainnet
+	showLogout.value = isMainnet()
+})
 </script>
 
 <template>
@@ -37,6 +47,12 @@ const appStore = useAppStore()
 			<Button @click="appStore.showCmd = true" type="secondary" size="mini">
 				<Icon name="terminal_square" size="16" color="secondary" />
 			</Button>
+
+			<ClientOnly>
+				<Button v-if="showLogout" @click="logout" type="secondary" size="mini" title="Logout">
+					<Icon name="logout" size="16" color="secondary" />
+				</Button>
+			</ClientOnly>
 		</Flex>
 	</Flex>
 </template>

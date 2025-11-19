@@ -12,6 +12,18 @@ import { getNetworkName } from "@/services/utils/general"
 import { StatusMap } from "@/services/constants/node"
 import { isMainnet, isMobile } from "@/services/utils"
 
+// Network switching functions
+const openMainnet = () => {
+	window.location.href = "https://monad.hoodscan.io"
+}
+
+const openTestnet = () => {
+	window.location.href = "https://testnet.monad.hoodscan.io"
+}
+
+// Get current network name for display
+const currentNetwork = computed(() => getNetworkName())
+
 /** API */
 import { fetchHealthStatus } from "@/services/api/main"
 
@@ -331,21 +343,51 @@ const handleOnClose = () => {
 					</DropdownTitle>
 					<DropdownDivider />
 					<DropdownTitle>Network Selection</DropdownTitle>
-					<DropdownItem>
+					<DropdownItem @click="openTestnet">
 						<Flex align="center" gap="8">
-							<Icon name="check" size="12" color="brand" />
+							<Icon
+								v-if="currentNetwork === 'Testnet'"
+								name="check"
+								size="12"
+								color="brand"
+							/>
+							<Icon
+								v-else
+								name="globe"
+								size="12"
+								color="tertiary"
+							/>
 							<Flex direction="column" gap="4">
-								<Text color="secondary">Monad Testnet</Text>
-								<Text color="tertiary">Currently active network</Text>
+								<Text :color="currentNetwork === 'Testnet' ? 'secondary' : 'tertiary'">
+									Monad Testnet
+								</Text>
+								<Text color="tertiary" size="11">
+									{{ currentNetwork === 'Testnet' ? 'Currently active' : 'Switch to testnet' }}
+								</Text>
 							</Flex>
 						</Flex>
 					</DropdownItem>
-					<DropdownItem disabled>
+					<DropdownItem @click="openMainnet">
 						<Flex align="center" gap="8">
-							<Icon name="clock" size="12" color="tertiary" />
+							<Icon
+								v-if="currentNetwork === 'Mainnet'"
+								name="check"
+								size="12"
+								color="brand"
+							/>
+							<Icon
+								v-else
+								name="globe"
+								size="12"
+								color="tertiary"
+							/>
 							<Flex direction="column" gap="4">
-								<Text color="tertiary">Monad Mainnet</Text>
-								<Text color="tertiary">Coming soon...</Text>
+								<Text :color="currentNetwork === 'Mainnet' ? 'secondary' : 'tertiary'">
+									Monad Mainnet
+								</Text>
+								<Text color="tertiary" size="11">
+									{{ currentNetwork === 'Mainnet' ? 'Currently active' : 'Switch to mainnet' }}
+								</Text>
 							</Flex>
 						</Flex>
 					</DropdownItem>

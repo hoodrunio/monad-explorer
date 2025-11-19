@@ -81,6 +81,8 @@ export default defineNuxtConfig({
 		// Private keys (only available on server-side)
 		githubToken: process.env.GITHUB_TOKEN || '',
 		blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
+		mainnetAuthEnabled: process.env.MAINNET_AUTH_ENABLED === 'true',
+		mainnetPassword: process.env.MAINNET_PASSWORD || '',
 		// Public keys (exposed to client-side)
 		public: {
 			AMP: process.env.AMP,
