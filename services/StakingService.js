@@ -7,6 +7,7 @@ import { writeContract, waitForTransactionReceipt } from '@wagmi/core'
 import { parseEther } from 'viem'
 import { STAKING_CONFIG } from '~/config/chains'
 import { createNetworkService } from './NetworkService'
+import { getNetworkName } from '~/services/utils/general'
 
 /**
  * Transaction configuration for different staking operations
@@ -83,14 +84,15 @@ export class StakingService {
 	}
 
 	/**
-	 * Validates network and ensures user is on Monad Testnet
+	 * Validates network and ensures user is on correct Monad network
 	 * @private
 	 * @throws {Error} If network switch fails
 	 */
 	async validateNetwork() {
 		const isCorrect = await this.networkService.ensureMonadNetwork()
 		if (!isCorrect) {
-			throw new Error('Please switch to Monad Testnet to continue')
+			const networkName = getNetworkName()
+			throw new Error(`Please switch to Monad ${networkName} to continue`)
 		}
 	}
 

@@ -4,8 +4,9 @@
  */
 
 import { switchChain, getChainId } from '@wagmi/core'
-import { monadTestnet } from '~/config/chains'
+import { monadTestnet, monadMainnet } from '~/config/chains'
 import { formatChainParams } from '~/utils/chain'
+import { isMainnet } from '~/services/utils/general'
 import {
 	showNetworkSwitchedNotification,
 	showNetworkAddedNotification,
@@ -27,18 +28,29 @@ export class NetworkService {
 	}
 
 	/**
-	 * Switches to Monad Testnet network
+	 * Get the target Monad network based on environment
+	 * @private
+	 * @returns {Object} Target chain configuration
+	 */
+	getTargetChain() {
+		return isMainnet() ? monadMainnet : monadTestnet
+	}
+
+	/**
+	 * Switches to the appropriate Monad network (mainnet or testnet)
 	 * Handles chain switching and automatically adds the network if not recognized
 	 * @returns {Promise<boolean>} True if switch was successful
 	 */
 	async switchToMonadNetwork() {
+		const targetChain = this.getTargetChain()
+
 		try {
-			// Attempt to switch to Monad Testnet
+			// Attempt to switch to target Monad network
 			await switchChain(this.wagmiConfig, {
-				chainId: monadTestnet.id,
+				chainId: targetChain.id,
 			})
 
-			showNetworkSwitchedNotification(monadTestnet.name)
+			showNetworkSwitchedNotification(targetChain.name)
 			return true
 		} catch (switchError) {
 			// Chain not added to wallet - code 4902 or unrecognized chain message
@@ -60,20 +72,22 @@ export class NetworkService {
 			console.error('Failed to switch network:', switchError)
 			showErrorNotification(
 				'Network Switch Failed',
-				switchError.message || 'Failed to switch to Monad Testnet'
+				switchError.message || `Failed to switch to ${targetChain.name}`
 			)
 			return false
 		}
 	}
 
 	/**
-	 * Adds Monad Testnet to the wallet
+	 * Adds the appropriate Monad network to the wallet
 	 * @private
 	 * @returns {Promise<boolean>} True if network was added successfully
 	 */
 	async addMonadNetwork() {
+		const targetChain = this.getTargetChain()
+
 		try {
-			const chainParams = formatChainParams(monadTestnet)
+			const chainParams = formatChainParams(targetChain)
 
 			// Request to add the network
 			await window.ethereum.request({
@@ -81,7 +95,7 @@ export class NetworkService {
 				params: [chainParams],
 			})
 
-			showNetworkAddedNotification(monadTestnet.name)
+			showNetworkAddedNotification(targetChain.name)
 
 			// Small delay to allow wallet to update
 			await new Promise((resolve) => setTimeout(resolve, 500))
@@ -89,7 +103,7 @@ export class NetworkService {
 			// Try switching again after adding
 			try {
 				await switchChain(this.wagmiConfig, {
-					chainId: monadTestnet.id,
+					chainId: targetChain.id,
 				})
 				return true
 			} catch (finalSwitchError) {
@@ -106,7 +120,7 @@ export class NetworkService {
 			console.error('Failed to add network:', addError)
 			showErrorNotification(
 				'Failed to Add Network',
-				addError.message || 'Could not add Monad Testnet to your wallet'
+				addError.message || `Could not add ${targetChain.name} to your wallet`
 			)
 			return false
 		}
@@ -139,14 +153,15 @@ export class NetworkService {
 	}
 
 	/**
-	 * Validates and ensures the user is on Monad Testnet
+	 * Validates and ensures the user is on the correct Monad network
 	 * If not, prompts the user to switch
-	 * @returns {Promise<boolean>} True if user is on Monad Testnet
+	 * @returns {Promise<boolean>} True if user is on correct Monad network
 	 */
 	async ensureMonadNetwork() {
+		const targetChain = this.getTargetChain()
 		const currentChainId = this.getCurrentChainId()
 
-		if (currentChainId === monadTestnet.id) {
+		if (currentChainId === targetChain.id) {
 			return true
 		}
 

@@ -1,5 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
+import { isMainnet } from '~/services/utils/general'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
@@ -9,6 +10,27 @@ import StakingOverview from '@/components/staking/StakingOverview.vue'
 const route = useRoute()
 const router = useRouter()
 const stakingStore = useStakingStore()
+
+// Auth middleware for mainnet
+definePageMeta({
+	middleware: async (to, from) => {
+		if (isMainnet()) {
+			// Check if user is authenticated
+			const { $wagmiConfig } = useNuxtApp()
+			const config = useRuntimeConfig()
+
+			// If auth is enabled and we're on mainnet, require authentication
+			if (config.mainnetAuthEnabled) {
+				// Check for auth cookie
+				const authCookie = useCookie('monad_auth_session')
+				if (!authCookie.value) {
+					// Not authenticated - redirect to login
+					return navigateTo('/auth/login')
+				}
+			}
+		}
+	}
+})
 
 // SEO
 useHead({

@@ -1,4 +1,26 @@
 // Monad Network Configuration
+
+// Mainnet Configuration
+export const monadMainnet = {
+	id: 143, // Monad Mainnet Chain ID
+	name: 'Monad Mainnet',
+	network: 'monad-mainnet',
+	nativeCurrency: {
+		decimals: 18,
+		name: 'MON',
+		symbol: 'MON',
+	},
+	rpcUrls: {
+		public: { http: ['https://rpc.monad.io'] },
+		default: { http: ['https://rpc.monad.io'] },
+	},
+	blockExplorers: {
+		default: { name: 'MonadScan', url: 'https://monad.hoodscan.io' },
+	},
+	testnet: false,
+}
+
+// Testnet Configuration
 export const monadTestnet = {
 	id: 10143, // Monad Testnet-1 Chain ID
 	name: 'Monad Testnet-1',
@@ -13,7 +35,7 @@ export const monadTestnet = {
 		default: { http: ['https://rpc-testnet.monadinfra.com'] },
 	},
 	blockExplorers: {
-		default: { name: 'MonadScan', url: 'https://monad.hoodscan.io' },
+		default: { name: 'MonadScan', url: 'https://testnet.monad.hoodscan.io' },
 	},
 	testnet: true,
 }
