@@ -81,7 +81,7 @@ useHead({
 					This is a pre-launch access protected environment.
 				</Text>
 				<Text size="12" weight="500" color="tertiary" align="center">
-					Please contact the Monad team if you need access.
+					Please contact the HoodRun team if you need access.
 				</Text>
 			</Flex>
 
