@@ -1,10 +1,12 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
 import { useNetworkValidation } from '~/composables/useNetworkValidation'
+import { useActiveNetwork } from '~/composables/useActiveNetwork'
 import Button from '@/components/ui/Button.vue'
 
 const stakingStore = useStakingStore()
 const { isCorrectNetwork, switchToMonadNetwork } = useNetworkValidation()
+const { activeNetworkName } = useActiveNetwork()
 
 const isSwitching = ref(false)
 
@@ -34,7 +36,7 @@ async function handleSwitchNetwork() {
 				<div :class="$style.content">
 					<h3 :class="$style.title">Wrong Network Detected</h3>
 					<p :class="$style.description">
-						You're currently connected to the wrong network. Please switch to Monad Testnet to use staking features.
+						You're currently connected to the wrong network. Please switch to {{ activeNetworkName }} to use staking features.
 					</p>
 				</div>
 
@@ -45,10 +47,10 @@ async function handleSwitchNetwork() {
 						:disabled="isSwitching"
 						type="primary"
 						size="medium"
-						aria-label="Switch to Monad Testnet"
+						:aria-label="`Switch to ${activeNetworkName}`"
 					>
 						<Icon v-if="!isSwitching" name="refresh" size="16" />
-						{{ isSwitching ? 'Switching...' : 'Switch to Monad Testnet' }}
+						{{ isSwitching ? 'Switching...' : `Switch to ${activeNetworkName}` }}
 					</Button>
 				</div>
 			</div>

@@ -1,13 +1,25 @@
 /** Staking API Services */
 import { createPublicClient, http, parseEther, formatEther } from 'viem'
-import { monadTestnet, STAKING_CONFIG } from '~/config/chains'
+import { monadTestnet, monadMainnet, STAKING_CONFIG } from '~/config/chains'
 import { rpcBatcher } from '~/services/utils/rpcBatcher'
+import { isMainnet } from '~/services/utils/general'
 
-// Create public client for read operations
-const publicClient = createPublicClient({
-	chain: monadTestnet,
-	transport: http(),
-})
+// Helper to get the active chain
+function getActiveChain() {
+	return isMainnet() ? monadMainnet : monadTestnet
+}
+
+// Create public client for read operations (dynamically based on network)
+function getPublicClient() {
+	return createPublicClient({
+		chain: getActiveChain(),
+		transport: http(),
+	})
+}
+
+// Legacy client reference (for backward compatibility)
+// Will be dynamically created when needed
+let publicClient = null
 
 // Simple cache for withdrawal requests to avoid repeated calls
 const withdrawalCache = new Map()
@@ -202,7 +214,7 @@ export async function getCurrentEpoch() {
 		}
 		
 		// Fallback to RPC if API fails
-		const result = await publicClient.readContract({
+		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getEpoch',
@@ -223,7 +235,7 @@ export async function getCurrentEpoch() {
  */
 export async function getValidatorById(valId) {
 	try {
-		const result = await publicClient.readContract({
+		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getValidator',
@@ -269,7 +281,7 @@ export async function getExecutionValidators() {
 		let done = false
 		
 		while (!done) {
-			const result = await publicClient.readContract({
+			const result = await getPublicClient().readContract({
 				address: STAKING_CONFIG.CONTRACT_ADDRESS,
 				abi: STAKING_ABI,
 				functionName: 'getExecutionValidatorSet',
@@ -312,7 +324,7 @@ export async function getConsensusValidators() {
 		let done = false
 		
 		while (!done) {
-			const result = await publicClient.readContract({
+			const result = await getPublicClient().readContract({
 				address: STAKING_CONFIG.CONTRACT_ADDRESS,
 				abi: STAKING_ABI,
 				functionName: 'getConsensusValidatorSet',
@@ -350,7 +362,7 @@ export async function getConsensusValidators() {
  */
 export async function getDelegatorInfo(valId, delegatorAddress) {
 	try {
-		const result = await publicClient.readContract({
+		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getDelegator',
@@ -391,7 +403,7 @@ export async function getDelegatorDelegations(delegatorAddress) {
 		let done = false
 		
 		while (!done) {
-			const result = await publicClient.readContract({
+			const result = await getPublicClient().readContract({
 				address: STAKING_CONFIG.CONTRACT_ADDRESS,
 				abi: STAKING_ABI,
 				functionName: 'getDelegations',
@@ -439,7 +451,7 @@ export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) 
 	}
 	
 	try {
-		const result = await publicClient.readContract({
+		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getWithdrawalRequest',
@@ -532,7 +544,7 @@ export async function getValidatorDelegators(valId, limit = 100) {
 		let count = 0
 		
 		while (!done && count < limit) {
-			const result = await publicClient.readContract({
+			const result = await getPublicClient().readContract({
 				address: STAKING_CONFIG.CONTRACT_ADDRESS,
 				abi: STAKING_ABI,
 				functionName: 'getDelegators',

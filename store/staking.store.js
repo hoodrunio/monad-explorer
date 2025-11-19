@@ -2,10 +2,11 @@ import { defineStore } from 'pinia'
 import { getBalance } from '@wagmi/core'
 import { formatEther, parseEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
-import { monadTestnet } from '~/config/chains'
+import { monadTestnet, monadMainnet } from '~/config/chains'
 import { createStakingService } from '~/services/StakingService'
 import { createNetworkService } from '~/services/NetworkService'
 import { isCorrectNetwork as checkNetwork } from '~/utils/chain'
+import { isMainnet } from '~/services/utils/general'
 
 export const useStakingStore = defineStore('staking', {
 	state: () => ({
@@ -42,10 +43,16 @@ export const useStakingStore = defineStore('staking', {
 	}),
 
 	getters: {
-		// Network validation
+		// Get target chain based on current network (mainnet/testnet)
+		targetChain: () => {
+			return isMainnet() ? monadMainnet : monadTestnet
+		},
+
+		// Network validation - checks if wallet is on correct network
 		isCorrectNetwork: (state) => {
 			if (!state.chainId) return false
-			return checkNetwork(state.chainId, monadTestnet.id)
+			const targetChainId = isMainnet() ? monadMainnet.id : monadTestnet.id
+			return checkNetwork(state.chainId, targetChainId)
 		},
 
 		// Formatted balances

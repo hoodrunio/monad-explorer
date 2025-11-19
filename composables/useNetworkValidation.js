@@ -4,10 +4,11 @@
  */
 
 import { createNetworkService } from '~/services/NetworkService'
-import { monadTestnet } from '~/config/chains'
+import { monadTestnet, monadMainnet } from '~/config/chains'
 import { isCorrectNetwork as checkNetwork } from '~/utils/chain'
 import { showNetworkSwitchRequiredNotification } from '~/utils/notifications'
 import { getChainId, watchChainId } from '@wagmi/core'
+import { isMainnet } from '~/services/utils/general'
 
 export function useNetworkValidation() {
 	const { $wagmiConfig } = useNuxtApp()
@@ -27,12 +28,15 @@ export function useNetworkValidation() {
 		})
 	}
 
+	// Get target chain based on current environment (mainnet/testnet)
+	const targetChain = computed(() => isMainnet() ? monadMainnet : monadTestnet)
+
 	// Computed properties
-	const isCorrectNetwork = computed(() => checkNetwork(chainId.value, monadTestnet.id))
+	const isCorrectNetwork = computed(() => checkNetwork(chainId.value, targetChain.value.id))
 	const currentChainId = computed(() => networkService?.getCurrentChainId() || chainId.value)
 
 	/**
-	 * Switches to Monad Testnet network
+	 * Switches to the appropriate Monad network (mainnet or testnet)
 	 * @returns {Promise<boolean>} True if switch successful
 	 */
 	async function switchToMonadNetwork() {
@@ -45,7 +49,7 @@ export function useNetworkValidation() {
 	}
 
 	/**
-	 * Ensures the user is on Monad Testnet, switches if necessary
+	 * Ensures the user is on the correct Monad network, switches if necessary
 	 * @returns {Promise<boolean>} True if user is on correct network
 	 */
 	async function ensureCorrectNetwork() {
@@ -68,7 +72,7 @@ export function useNetworkValidation() {
 		}
 
 		if (showNotification) {
-			showNetworkSwitchRequiredNotification(monadTestnet.name)
+			showNetworkSwitchRequiredNotification(targetChain.value.name)
 		}
 
 		return false

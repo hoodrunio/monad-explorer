@@ -3,6 +3,7 @@ import { useStakingStore } from '~/store/staking.store'
 import { getValidatorById, getDelegatorWithdrawals } from '~/services/api/staking'
 import { formatEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
+import { isMainnet } from '~/services/utils/general'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
@@ -15,6 +16,21 @@ import Button from '@/components/ui/Button.vue'
 const route = useRoute()
 const router = useRouter()
 const stakingStore = useStakingStore()
+
+// Auth middleware for mainnet
+definePageMeta({
+	middleware: async (to, from) => {
+		if (isMainnet()) {
+			const config = useRuntimeConfig()
+			if (config.mainnetAuthEnabled) {
+				const authCookie = useCookie('monad_auth_session')
+				if (!authCookie.value) {
+					return navigateTo('/auth/login')
+				}
+			}
+		}
+	}
+})
 
 // SEO
 useHead({
