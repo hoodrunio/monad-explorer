@@ -1,6 +1,7 @@
 <script setup>
 /** Components */
 import AdvBanner from "@/components/shared/AdvBanner.vue"
+import TestnetNoticeBanner from "@/components/modules/navigation/TestnetNoticeBanner.vue"
 
 /** Services */
 import { getNetworkName } from "@/services/utils/general"
@@ -18,6 +19,11 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 				<ActionBar />
 
 				<Flex direction="column" align="center" wide :class="$style.container">
+					<!-- Testnet Notice Banner -->
+					<ClientOnly>
+						<TestnetNoticeBanner :class="$style.testnet_notice" />
+					</ClientOnly>
+
 					<slot />
 
 					<div :class="$style.bg" />
@@ -45,6 +51,12 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 	position: relative;
 }
 
+.testnet_notice {
+	padding: 0 24px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
 .bg {
 	position: absolute;
 	top: 28px;
@@ -62,6 +74,12 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 	.content {
 		max-width: 100%;
 		min-width: 100%;
+	}
+}
+
+@media (max-width: 500px) {
+	.testnet_notice {
+		padding: 0 12px;
 	}
 }
 </style>
