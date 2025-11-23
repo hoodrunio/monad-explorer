@@ -5,8 +5,8 @@
 This project uses a modified version of the Celenium Interface, originally developed for Celestia and licensed under the MIT License.
 
 
--   Production: [monad.hoodscan.io](https://monad.hoodscan.io)
--   Testnet: [dev.monad.hoodscan.io](https://monad.testnet.hoodscan.io)
+-   Mainnet: [monad.hoodscan.io](https://monad.hoodscan.io)
+-   Testnet: [testnet.monad.hoodscan.io](https://testnet.monad.hoodscan.io)
 
 A blockchain explorer and analytics platform for Monad, a high-performance EVM-compatible blockchain.
 
