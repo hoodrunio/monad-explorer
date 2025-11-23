@@ -91,7 +91,7 @@ export default defineNuxtConfig({
 			blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
 			version: "1.16.0",
 			// Network Configuration
-			mainnetRpc: process.env.NUXT_PUBLIC_MAINNET_RPC || 'https://rpc.monad.io',
+			mainnetRpc: process.env.NUXT_PUBLIC_MAINNET_RPC || 'https://rpc1.monad.xyz',
 			testnetRpc: process.env.NUXT_PUBLIC_TESTNET_RPC || 'https://rpc-testnet.monadinfra.com',
 			mainnetChainId: parseInt(process.env.NUXT_PUBLIC_MAINNET_CHAIN_ID || '143'),
 			testnetChainId: parseInt(process.env.NUXT_PUBLIC_TESTNET_CHAIN_ID || '10143'),
