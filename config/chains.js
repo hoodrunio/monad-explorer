@@ -11,8 +11,8 @@ export const monadMainnet = {
 		symbol: 'MON',
 	},
 	rpcUrls: {
-		public: { http: ['https://rpc.monad.io'] },
-		default: { http: ['https://rpc.monad.io'] },
+		public: { http: ['https://rpc1.monad.xyz'] },
+		default: { http: ['https://rpc1.monad.xyz'] },
 	},
 	blockExplorers: {
 		default: { name: 'MonadScan', url: 'https://monad.hoodscan.io' },

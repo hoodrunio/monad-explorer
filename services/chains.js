@@ -3,10 +3,10 @@
 // Reference: https://www.monad.xyz/ - "100% EVM-Compatible"
 
 export const monad = {
-	chainId: 60808, // Monad mainnet chain ID
+	chainId: 143, // Monad mainnet chain ID
 	chainName: "Monad Mainnet",
-	rpc: "https://rpc.monad.io",
-	blockExplorer: "https://explorer.monad.io",
+	rpc: "https://rpc1.monad.xyz",
+	blockExplorer: "https://monad.hoodscan.io",
 	nativeCurrency: {
 		name: "MON",
 		symbol: "MON",
@@ -16,10 +16,10 @@ export const monad = {
 }
 
 export const monadTestnet = {
-	chainId: 60809, // Monad testnet chain ID  
+	chainId: 10143, // Monad testnet chain ID  
 	chainName: "Monad Testnet",
-	rpc: "https://rpc-testnet.monad.io",
-	blockExplorer: "https://testnet.monad.io",
+	rpc: "https://rpc-testnet.monadinfra.com",
+	blockExplorer: "https://testnet.monad.hoodscan.io",
 	nativeCurrency: {
 		name: "MON",
 		symbol: "MON", 
