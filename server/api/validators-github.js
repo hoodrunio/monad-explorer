@@ -11,13 +11,34 @@ import { Redis } from '@upstash/redis'
 
 const GITHUB_API_BASE = 'https://api.github.com'
 const VALIDATOR_INFO_REPO = 'monad-developers/validator-info'
-const TESTNET_FOLDER = 'testnet'
 
-// Redis keys for persistent caching
-const REDIS_KEYS = {
-  VALIDATORS_CACHE: 'validators:cache',
-  LAST_COMMIT_SHA: 'validators:commit_sha',
-  LAST_FETCH_TIME: 'validators:fetch_time'
+/**
+ * Determine the validator folder based on the request hostname
+ */
+function getValidatorFolder(event) {
+  const hostname = getRequestHost(event, { xForwardedHost: true })
+
+  switch (hostname) {
+    case 'monad.hoodscan.io':
+      return 'mainnet'
+    case 'testnet.monad.hoodscan.io':
+      return 'testnet'
+    case 'dev.monad.hoodscan.io':
+      return 'testnet' // Development uses testnet data
+    default:
+      return 'testnet' // Default fallback
+  }
+}
+
+/**
+ * Get network-specific Redis keys
+ */
+function getRedisKeys(network) {
+  return {
+    VALIDATORS_CACHE: `validators:${network}:cache`,
+    LAST_COMMIT_SHA: `validators:${network}:commit_sha`,
+    LAST_FETCH_TIME: `validators:${network}:fetch_time`
+  }
 }
 
 // Initialize Redis with Upstash environment variables
@@ -46,41 +67,44 @@ function getGithubHeaders() {
 /**
  * Check if repository has new commits since last fetch
  */
-async function hasNewCommits() {
+async function hasNewCommits(event) {
   try {
+    const folder = getValidatorFolder(event)
+    const REDIS_KEYS = getRedisKeys(folder)
+
     const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${VALIDATOR_INFO_REPO}/commits?path=${TESTNET_FOLDER}&per_page=1`,
+      `${GITHUB_API_BASE}/repos/${VALIDATOR_INFO_REPO}/commits?path=${folder}&per_page=1`,
       { headers: getGithubHeaders() }
     )
-    
+
     if (!response.ok) {
       return false
     }
-    
+
     const commits = await response.json()
-    
+
     if (commits.length === 0) {
       return false
     }
-    
+
     const latestCommit = commits[0].sha
-    
+
     // Get last known commit from Redis
     const lastCommitSha = await redis.get(REDIS_KEYS.LAST_COMMIT_SHA)
-    
+
     if (!lastCommitSha) {
       // First time setup
       await redis.set(REDIS_KEYS.LAST_COMMIT_SHA, latestCommit)
       return true
     }
-    
+
     if (latestCommit !== lastCommitSha) {
       await redis.set(REDIS_KEYS.LAST_COMMIT_SHA, latestCommit)
       return true
     }
-    
+
     return false
-    
+
   } catch (error) {
     return false
   }
@@ -96,58 +120,60 @@ function delay(ms) {
 /**
  * Fetch all validator data with rate limiting and batching
  */
-async function fetchValidatorData() {
+async function fetchValidatorData(event) {
   try {
-    
-    // Get the contents of testnet directory
+    const folder = getValidatorFolder(event)
+    const REDIS_KEYS = getRedisKeys(folder)
+
+    // Get the contents of the network-specific directory
     const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${VALIDATOR_INFO_REPO}/contents/${TESTNET_FOLDER}`,
+      `${GITHUB_API_BASE}/repos/${VALIDATOR_INFO_REPO}/contents/${folder}`,
       { headers: getGithubHeaders() }
     )
-    
+
     if (!response.ok) {
       throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
     }
-    
+
     const contents = await response.json()
     const validatorFiles = contents.filter(item =>
       item.type === 'file' && (item.name.endsWith('.json') || !item.name.includes('.'))
     )
-        
+
     const validatorsObject = {}
     const batchSize = 5 // Process in small batches
-    
+
     // Process files in controlled batches
     for (let i = 0; i < validatorFiles.length; i += batchSize) {
       const batch = validatorFiles.slice(i, i + batchSize)
-      
+
       const batchPromises = batch.map(async (file) => {
         try {
           const fileResponse = await fetch(file.download_url)
-          
+
           if (!fileResponse.ok) {
             return null
           }
-          
+
           const validatorData = await fileResponse.json()
-          
+
           // Validate required fields
           if (!validatorData.secp) {
             return null
           }
-          
+
           return {
             secp: validatorData.secp,
             data: validatorData
           }
-          
+
         } catch (error) {
           return null
         }
       })
-      
+
       const batchResults = await Promise.allSettled(batchPromises)
-      
+
       // Process successful results
       batchResults.forEach(result => {
         if (result.status === 'fulfilled' && result.value) {
@@ -155,29 +181,32 @@ async function fetchValidatorData() {
           validatorsObject[secp] = data
         }
       })
-      
+
       // Add delay between batches to respect rate limits
       if (i + batchSize < validatorFiles.length) {
         await delay(200)
       }
     }
-    
+
     // Cache in Redis with 2 hour expiration
     await Promise.all([
       redis.setex(REDIS_KEYS.VALIDATORS_CACHE, 7200, JSON.stringify(validatorsObject)), // 2 hours
       redis.set(REDIS_KEYS.LAST_FETCH_TIME, Date.now())
     ])
-        
+
     return validatorsObject
-    
-  } catch (error) {    
+
+  } catch (error) {
+    const folder = getValidatorFolder(event)
+    const REDIS_KEYS = getRedisKeys(folder)
+
     // Try to return cached data from Redis
     const cachedData = await redis.get(REDIS_KEYS.VALIDATORS_CACHE)
     if (cachedData) {
       // Handle both string and object responses from Redis
       return typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData
     }
-    
+
     throw error
   }
 }
@@ -194,7 +223,10 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Method not allowed'
       })
     }
-    
+
+    const folder = getValidatorFolder(event)
+    const REDIS_KEYS = getRedisKeys(folder)
+
     // Get cache data from Redis
     const [cachedData, lastFetchTime] = await Promise.all([
       redis.get(REDIS_KEYS.VALIDATORS_CACHE),
@@ -207,9 +239,9 @@ export default defineEventHandler(async (event) => {
     
     // Check if we need to refresh data
     const shouldRefresh = (
-      !cachedData || 
-      cacheAge > maxAge || 
-      await hasNewCommits()
+      !cachedData ||
+      cacheAge > maxAge ||
+      await hasNewCommits(event)
     )
     
     // If we have cached data and don't need immediate refresh, serve cached
@@ -236,7 +268,7 @@ export default defineEventHandler(async (event) => {
     }
     
     // Fetch fresh data
-    const freshData = await fetchValidatorData()
+    const freshData = await fetchValidatorData(event)
     
     // Set response headers
     setResponseStatus(event, 200)
@@ -255,19 +287,22 @@ export default defineEventHandler(async (event) => {
     }
       
   } catch (error) {
+    const folder = getValidatorFolder(event)
+    const REDIS_KEYS = getRedisKeys(folder)
+
     // If we have cached data in Redis, serve it even on error
     const cachedData = await redis.get(REDIS_KEYS.VALIDATORS_CACHE)
     const lastFetchTime = await redis.get(REDIS_KEYS.LAST_FETCH_TIME)
-    
+
     if (cachedData) {
       // Handle both string and object responses from Redis
       const parsedData = typeof cachedData === 'string' ? JSON.parse(cachedData) : cachedData
-      
+
       setResponseStatus(event, 200)
       setResponseHeader(event, 'Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800')
       setResponseHeader(event, 'X-Data-Source', 'redis-fallback')
       setResponseHeader(event, 'X-Last-Updated', new Date(lastFetchTime).toISOString())
-      
+
       return {
         success: true,
         data: parsedData,
@@ -278,7 +313,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     }
-    
+
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to fetch validator data',
