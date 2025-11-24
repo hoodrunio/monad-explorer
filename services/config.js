@@ -22,14 +22,14 @@ export const useServerURL = () => {
 	const requestURL = useRequestURL()
 
 	switch (requestURL.hostname) {
-		case "explorer.monad.io":
+		case "monad.hoodscan.io":
 		case "localhost:9090":
 			return Server.API.mainnet
 
-		case "testnet.monad.io":
+		case "testnet.monad.hoodscan.io":
 			return Server.API.testnet
 
-		case "dev.monad.io":
+		case "dev.monad.hoodscan.io":
 			return Server.API.dev
 
 		default:
@@ -42,14 +42,14 @@ export const useIndexerUrl = () => {
 	const requestURL = useRequestURL()
 
 	switch (requestURL.hostname) {
-		case "explorer.monad.io":
+		case "monad.hoodscan.io":
 		case "localhost:9090":
 			return Server.Indexer.mainnet
 
-		case "testnet.monad.io":
+		case "testnet.monad.hoodscan.io":
 			return Server.Indexer.testnet
 
-		case "dev.monad.io":
+		case "dev.monad.hoodscan.io":
 			return Server.Indexer.dev
 
 		default:
@@ -63,14 +63,14 @@ export const useExplorerURL = () => {
 	const requestURL = useRequestURL()
 
 	switch (requestURL.hostname) {
-		case "explorer.monad.io":
+		case "monad.hoodscan.io":
 		case "localhost:9090":
 			return Server.Explorer.mainnet
 
-		case "testnet.monad.io":
+		case "testnet.monad.hoodscan.io":
 			return Server.Explorer.testnet
 
-		case "dev.monad.io":
+		case "dev.monad.hoodscan.io":
 			return Server.Explorer.dev
 
 		default:
@@ -82,13 +82,13 @@ export const getStartChainDate = () => {
 	const requestURL = useRequestURL()
 
 	switch (requestURL.hostname) {
-		case "explorer.monad.io":
+		case "monad.hoodscan.io":
 			return "2024-01-01T00:00:00Z"
 
-		case "testnet.monad.io":
+		case "testnet.monad.hoodscan.io":
 			return "2024-01-01T00:00:00Z"
 
-		case "dev.monad.io":
+		case "dev.monad.hoodscan.io":
 			return "2024-01-01T00:00:00Z"
 
 		default:
