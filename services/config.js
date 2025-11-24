@@ -1,8 +1,8 @@
 export const Server = {
 	API: {
-		mainnet: "https://monad-indexer.hoodscan.io",
+		mainnet: "https://monad-indexer.mainnet.hoodscan.io",
 		testnet: "https://monad-indexer.hoodscan.io",
-		dev: "https://monad-indexer.hoodscan.io",
+		dev: "https://monad-indexer.mainnet.hoodscan.io",
 	},
 	// New Indexer API (Blockscout-compatible)
 	Indexer: {
