@@ -49,6 +49,9 @@ export const STAKING_CONFIG = {
 	ACTIVE_VALSET_SIZE: 200,
 	UNIT_BIAS: BigInt('1000000000000000000000000000000000000'), // 1e36
 	PAGINATED_RESULTS_SIZE: 100,
+	BLOCK_REWARD: 25, // MON per block
+	BLOCK_TIME: 0.4, // seconds
+	SECONDS_PER_YEAR: 365 * 24 * 60 * 60, // 31,536,000
 }
 
 // Function Selectors for Staking Precompile

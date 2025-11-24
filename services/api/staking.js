@@ -583,43 +583,35 @@ export async function getValidatorDelegators(valId, limit = 100) {
 }
 
 /**
- * Calculate APY for a validator (estimated)
- * This is a simplified calculation based on block rewards
+ * Calculate APR for a validator (estimated)
+ * Formula: blocks_per_year = seconds_per_year / block_time
+ *          annual_rewards = block_reward * blocks_per_year
+ *          APR = (annual_rewards / total_staked) * 100
+ *          Validator APR = network APR * (1 - commission_rate / 100)
  */
-export function calculateValidatorAPY(validator, totalNetworkStake, blockReward = 1) {
+export function calculateValidatorAPY(validator, totalNetworkStake, blockReward = STAKING_CONFIG.BLOCK_REWARD) {
 	try {
-		// Handle scientific notation and string conversion safely
-		let stakeValue = validator.consensusStake || validator.stake
-		if (!stakeValue || stakeValue === '0') return 0
-		
-		// Convert to string first
-		let stakeStr = String(stakeValue)
-		
-		// Handle scientific notation by converting to fixed notation first
-		if (stakeStr.includes('e') || stakeStr.includes('E')) {
-			const num = Number(stakeStr)
-			if (isNaN(num) || !isFinite(num)) return 0
-			// Use toLocaleString to avoid scientific notation for very large numbers
-			stakeStr = num.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 0 })
-		}
-		
-		// Ensure it's a valid integer string for BigInt
-		if (!/^\d+$/.test(stakeStr)) {
-			return 0
-		}
-		
-		const validatorStake = BigInt(stakeStr)
-		if (validatorStake === 0n) return 0
-		
-		// Simplified APY calculation
-		// Assumes validator produces blocks proportional to their stake
-		const validatorShare = Number(validatorStake) / Number(totalNetworkStake)
-		const blocksPerYear = (365 * 24 * 60 * 60) / 2 // Assuming 2 second block time
-		const annualRewards = blocksPerYear * blockReward * validatorShare * (1 - validator.commissionRate / 100)
-		const apy = (annualRewards / Number(formatEther(validatorStake))) * 100
-		
-		return Math.max(0, Math.min(100, apy)) // Cap between 0-100%
+		// Validate total network stake
+		if (!totalNetworkStake || totalNetworkStake === '0' || totalNetworkStake === 0) return 0
+
+		// Calculate network-wide APR
+		const blocksPerYear = STAKING_CONFIG.SECONDS_PER_YEAR / STAKING_CONFIG.BLOCK_TIME
+		const annualRewards = blockReward * blocksPerYear
+
+		// Convert total network stake to MON (from wei)
+		const totalStakedMON = Number(formatEther(totalNetworkStake))
+		if (totalStakedMON === 0) return 0
+
+		// Calculate network APR
+		const networkAPR = (annualRewards / totalStakedMON) * 100
+
+		// Calculate validator-specific APR (accounting for commission)
+		const commissionRate = validator.commissionRate || 0
+		const validatorAPR = networkAPR * (1 - commissionRate / 100)
+
+		return Math.max(0, validatorAPR)
 	} catch (error) {
+		console.error('Error calculating validator APR:', error)
 		return 0
 	}
 }
