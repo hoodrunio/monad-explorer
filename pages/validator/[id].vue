@@ -6,6 +6,7 @@ import ValidatorOverview from "@/components/modules/validator/ValidatorOverview.
 import { fetchValidatorByID, fetchValidatorHistory, fetchValidatorInfrastructure } from "@/services/api/validator"
 import { preloadGithubValidatorData } from "@/services/api/github"
 import { fetchAddressNativeBalance } from "@/services/api/address"
+import { fetchValidatorTipRevenue, fetchValidatorTipHistory } from "@/services/api/tipRevenue"
 
 /** Services */
 import { shortHex } from "@/services/utils"
@@ -21,6 +22,8 @@ const validator = ref()
 const validatorHistory = ref()
 const validatorInfrastructure = ref()
 const authorBalance = ref(null)
+const tipRevenue = ref(null)
+const tipHistory = ref(null)
 
 const {
 	data,
@@ -36,10 +39,14 @@ const {
 			{ data: rawValidator },
 			{ data: rawHistory },
 			{ data: rawInfrastructure },
+			{ data: rawTipRevenue },
+			{ data: rawTipHistory },
 		] = await Promise.all([
 			fetchValidatorByID(route.params.id),
 			fetchValidatorHistory({ id: route.params.id, hours: 168 }),
 			fetchValidatorInfrastructure(route.params.id),
+			fetchValidatorTipRevenue(route.params.id),
+			fetchValidatorTipHistory(route.params.id, { hours: 24 }),
 		])
 
 		// Ensure GitHub data is loaded (no need to wait as it's cached now)
@@ -53,6 +60,8 @@ const {
 			validator: rawValidator.value,
 			history: rawHistory.value,
 			infrastructure: rawInfrastructure.value,
+			tipRevenue: rawTipRevenue.value,
+			tipHistory: rawTipHistory.value,
 		}
 	} catch (err) {
 		if (err.message === "Validator not found") {
@@ -69,8 +78,10 @@ watch(
 			validator.value = newData.validator
 			validatorHistory.value = newData.history
 			validatorInfrastructure.value = newData.infrastructure
+			tipRevenue.value = newData.tipRevenue
+			tipHistory.value = newData.tipHistory
 			cacheStore.current.validator = newData.validator
-			
+
 			// Fetch author address balance if available
 			if (newData.validator?.staking?.auth_address) {
 				try {
@@ -161,12 +172,14 @@ useHead({
 				</NuxtLink>
 			</Flex>
 
-			<ValidatorOverview 
-				v-else-if="validator" 
-				:validator="validator" 
+			<ValidatorOverview
+				v-else-if="validator"
+				:validator="validator"
 				:history="validatorHistory"
 				:infrastructure="validatorInfrastructure"
 				:author-balance="authorBalance"
+				:tip-revenue="tipRevenue"
+				:tip-history="tipHistory"
 			/>
 		</Flex>
 	</Flex>
