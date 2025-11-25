@@ -12,7 +12,6 @@ import { comma, shortHex } from "@/services/utils"
 /** API */
 import { fetchValidatorRankings } from "@/services/api/validator"
 import { preloadGithubValidatorData, fetchGithubValidatorInfo } from "@/services/api/github"
-import { fetchTipRevenueRankings } from "@/services/api/tipRevenue"
 
 const route = useRoute()
 const router = useRouter()
@@ -38,7 +37,6 @@ useHead({
 const isLoading = ref(false)
 const validators = ref([])
 const allValidators = ref([]) // Store all validators for filtering
-const tipRevenueMap = ref(new Map()) // Store tip revenue data by validator ID
 const searchTerm = ref(route.query.search || "")
 
 // Time window options
@@ -54,7 +52,6 @@ const sortOptions = ref([
 	{ label: "Stake", value: "stake" },
 	{ label: "QC Participation", value: "qc_participation_rate" },
 	{ label: "Block Proposals", value: "block_proposal_ratio" },
-	{ label: "Tip Revenue", value: "tip_revenue" },
 ])
 const selectedSort = ref(route.query.sortBy || "stake")
 const sortDirection = ref(route.query.sortDir || "desc") // "asc" or "desc"
@@ -110,26 +107,13 @@ const getValidators = async () => {
 	isLoading.value = true
 
 	try {
-		// Fetch validators and tip revenue data in parallel
-		const [validatorResult, tipRevenueResult] = await Promise.all([
-			fetchValidatorRankings({
-				limit: 1000, // Fetch more validators to enable client-side search
-				sortBy: selectedSort.value,
-				window: selectedTimeWindow.value,
-				page: 1, // Always fetch from page 1 to get all validators
-				active_only: activeTab.value === "active" // Use active_only based on current tab
-			}),
-			fetchTipRevenueRankings({ limit: 200 }) // Fetch tip revenue for all validators
-		])
-
-		const { data } = validatorResult
-
-		// Build tip revenue map for quick lookup
-		if (tipRevenueResult.data.value?.rankings) {
-			tipRevenueMap.value = new Map(
-				tipRevenueResult.data.value.rankings.map(r => [r.validatorId, r])
-			)
-		}
+		const { data } = await fetchValidatorRankings({
+			limit: 1000, // Fetch more validators to enable client-side search
+			sortBy: selectedSort.value,
+			window: selectedTimeWindow.value,
+			page: 1, // Always fetch from page 1 to get all validators
+			active_only: activeTab.value === "active" // Use active_only based on current tab
+		})
 
 		if (data.value?.data) {
 			// Load GitHub validator info once and use it for mapping
@@ -167,9 +151,6 @@ const getValidators = async () => {
 				// Use block proposal ratio as uptime score; if no opportunities, show null
 				const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
 
-				// Get tip revenue data for this validator
-				const tipData = tipRevenueMap.value.get(v.validator_id)
-
 				return {
 					rank: v.rank || 0,
 					validatorId: v.validator_id || '',
@@ -191,10 +172,7 @@ const getValidators = async () => {
 					formattedCommissionRate: `${parseFloat(v.staking?.commission?.percentage || 0).toFixed(2).replace(/\.?0+$/, '')}%`,
 					// Include staking object for precompile_validator_id access
 					staking: v.staking,
-					precompileValidatorId: v.staking?.precompile_validator_id,
-					// Tip revenue data
-					tipRevenue: tipData ? parseFloat(tipData.totalTipMon) : 0,
-					tipRevenueRank: tipData?.rank || null
+					precompileValidatorId: v.staking?.precompile_validator_id
 				}
 			})
 			
@@ -286,10 +264,6 @@ const sortValidators = (validators) => {
 			case 'qc_participation_rate':
 				valueA = a.qcParticipationRate || 0
 				valueB = b.qcParticipationRate || 0
-				break
-			case 'tip_revenue':
-				valueA = a.tipRevenue || 0
-				valueB = b.tipRevenue || 0
 				break
 			default:
 				// For other sorts, keep original order
@@ -606,26 +580,6 @@ onMounted(() => {
 									</Flex>
 								</th>
 								<th :class="$style.col_commission"><Text size="12" weight="600" color="tertiary" noWrap>Commission</Text></th>
-								<th
-									:class="[$style.col_tips, $style.sortable]"
-									@click="handleColumnSort('tip_revenue')"
-								>
-									<Flex align="center" gap="4" :class="$style.header_content">
-										<Text size="12" weight="600" color="tertiary" noWrap>Tips (24h)</Text>
-										<Icon
-											name="chevron"
-											size="10"
-											:color="selectedSort === 'tip_revenue' ? 'tertiary' : 'support'"
-											:style="{
-												transform: selectedSort === 'tip_revenue'
-													? (sortDirection === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)')
-													: 'rotate(0deg)',
-												opacity: selectedSort === 'tip_revenue' ? 1 : 0.5,
-												transition: 'all 0.2s ease'
-											}"
-										/>
-									</Flex>
-								</th>
 								<th :class="$style.col_location"><Text size="12" weight="600" color="tertiary" noWrap>Location</Text></th>
 								<th :class="$style.col_bookmark"><Text size="12" weight="600" color="tertiary" noWrap>Bookmark</Text></th>
 							</tr>
@@ -675,13 +629,6 @@ onMounted(() => {
 									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
 										<Text size="13" weight="600" color="secondary">
 											{{ validator.formattedCommissionRate || 'N/A' }}
-										</Text>
-									</NuxtLink>
-								</td>
-								<td :class="$style.col_tips">
-									<NuxtLink :to="`/validator/${validator.validatorId}`" :class="$style.cell_link">
-										<Text size="13" weight="600" :color="validator.tipRevenue > 0 ? 'green' : 'tertiary'">
-											{{ validator.tipRevenue > 0 ? comma(validator.tipRevenue, ',', 2) : '0' }} MON
 										</Text>
 									</NuxtLink>
 								</td>
@@ -834,10 +781,6 @@ onMounted(() => {
 			width: 120px;
 		}
 
-		& .col_tips {
-			width: 130px;
-		}
-
 		& .col_location {
 			width: 150px;
 		}
@@ -944,10 +887,6 @@ onMounted(() => {
 			}
 
 			& .col_location {
-				display: none;
-			}
-
-			& .col_tips {
 				display: none;
 			}
 		}
