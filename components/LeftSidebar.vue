@@ -99,6 +99,12 @@ const mainLinks = reactive([
 				icon: "eye",
 				show: true,
 			},
+			{
+				name: "Tip Revenue",
+				path: "/tip-revenue",
+				icon: "coins",
+				show: true,
+			},
 		],
 	},
 	{

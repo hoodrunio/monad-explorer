@@ -6,9 +6,9 @@ export const Server = {
 	},
 	// New Indexer API (Blockscout-compatible)
 	Indexer: {
-		mainnet: "https://monad-tn1-indexer.hoodscan.io/api/v2",
+		mainnet: "https://monad-mainnet-indexer.hoodscan.io/api/v2",
 		testnet: "https://monad-tn1-indexer.hoodscan.io/api/v2",
-		dev: "https://monad-tn1-indexer.hoodscan.io/api/v2",
+		dev: "https://monad-mainnet-indexer.hoodscan.io/api/v2",
 	},
 	// Old Explorer API (ONLY for account balance compatibility)
 	Explorer: {

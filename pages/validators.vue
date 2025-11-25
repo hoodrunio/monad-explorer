@@ -46,7 +46,7 @@ const timeWindows = ref([
 ])
 const selectedTimeWindow = ref(route.query.window || "7d")
 
-// Sort options 
+// Sort options
 const sortOptions = ref([
 	{ label: "Uptime Score", value: "block_proposal_ratio" },
 	{ label: "Stake", value: "stake" },
@@ -147,10 +147,10 @@ const getValidators = async () => {
 				}
 
 				const preferredLogo = githubData?.logo || v.keybase?.logo_url || v.logoUrl || null
-				
+
 				// Use block proposal ratio as uptime score; if no opportunities, show null
 				const uptimeScore = totalBlockOpportunities === 0 ? null : blockProposalRatio
-				
+
 				return {
 					rank: v.rank || 0,
 					validatorId: v.validator_id || '',
@@ -248,10 +248,10 @@ const getSortKeyForColumn = (column) => {
 // Client-side sorting function
 const sortValidators = (validators) => {
 	if (!validators || validators.length === 0) return validators
-	
+
 	const sorted = [...validators].sort((a, b) => {
 		let valueA, valueB
-		
+
 		switch (selectedSort.value) {
 			case 'stake':
 				valueA = a.stake || 0
@@ -269,15 +269,15 @@ const sortValidators = (validators) => {
 				// For other sorts, keep original order
 				return 0
 		}
-		
+
 		// Handle null/undefined values
 		if (valueA === null || valueA === undefined) valueA = -1
 		if (valueB === null || valueB === undefined) valueB = -1
-		
+
 		const comparison = valueB - valueA // Default descending order
 		return sortDirection.value === 'asc' ? -comparison : comparison
 	})
-	
+
 	return sorted
 }
 
@@ -880,12 +880,12 @@ onMounted(() => {
 		& table {
 			& tbody tr {
 				border-bottom: 1px solid var(--op-10);
-				
+
 				&:last-child {
 					border-bottom: none;
 				}
 			}
-			
+
 			& .col_location {
 				display: none;
 			}

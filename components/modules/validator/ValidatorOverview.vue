@@ -18,6 +18,7 @@ import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed
 import ValidatorEventsTable from "./ValidatorEventsTable.vue"
 import ValidatorDelegatorsTable from "./ValidatorDelegatorsTable.vue"
 import ValidatorTransactionAnalytics from "./ValidatorTransactionAnalytics.vue"
+import ValidatorTipRevenueTab from "./ValidatorTipRevenueTab.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -39,12 +40,24 @@ const props = defineProps({
 		type: Object,
 		default: null,
 	},
+	tipRevenue: {
+		type: Object,
+		default: null,
+	},
+	tipHistory: {
+		type: Object,
+		default: null,
+	},
 })
 
 const tabs = ref([
 	{
 		name: "Performance",
 		icon: "bar-chart",
+	},
+	{
+		name: "Tip Revenue",
+		icon: "coins",
 	},
 	{
 		name: "History",
@@ -317,11 +330,11 @@ const toggleDescription = () => {
 
 const formatBalance = (balance) => {
 	if (!balance || balance === '0') return '0'
-	
+
 	try {
 		// Convert from wei to ether (divide by 10^18)
 		const balanceInEther = parseFloat(balance) / Math.pow(10, 18)
-		
+
 		// Format with appropriate decimal places
 		if (balanceInEther >= 1000000) {
 			return comma(balanceInEther.toFixed(2))
@@ -333,6 +346,24 @@ const formatBalance = (balance) => {
 	} catch (error) {
 		return '0'
 	}
+}
+
+// Tip Revenue sidebar data
+const tipRevenueSidebar = computed(() => {
+	if (!props.tipRevenue) return null
+
+	return {
+		total24h: props.tipRevenue.tip_revenue?.total_mon || '0',
+		rank: props.tipRevenue.rank || 'N/A',
+		avgPerBlock: props.tipRevenue.tip_revenue?.avg_tip_per_block_mon || '0',
+		cumulativeTotal: props.tipRevenue.cumulative?.total_mon || '0',
+	}
+})
+
+const formatMon = (value) => {
+	if (!value) return '0'
+	const num = parseFloat(value)
+	return comma(num, ",", 2)
 }
 </script>
 
@@ -521,7 +552,6 @@ const formatBalance = (balance) => {
 					</Flex>
 
 
-
 					<!-- Status -->
 					<Flex direction="column" gap="8">
 						<Text size="12" weight="600" color="secondary">Status</Text>
@@ -639,7 +669,13 @@ const formatBalance = (balance) => {
 						</Flex>
 					</template>
 
-
+					<!-- Tip Revenue Tab -->
+					<template v-if="activeTab === 'Tip Revenue'">
+						<ValidatorTipRevenueTab
+							:tip-revenue="tipRevenue"
+							:tip-history="tipHistory"
+						/>
+					</template>
 
 					<!-- History Tab -->
 					<template v-if="activeTab === 'History'">
@@ -906,6 +942,15 @@ const formatBalance = (balance) => {
 }
 
 .address_link:hover {
+	opacity: 0.8;
+}
+
+.view_all_link {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.view_all_link:hover {
 	opacity: 0.8;
 }
 
