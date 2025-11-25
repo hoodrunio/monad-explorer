@@ -15,6 +15,10 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
+	timeLabel: {
+		type: String,
+		default: '24 Hours',
+	},
 })
 
 const chartContainer = ref(null)
@@ -67,9 +71,16 @@ const buildChart = () => {
 		.nice()
 		.range([height, 0])
 
-	// Axes
+	// Axes - adapt format based on time range
+	const getXAxisFormat = () => {
+		if (props.timeLabel.includes('7') || props.timeLabel.includes('30')) {
+			return d3.timeFormat('%b %d')
+		}
+		return d3.timeFormat('%H:%M')
+	}
+
 	const xAxis = d3.axisBottom(xScale)
-		.tickFormat(d3.timeFormat('%H:%M'))
+		.tickFormat(getXAxisFormat())
 		.ticks(6)
 
 	const yAxisLeft = d3.axisLeft(yScale)
@@ -326,7 +337,7 @@ watch(() => props.data, () => {
 	<Flex v-else direction="column" :class="$style.wrapper">
 		<Flex align="center" justify="between" :class="$style.header">
 			<Text size="13" weight="600" color="secondary">
-				Tip Revenue Trends (24h)
+				Tip Revenue Trends ({{ timeLabel }})
 			</Text>
 			<Text size="11" color="tertiary">
 				{{ chartData.length }} data points

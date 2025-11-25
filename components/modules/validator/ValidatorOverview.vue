@@ -552,33 +552,6 @@ const formatMon = (value) => {
 					</Flex>
 
 
-
-					<!-- Tip Revenue (24h) -->
-					<Flex v-if="tipRevenueSidebar" direction="column" gap="8" :class="$style.key_value">
-						<Flex align="center" justify="between">
-							<Text size="13" weight="600" color="primary">Tip Revenue (24h)</Text>
-							<NuxtLink to="/tip-revenue" :class="$style.view_all_link">
-								<Text size="11" weight="500" color="brand">View All</Text>
-							</NuxtLink>
-						</Flex>
-						<Flex align="center" justify="between">
-							<Text size="11" weight="500" color="tertiary">Total</Text>
-							<Text size="12" weight="600" color="green">{{ formatMon(tipRevenueSidebar.total24h) }} MON</Text>
-						</Flex>
-						<Flex align="center" justify="between">
-							<Text size="11" weight="500" color="tertiary">Rank</Text>
-							<Text size="12" weight="600" color="secondary">#{{ tipRevenueSidebar.rank }}</Text>
-						</Flex>
-						<Flex align="center" justify="between">
-							<Text size="11" weight="500" color="tertiary">Avg/Block</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatMon(tipRevenueSidebar.avgPerBlock) }} MON</Text>
-						</Flex>
-						<Flex align="center" justify="between">
-							<Text size="11" weight="500" color="tertiary">Cumulative</Text>
-							<Text size="12" weight="600" color="secondary">{{ formatMon(tipRevenueSidebar.cumulativeTotal) }} MON</Text>
-						</Flex>
-					</Flex>
-
 					<!-- Status -->
 					<Flex direction="column" gap="8">
 						<Text size="12" weight="600" color="secondary">Status</Text>

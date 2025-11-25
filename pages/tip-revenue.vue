@@ -1,6 +1,7 @@
 <script setup>
 /** UI */
 import Button from "@/components/ui/Button.vue"
+import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import ValidatorLogo from "@/components/ValidatorLogo.vue"
 
 /** Components */
@@ -37,6 +38,26 @@ const rankings = ref([])
 const networkSummary = ref(null)
 const trends = ref([])
 
+// Time window options
+const timeWindows = ref([
+	{ label: "24 Hours", value: "24h", hours: 24 },
+	{ label: "7 Days", value: "7d", hours: 168 },
+	{ label: "30 Days", value: "30d", hours: 720 },
+])
+const selectedTimeWindow = ref(route.query.window || "24h")
+
+// Get hours for trends API based on selected window
+const getTrendHours = computed(() => {
+	const window = timeWindows.value.find(w => w.value === selectedTimeWindow.value)
+	return window?.hours || 24
+})
+
+// Get label for current time window
+const currentWindowLabel = computed(() => {
+	const window = timeWindows.value.find(w => w.value === selectedTimeWindow.value)
+	return window?.label || "24 Hours"
+})
+
 // Pagination
 const page = ref(route.query.page ? parseInt(route.query.page) : 1)
 const totalPages = ref(1)
@@ -50,9 +71,9 @@ const fetchData = async () => {
 	try {
 		// Fetch all data in parallel
 		const [rankingsRes, summaryRes, trendsRes, githubMap] = await Promise.all([
-			fetchTipRevenueRankings({ page: page.value }),
+			fetchTipRevenueRankings({ page: page.value, window: selectedTimeWindow.value }),
 			fetchNetworkTipSummary(),
-			fetchTipRevenueTrends(),
+			fetchTipRevenueTrends({ hours: getTrendHours.value }),
 			fetchGithubValidatorInfo()
 		])
 
@@ -127,9 +148,14 @@ const formatMon = (value) => {
 // Initialize data
 await fetchData()
 
-// Update URL and refetch when page changes
-watch(page, async () => {
-	router.replace({ query: { page: page.value > 1 ? page.value : undefined } })
+// Update URL and refetch when page or time window changes
+watch([page, selectedTimeWindow], async () => {
+	router.replace({
+		query: {
+			page: page.value > 1 ? page.value : undefined,
+			window: selectedTimeWindow.value !== "24h" ? selectedTimeWindow.value : undefined
+		}
+	})
 	await fetchData()
 })
 </script>
@@ -153,29 +179,59 @@ watch(page, async () => {
 					<Text as="h1" size="14" weight="600" color="primary">Tip Revenue</Text>
 				</Flex>
 
-				<!-- Pagination -->
-				<Flex align="center" gap="6" :class="$style.pagination">
-					<Button @click="page = 1" type="secondary" size="mini" :disabled="!hasPrevPage">
-						<Icon name="arrow-left-stop" size="12" color="primary" />
-					</Button>
-					<Button type="secondary" @click="handlePrev" size="mini" :disabled="!hasPrevPage">
-						<Icon name="arrow-left" size="12" color="primary" />
-					</Button>
+				<Flex align="center" gap="6" :class="$style.controls">
+					<!-- Time Window Selector -->
+					<Dropdown>
+						<template #trigger="{ isOpen }">
+							<Button type="secondary" size="mini">
+								{{ currentWindowLabel }}
+								<Icon
+									name="chevron"
+									size="16"
+									color="secondary"
+									:style="{
+										transform: `rotate(${!isOpen ? '0' : '180deg'})`,
+										transition: 'all 200ms ease',
+									}"
+								/>
+							</Button>
+						</template>
 
-					<Button type="secondary" size="mini" disabled>
-						<Text size="12" weight="600" color="primary"> {{ page }} of {{ totalPages }} </Text>
-					</Button>
+						<template #popup>
+							<DropdownItem
+								v-for="window in timeWindows"
+								:key="window.value"
+								@click="selectedTimeWindow = window.value; page = 1"
+							>
+								{{ window.label }}
+							</DropdownItem>
+						</template>
+					</Dropdown>
 
-					<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasNextPage">
-						<Icon name="arrow-right" size="12" color="primary" />
-					</Button>
-					<Button @click="page = totalPages" type="secondary" size="mini" :disabled="!hasNextPage">
-						<Icon name="arrow-right-stop" size="12" color="primary" />
-					</Button>
+					<!-- Pagination -->
+					<Flex align="center" gap="6" :class="$style.pagination">
+						<Button @click="page = 1" type="secondary" size="mini" :disabled="!hasPrevPage">
+							<Icon name="arrow-left-stop" size="12" color="primary" />
+						</Button>
+						<Button type="secondary" @click="handlePrev" size="mini" :disabled="!hasPrevPage">
+							<Icon name="arrow-left" size="12" color="primary" />
+						</Button>
+
+						<Button type="secondary" size="mini" disabled>
+							<Text size="12" weight="600" color="primary"> {{ page }} of {{ totalPages }} </Text>
+						</Button>
+
+						<Button @click="handleNext" type="secondary" size="mini" :disabled="!hasNextPage">
+							<Icon name="arrow-right" size="12" color="primary" />
+						</Button>
+						<Button @click="page = totalPages" type="secondary" size="mini" :disabled="!hasNextPage">
+							<Icon name="arrow-right-stop" size="12" color="primary" />
+						</Button>
+					</Flex>
 				</Flex>
 			</Flex>
 
-			<!-- Network Summary -->
+			<!-- Network Summary (always 24h from API) -->
 			<Flex v-if="networkSummary" gap="12" :class="$style.summary_bar">
 				<Flex direction="column" gap="4" :class="$style.summary_item">
 					<Text size="11" color="tertiary">Total Tips (24h)</Text>
@@ -198,7 +254,7 @@ watch(page, async () => {
 				</Flex>
 				<div :class="$style.divider" />
 				<Flex v-if="networkSummary.topValidator" direction="column" gap="4" :class="$style.summary_item">
-					<Text size="11" color="tertiary">Top Earner</Text>
+					<Text size="11" color="tertiary">Top Earner (24h)</Text>
 					<NuxtLink :to="`/validator/${networkSummary.topValidator.validatorId}`">
 						<Text size="14" weight="600" color="green">{{ networkSummary.topValidator.validatorName }}</Text>
 					</NuxtLink>
@@ -211,7 +267,7 @@ watch(page, async () => {
 			</Flex>
 
 			<!-- Trends Chart -->
-			<TipRevenueTrendsChart :data="trends" :loading="isLoading" />
+			<TipRevenueTrendsChart :data="trends" :loading="isLoading" :time-label="currentWindowLabel" />
 
 			<!-- Rankings Table -->
 			<Flex direction="column" gap="16" wide :class="[$style.table, isLoading && $style.disabled]">
@@ -221,7 +277,7 @@ watch(page, async () => {
 							<tr>
 								<th :class="$style.col_rank"><Text size="12" weight="600" color="tertiary" noWrap>Rank</Text></th>
 								<th :class="$style.col_validator"><Text size="12" weight="600" color="tertiary" noWrap>Validator</Text></th>
-								<th :class="$style.col_tips"><Text size="12" weight="600" color="tertiary" noWrap>Total Tips (24h)</Text></th>
+								<th :class="$style.col_tips"><Text size="12" weight="600" color="tertiary" noWrap>Total Tips ({{ currentWindowLabel }})</Text></th>
 								<th :class="$style.col_blocks"><Text size="12" weight="600" color="tertiary" noWrap>Blocks</Text></th>
 								<th :class="$style.col_avg"><Text size="12" weight="600" color="tertiary" noWrap>Avg Tip/Block</Text></th>
 								<th :class="$style.col_txs"><Text size="12" weight="600" color="tertiary" noWrap>Transactions</Text></th>
