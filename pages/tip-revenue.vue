@@ -254,7 +254,7 @@ watch([page, selectedTimeWindow], async () => {
 				</Flex>
 				<div :class="$style.divider" />
 				<Flex v-if="networkSummary.topValidator" direction="column" gap="4" :class="$style.summary_item">
-					<Text size="11" color="tertiary">Top Earner (24h)</Text>
+					<Text size="11" color="tertiary">Lucky one (24h)</Text>
 					<NuxtLink :to="`/validator/${networkSummary.topValidator.validatorId}`">
 						<Text size="14" weight="600" color="green">{{ networkSummary.topValidator.validatorName }}</Text>
 					</NuxtLink>
