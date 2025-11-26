@@ -56,7 +56,7 @@ const unstakeAmountError = computed(() => {
 })
 
 const canUnstake = computed(() => {
-	return unstakeAmount.value && !unstakeAmountError.value && !loading.value
+	return unstakeAmount.value && !unstakeAmountError.value && !loading.value && !hasReachedWithdrawLimit.value
 })
 
 // Computed for withdrawals
@@ -70,6 +70,18 @@ const withdrawableWithdrawals = computed(() => {
 
 const pendingWithdrawals = computed(() => {
 	return validatorWithdrawals.value.filter(w => !w.isWithdrawable) || []
+})
+
+// Security: Max withdrawal ID limit (uint8 = 255)
+const MAX_WITHDRAW_ID = 255
+
+const nextWithdrawId = computed(() => {
+	const existingIds = validatorWithdrawals.value.map(w => w.withdrawId)
+	return Math.max(1, ...existingIds, 0) + 1
+})
+
+const hasReachedWithdrawLimit = computed(() => {
+	return nextWithdrawId.value > MAX_WITHDRAW_ID
 })
 
 const totalWithdrawable = computed(() => {
@@ -123,15 +135,20 @@ async function handleCompoundRewards() {
 
 async function handleUnstake() {
 	if (!canUnstake.value) return
-	
+
+	// Security: Double-check withdrawal ID limit
+	if (hasReachedWithdrawLimit.value) {
+		error.value = 'Maximum withdrawal requests reached for this validator. Please withdraw existing requests first.'
+		return
+	}
+
 	try {
 		loading.value = true
 		error.value = ''
-		
-		// Generate next available withdrawId
-		const nextWithdrawId = Math.max(1, ...validatorWithdrawals.value.map(w => w.withdrawId), 0) + 1
-		await stakingStore.undelegate(props.validator.valId, unstakeAmount.value, nextWithdrawId)
-		
+
+		// Use computed nextWithdrawId (already validated)
+		await stakingStore.undelegate(props.validator.valId, unstakeAmount.value, nextWithdrawId.value)
+
 		// Close this modal immediately after transaction starts
 		handleClose()
 		emit('success')
@@ -292,7 +309,13 @@ onMounted(() => {
 					<p class="tab-description">
 						Unstake your tokens. There's a withdrawal delay of 1 epoch before you can claim them.
 					</p>
-					
+
+					<!-- Withdrawal limit warning -->
+					<div v-if="hasReachedWithdrawLimit" class="warning-message">
+						Maximum withdrawal requests (255) reached for this validator.
+						Please withdraw your existing requests before creating new ones.
+					</div>
+
 					<div class="input-group">
 						<label>Amount to Unstake</label>
 						<div class="input-wrapper">
@@ -593,6 +616,16 @@ onMounted(() => {
 		border-radius: 8px;
 		font-size: 14px;
 		margin-top: 16px;
+	}
+
+	.warning-message {
+		background: var(--yellow-bg);
+		color: var(--yellow);
+		padding: 12px 16px;
+		border-radius: 8px;
+		font-size: 14px;
+		margin-bottom: 16px;
+		line-height: 1.4;
 	}
 	
 	.withdrawable-section {

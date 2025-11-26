@@ -8,6 +8,7 @@ import { parseEther } from 'viem'
 import { STAKING_CONFIG } from '~/config/chains'
 import { createNetworkService } from './NetworkService'
 import { getNetworkName } from '~/services/utils/general'
+import { validateValId, validateWithdrawId, validateAmount } from '~/services/utils/stakingValidation'
 
 /**
  * Transaction configuration for different staking operations
@@ -163,84 +164,103 @@ export class StakingService {
 
 	/**
 	 * Delegates tokens to a validator
-	 * @param {number} valId - Validator ID
+	 * @param {number|string|BigInt} valId - Validator ID
 	 * @param {string|number} amount - Amount to delegate (in ETH)
 	 * @returns {Promise<Object>} Transaction object
+	 * @throws {Error} If valId or amount validation fails
 	 */
 	async delegate(valId, amount) {
-		const amountWei = parseEther(amount.toString())
+		// Validate inputs before proceeding
+		const validatedValId = validateValId(valId)
+		const validatedAmount = validateAmount(amount)
+		const amountWei = parseEther(validatedAmount)
 
 		return await this.executeTransaction({
 			type: 'delegate',
-			args: [Number(valId)],
+			args: [validatedValId],
 			value: amountWei,
 			metadata: {
-				valId: Number(valId),
-				amount: amount.toString(),
+				valId: Number(validatedValId),
+				amount: validatedAmount,
 			},
 		})
 	}
 
 	/**
 	 * Undelegates tokens from a validator
-	 * @param {number} valId - Validator ID
+	 * @param {number|string|BigInt} valId - Validator ID
 	 * @param {string|number} amount - Amount to undelegate (in ETH)
-	 * @param {number} withdrawId - Withdrawal ID (default: 0)
+	 * @param {number} withdrawId - Withdrawal ID (default: 1, max: 255)
 	 * @returns {Promise<Object>} Transaction object
+	 * @throws {Error} If valId, amount or withdrawId validation fails
 	 */
-	async undelegate(valId, amount, withdrawId = 0) {
-		const amountWei = parseEther(amount.toString())
+	async undelegate(valId, amount, withdrawId = 1) {
+		// Validate all inputs before proceeding
+		const validatedValId = validateValId(valId)
+		const validatedAmount = validateAmount(amount)
+		const validatedWithdrawId = validateWithdrawId(withdrawId)
+		const amountWei = parseEther(validatedAmount)
 
 		return await this.executeTransaction({
 			type: 'undelegate',
-			args: [Number(valId), amountWei, withdrawId],
+			args: [validatedValId, amountWei, BigInt(validatedWithdrawId)],
 			metadata: {
-				valId: Number(valId),
-				amount: amount.toString(),
-				withdrawId,
+				valId: Number(validatedValId),
+				amount: validatedAmount,
+				withdrawId: validatedWithdrawId,
 			},
 		})
 	}
 
 	/**
 	 * Compounds rewards for a validator
-	 * @param {number} valId - Validator ID
+	 * @param {number|string|BigInt} valId - Validator ID
 	 * @returns {Promise<Object>} Transaction object
+	 * @throws {Error} If valId validation fails
 	 */
 	async compound(valId) {
+		const validatedValId = validateValId(valId)
+
 		return await this.executeTransaction({
 			type: 'compound',
-			args: [Number(valId)],
-			metadata: { valId: Number(valId) },
+			args: [validatedValId],
+			metadata: { valId: Number(validatedValId) },
 		})
 	}
 
 	/**
 	 * Claims rewards from a validator
-	 * @param {number} valId - Validator ID
+	 * @param {number|string|BigInt} valId - Validator ID
 	 * @returns {Promise<Object>} Transaction object
+	 * @throws {Error} If valId validation fails
 	 */
 	async claimRewards(valId) {
+		const validatedValId = validateValId(valId)
+
 		return await this.executeTransaction({
 			type: 'claimRewards',
-			args: [Number(valId)],
-			metadata: { valId: Number(valId) },
+			args: [validatedValId],
+			metadata: { valId: Number(validatedValId) },
 		})
 	}
 
 	/**
 	 * Withdraws undelegated tokens
-	 * @param {number} valId - Validator ID
-	 * @param {number} withdrawId - Withdrawal ID
+	 * @param {number|string|BigInt} valId - Validator ID
+	 * @param {number} withdrawId - Withdrawal ID (max: 255)
 	 * @returns {Promise<Object>} Transaction object
+	 * @throws {Error} If valId or withdrawId validation fails
 	 */
 	async withdraw(valId, withdrawId) {
+		const validatedValId = validateValId(valId)
+		const validatedWithdrawId = validateWithdrawId(withdrawId)
+
 		return await this.executeTransaction({
 			type: 'withdraw',
-			args: [Number(valId), withdrawId],
+			args: [validatedValId, BigInt(validatedWithdrawId)],
 			metadata: {
-				valId: Number(valId),
-				withdrawId,
+				valId: Number(validatedValId),
+				withdrawId: validatedWithdrawId,
 			},
 		})
 	}

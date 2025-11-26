@@ -1,56 +1,27 @@
-import { parseEther, formatEther } from 'viem'
+import { safeParseEther, validateStakingAmount } from '~/services/utils/stakingValidation'
 
 /**
  * Validation composable for staking operations
+ * Uses centralized utils for DRY compliance
  */
 export function useStakingValidation() {
-	
-	// Validate stake amount
+
+	// Validate stake amount - delegates to centralized util
 	function validateStakeAmount(amount, availableBalance, minAmount = '0.001') {
-		const errors = []
-		
-		if (!amount || amount.trim() === '') {
-			errors.push('Amount is required')
-			return errors
-		}
-		
-		const numAmount = parseFloat(amount)
-		const numAvailable = parseFloat(availableBalance)
-		const numMin = parseFloat(minAmount)
-		
-		if (isNaN(numAmount) || numAmount <= 0) {
-			errors.push('Invalid amount')
-		} else if (numAmount < numMin) {
-			errors.push(`Minimum stake amount is ${minAmount} MON`)
-		} else if (numAmount > numAvailable) {
-			errors.push('Insufficient balance')
-		}
-		
-		return errors
+		const errors = validateStakingAmount(amount, availableBalance, minAmount)
+		// Customize error message for stake context
+		return errors.map(e => e.replace('Minimum amount', 'Minimum stake amount'))
 	}
-	
-	// Validate unstake amount
+
+	// Validate unstake amount - delegates to centralized util
 	function validateUnstakeAmount(amount, stakedAmount, minAmount = '0.001') {
-		const errors = []
-		
-		if (!amount || amount.trim() === '') {
-			errors.push('Amount is required')
-			return errors
-		}
-		
-		const numAmount = parseFloat(amount)
-		const numStaked = parseFloat(stakedAmount)
-		const numMin = parseFloat(minAmount)
-		
-		if (isNaN(numAmount) || numAmount <= 0) {
-			errors.push('Invalid amount')
-		} else if (numAmount < numMin) {
-			errors.push(`Minimum unstake amount is ${minAmount} MON`)
-		} else if (numAmount > numStaked) {
-			errors.push('Amount exceeds staked balance')
-		}
-		
-		return errors
+		const errors = validateStakingAmount(amount, stakedAmount, minAmount)
+		// Customize error messages for unstake context
+		return errors.map(e => {
+			if (e.includes('Minimum amount')) return e.replace('Minimum amount', 'Minimum unstake amount')
+			if (e.includes('Insufficient balance')) return 'Amount exceeds staked balance'
+			return e
+		})
 	}
 	
 	// Validate validator selection
@@ -114,15 +85,15 @@ export function useStakingValidation() {
 	
 	// Check if amount is safe (not too close to total balance)
 	function isSafeAmount(amount, totalBalance, gasReserve = '0.01') {
-		try {
-			const amountWei = parseEther(amount.toString())
-			const balanceWei = parseEther(totalBalance.toString())
-			const reserveWei = parseEther(gasReserve)
-			
-			return amountWei + reserveWei <= balanceWei
-		} catch {
+		const amountWei = safeParseEther(amount?.toString() || '0')
+		const balanceWei = safeParseEther(totalBalance?.toString() || '0')
+		const reserveWei = safeParseEther(gasReserve)
+
+		if (amountWei === null || balanceWei === null || reserveWei === null) {
 			return false
 		}
+
+		return amountWei + reserveWei <= balanceWei
 	}
 	
 	return {

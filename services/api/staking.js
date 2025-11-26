@@ -3,6 +3,7 @@ import { createPublicClient, http, parseEther, formatEther } from 'viem'
 import { monadTestnet, monadMainnet, STAKING_CONFIG } from '~/config/chains'
 import { rpcBatcher } from '~/services/utils/rpcBatcher'
 import { isMainnet } from '~/services/utils/general'
+import { validateAddress, validateValId, VALIDATION_CONSTANTS } from '~/services/utils/stakingValidation'
 
 // Helper to get the active chain
 function getActiveChain() {
@@ -361,12 +362,16 @@ export async function getConsensusValidators() {
  * Get delegator information for a specific validator
  */
 export async function getDelegatorInfo(valId, delegatorAddress) {
+	// Security: Validate inputs before contract call
+	const validatedValId = validateValId(valId)
+	const validatedAddress = validateAddress(delegatorAddress)
+
 	try {
 		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getDelegator',
-			args: [BigInt(valId), delegatorAddress],
+			args: [validatedValId, validatedAddress],
 		})
 		
 		return {
@@ -397,21 +402,24 @@ export async function getDelegatorInfo(valId, delegatorAddress) {
  * Get all delegations for a delegator
  */
 export async function getDelegatorDelegations(delegatorAddress) {
+	// Security: Validate address before contract calls
+	const validatedAddress = validateAddress(delegatorAddress)
+
 	try {
 		const delegations = []
-		let startValId = 0
+		let startValId = 0n
 		let done = false
-		
+
 		while (!done) {
 			const result = await getPublicClient().readContract({
 				address: STAKING_CONFIG.CONTRACT_ADDRESS,
 				abi: STAKING_ABI,
 				functionName: 'getDelegations',
-				args: [delegatorAddress, BigInt(startValId)],
+				args: [validatedAddress, startValId],
 			})
-			
+
 			done = result[0]
-			startValId = Number(result[1])
+			startValId = BigInt(result[1])
 			const valIds = result[2]
 			
 			// Fetch detailed info for each delegation
@@ -442,20 +450,30 @@ export async function getDelegatorDelegations(delegatorAddress) {
  * Get withdrawal request information
  */
 export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) {
-	const cacheKey = getCacheKey(valId, delegatorAddress, withdrawId)
+	// Security: Validate inputs
+	const validatedValId = validateValId(valId)
+	const validatedAddress = validateAddress(delegatorAddress)
+
+	// Validate withdrawId is within uint8 bounds (0-255)
+	const withdrawIdNum = Number(withdrawId)
+	if (!Number.isInteger(withdrawIdNum) || withdrawIdNum < 0 || withdrawIdNum > VALIDATION_CONSTANTS.UINT8_MAX) {
+		throw new Error(`Invalid withdrawal ID (must be 0-${VALIDATION_CONSTANTS.UINT8_MAX})`)
+	}
+
+	const cacheKey = getCacheKey(validatedValId, validatedAddress, withdrawIdNum)
 	const cached = withdrawalCache.get(cacheKey)
-	
+
 	// Return cached result if valid
 	if (cached && isCacheValid(cached.timestamp)) {
 		return cached.data
 	}
-	
+
 	try {
 		const result = await getPublicClient().readContract({
 			address: STAKING_CONFIG.CONTRACT_ADDRESS,
 			abi: STAKING_ABI,
 			functionName: 'getWithdrawalRequest',
-			args: [BigInt(valId), delegatorAddress, withdrawId],
+			args: [validatedValId, validatedAddress, withdrawIdNum],
 		})
 		
 		let withdrawalData = null
@@ -489,22 +507,25 @@ export async function getWithdrawalRequest(valId, delegatorAddress, withdrawId) 
  * Note: This requires checking all possible withdrawal IDs (0-255) for each validator
  */
 export async function getDelegatorWithdrawals(delegatorAddress) {
+	// Security: Validate address before processing
+	const validatedAddress = validateAddress(delegatorAddress)
+
 	try {
 		const withdrawals = []
-		const delegations = await getDelegatorDelegations(delegatorAddress)
+		const delegations = await getDelegatorDelegations(validatedAddress)
 		const currentEpoch = await getCurrentEpoch()
 		
 		// Check withdrawal requests for each validator the user has delegated to
 		// Limit to fewer withdrawal IDs and add delay between calls
 		for (const delegation of delegations) {
 			const valId = delegation.valId
-			
+
 			// Only check first 3 withdrawal IDs to reduce RPC calls
 			for (let withdrawId = 1; withdrawId <= 3; withdrawId++) {
 				try {
-					// Use batcher to queue RPC calls
-					const withdrawal = await rpcBatcher.add(() => 
-						getWithdrawalRequest(valId, delegatorAddress, withdrawId)
+					// Use batcher to queue RPC calls (address already validated)
+					const withdrawal = await rpcBatcher.add(() =>
+						getWithdrawalRequest(valId, validatedAddress, withdrawId)
 					)
 					
 					if (withdrawal) {
