@@ -301,8 +301,13 @@ useHead({
 
 				<!-- Tab Content -->
 				<Flex direction="column" :class="[$style.tab_content, isRefetching && $style.loading]">
+					<!-- Loading State -->
+					<Flex v-if="isLoading || isRefetching" align="center" justify="center" :class="$style.empty">
+						<Text size="13" weight="600" color="tertiary">Loading...</Text>
+					</Flex>
+
 					<!-- Inventory Tab -->
-					<template v-if="activeTab === 'inventory'">
+					<template v-else-if="activeTab === 'inventory'">
 						<NFTGrid v-if="nfts.length" :nfts="nfts" :showCollection="false" :fallbackAddress="addressParam" />
 						<Flex v-else align="center" justify="center" :class="$style.empty">
 							<Text size="13" weight="600" color="secondary">No NFTs in this collection</Text>

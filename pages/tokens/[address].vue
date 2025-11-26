@@ -298,8 +298,13 @@ useHead({
 
 			<!-- Tab Content -->
 			<Flex direction="column" :class="[$style.tab_content, isRefetching && $style.loading]">
+				<!-- Loading State -->
+				<Flex v-if="isLoading || isRefetching" align="center" justify="center" :class="$style.empty">
+					<Text size="13" weight="600" color="tertiary">Loading...</Text>
+				</Flex>
+
 				<!-- Holders Tab -->
-				<template v-if="activeTab === 'holders'">
+				<template v-else-if="activeTab === 'holders'">
 					<TokenHoldersTable
 						v-if="holders.length"
 						:holders="holders"

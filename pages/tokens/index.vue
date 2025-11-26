@@ -182,10 +182,20 @@ useHead({
 
 			<!-- Table -->
 			<Flex direction="column" :class="[$style.table_wrapper, isLoading && $style.loading]">
-				<TokensTable v-if="tokens.length" :tokens="tokens" />
+				<!-- Loading State -->
+				<Flex
+					v-if="isLoading"
+					align="center"
+					justify="center"
+					:class="$style.empty"
+				>
+					<Text size="13" weight="600" color="tertiary">Loading...</Text>
+				</Flex>
+
+				<TokensTable v-else-if="tokens.length" :tokens="tokens" />
 
 				<Flex
-					v-else-if="!isLoading && searchQuery"
+					v-else-if="searchQuery"
 					align="center"
 					justify="center"
 					direction="column"
@@ -200,7 +210,7 @@ useHead({
 				</Flex>
 
 				<Flex
-					v-else-if="!isLoading"
+					v-else
 					align="center"
 					justify="center"
 					direction="column"

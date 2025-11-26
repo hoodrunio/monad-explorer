@@ -820,8 +820,13 @@ const handleViewRawAddress = () => {
 					</Flex>
 
 					<Flex :class="$style.table">
+						<!-- Loading State -->
+						<Flex v-if="isRefetching" direction="column" align="center" justify="center" gap="8" :class="$style.empty">
+							<Text size="13" weight="600" color="tertiary">Loading...</Text>
+						</Flex>
+
 						<!-- Transactions Table -->
-						<template v-if="activeTab === 'transactions'">
+						<template v-else-if="activeTab === 'transactions'">
 							<TransactionsTable v-if="transactions.length" :transactions="transactions" :sort="sort" @onSort="onSort" />
 
 							<Flex
@@ -854,7 +859,7 @@ const handleViewRawAddress = () => {
 						</template>
 
 						<!-- Token Transfers Table -->
-						<template v-if="activeTab === 'tokens'">
+						<template v-else-if="activeTab === 'tokens'">
 							<TokenTransfersTable
 								v-if="tokenTransfers.length"
 								:transfers="tokenTransfers"
@@ -872,7 +877,7 @@ const handleViewRawAddress = () => {
 						</template>
 
 						<!-- NFTs Grid -->
-						<template v-if="activeTab === 'nfts'">
+						<template v-else-if="activeTab === 'nfts'">
 							<NFTGrid v-if="nfts.length" :nfts="nfts" :showCollection="true" />
 
 							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
