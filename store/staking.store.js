@@ -128,12 +128,13 @@ export const useStakingStore = defineStore('staking', {
 		// Fetch user balance
 		async fetchBalance() {
 			if (!this.address) return
-			
+
 			try {
 				const { $wagmiConfig } = useNuxtApp()
+				const targetChainId = isMainnet() ? monadMainnet.id : monadTestnet.id
 				const balance = await getBalance($wagmiConfig, {
 					address: this.address,
-					chainId: monadTestnet.id,
+					chainId: targetChainId,
 				})
 				this.balance = balance.value.toString()
 			} catch (error) {
@@ -204,7 +205,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			if (!this.isCorrectNetwork) {
-				throw new Error('Please switch to Monad Testnet')
+				throw new Error(`Please switch to ${isMainnet() ? 'Monad Mainnet' : 'Monad Testnet'}`)
 			}
 
 			this.loading.delegate = true
@@ -245,7 +246,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			if (!this.isCorrectNetwork) {
-				throw new Error('Please switch to Monad Testnet')
+				throw new Error(`Please switch to ${isMainnet() ? 'Monad Mainnet' : 'Monad Testnet'}`)
 			}
 
 			this.loading.undelegate = true
@@ -285,7 +286,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			if (!this.isCorrectNetwork) {
-				throw new Error('Please switch to Monad Testnet')
+				throw new Error(`Please switch to ${isMainnet() ? 'Monad Mainnet' : 'Monad Testnet'}`)
 			}
 
 			this.loading.compound = true
@@ -325,7 +326,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			if (!this.isCorrectNetwork) {
-				throw new Error('Please switch to Monad Testnet')
+				throw new Error(`Please switch to ${isMainnet() ? 'Monad Mainnet' : 'Monad Testnet'}`)
 			}
 
 			this.loading.claimRewards = true
@@ -366,7 +367,7 @@ export const useStakingStore = defineStore('staking', {
 			}
 
 			if (!this.isCorrectNetwork) {
-				throw new Error('Please switch to Monad Testnet')
+				throw new Error(`Please switch to ${isMainnet() ? 'Monad Mainnet' : 'Monad Testnet'}`)
 			}
 
 			this.loading.withdraw = true
