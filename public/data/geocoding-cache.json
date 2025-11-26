@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-11-24T17:02:09.005Z",
-  "totalLocations": 65,
+  "generatedAt": "2025-11-26T12:17:23.880Z",
+  "totalLocations": 72,
   "source": "nominatim",
   "locations": {
     "Singapore, Singapore": [
@@ -263,6 +263,34 @@
     "San José, Costa Rica": [
       -84.0796144,
       9.9327707
+    ],
+    "Moscow": [
+      37.6063916,
+      55.625578
+    ],
+    "Englewood Cliffs, United States": [
+      -73.9523597,
+      40.8853773
+    ],
+    "Skarpnäck, Sweden": [
+      18.1330727,
+      59.2664372
+    ],
+    "Kleppestø, Norway": [
+      5.2276317,
+      60.4084337
+    ],
+    "Sandnes, Norway": [
+      6.394641,
+      58.983132
+    ],
+    "Isando, South Africa": [
+      28.2217255,
+      -26.1360871
+    ],
+    "Ogden, United States": [
+      -111.9738429,
+      41.2230048
     ]
   }
 }
