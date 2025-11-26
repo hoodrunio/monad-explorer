@@ -1,6 +1,6 @@
 <script setup>
 import { useStakingStore } from '~/store/staking.store'
-import { getValidatorById, getDelegatorWithdrawals } from '~/services/api/staking'
+import { getValidatorById, getDelegatorWithdrawals, getStakingStats } from '~/services/api/staking'
 import { formatEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { isMainnet } from '~/services/utils/general'
@@ -57,6 +57,7 @@ useHead({
 const refreshing = ref(false)
 const loadingWithdrawals = ref(false)
 const withdrawals = ref([])
+const stats = ref(null)
 const userDelegations = computed(() => stakingStore.userDelegations)
 const isConnected = computed(() => stakingStore.isConnected)
 const address = computed(() => stakingStore.address)
@@ -161,23 +162,33 @@ async function loadWithdrawals() {
 	}
 }
 
+// Fetch staking stats (for APY calculation)
+async function fetchStats() {
+	try {
+		stats.value = await getStakingStats()
+	} catch (error) {
+		// Failed to fetch stats
+	}
+}
+
 // Refresh all data
 async function refreshData() {
 	try {
 		refreshing.value = true
-		
-		// Load balance and staking data first
+
+		// Load balance, staking data, and stats in parallel
 		await Promise.all([
 			stakingStore.fetchBalance(),
 			stakingStore.fetchUserStakingData(),
+			fetchStats(),
 		])
-		
+
 		// Load validator details
 		await loadValidatorDetails()
-		
+
 		// Load withdrawals last (most expensive operation)
 		await loadWithdrawals()
-		
+
 	} catch (error) {
 		// Failed to refresh data
 	} finally {
@@ -262,6 +273,9 @@ function handleManageModalClose() {
 
 // Initialize
 onMounted(async () => {
+	// Always fetch stats for APY calculation
+	fetchStats()
+
 	if (isConnected.value) {
 		await Promise.all([
 			stakingStore.fetchBalance(),
@@ -589,7 +603,7 @@ watch(userDelegations, async (newDelegations) => {
 							v-else
 							:validators="enrichedDelegations.map(d => d.validator)"
 							:user-delegations="enrichedDelegations.map(d => ({ validatorId: d.valId, ...d }))"
-							:total-network-stake="'0'"
+							:total-network-stake="stats?.totalStaked || '0'"
 							:loading="false"
 							@stake="handleStake"
 							@manage="handleManage"
