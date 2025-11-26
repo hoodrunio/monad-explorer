@@ -142,7 +142,7 @@ useHead({
 </script>
 
 <template>
-	<Flex direction="column" gap="4" wide>
+	<Flex direction="column" gap="4" wide :class="$style.wrapper">
 		<!-- Header -->
 		<Flex align="center" justify="between" :class="$style.header">
 			<Flex align="center" gap="8">
@@ -252,6 +252,10 @@ useHead({
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .header {
 	height: 40px;
 	border-radius: 8px 8px 4px 4px;
@@ -293,6 +297,10 @@ useHead({
 }
 
 @media (max-width: 600px) {
+	.wrapper {
+		padding: 12px 12px 32px 12px;
+	}
+
 	.filters {
 		flex-direction: column;
 		align-items: stretch;

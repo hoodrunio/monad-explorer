@@ -63,13 +63,13 @@ const tabs = ref([
 	{
 		alias: "tokens",
 		displayName: "Token Transfers",
-		icon: "token",
+		icon: "coins",
 		show: true,
 	},
 	{
 		alias: "nfts",
 		displayName: "NFTs",
-		icon: "nft",
+		icon: "namespace",
 		show: true,
 	},
 ])

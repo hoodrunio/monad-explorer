@@ -45,7 +45,7 @@ const isRefetching = ref(false)
 const tabs = ref([
 	{ alias: "holders", displayName: "Holders", icon: "address", show: true },
 	{ alias: "transfers", displayName: "Transfers", icon: "tx", show: true },
-	{ alias: "inventory", displayName: "Inventory", icon: "nft", show: false },
+	{ alias: "inventory", displayName: "Inventory", icon: "namespace", show: false },
 ])
 
 const activeTab = ref(route.query.tab || 'holders')
@@ -244,7 +244,7 @@ useHead({
 </script>
 
 <template>
-	<Flex direction="column" gap="4" wide>
+	<Flex direction="column" gap="4" wide :class="$style.wrapper">
 		<!-- Invalid Address Error -->
 		<Flex v-if="addressParam && !isAddressValid" direction="column" align="center" justify="center" gap="16" :class="$style.error_container">
 			<Icon name="close" size="32" color="red" />
@@ -383,6 +383,10 @@ useHead({
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .error_container {
 	min-height: 400px;
 	background: var(--card-background);
@@ -489,6 +493,10 @@ useHead({
 }
 
 @media (max-width: 600px) {
+	.wrapper {
+		padding: 12px 12px 32px 12px;
+	}
+
 	.nft_grid {
 		justify-content: center;
 	}

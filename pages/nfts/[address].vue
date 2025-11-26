@@ -44,7 +44,7 @@ const isRefetching = ref(false)
 
 /** Tabs */
 const tabs = ref([
-	{ alias: "inventory", displayName: "Inventory", icon: "nft", show: true },
+	{ alias: "inventory", displayName: "Inventory", icon: "namespace", show: true },
 	{ alias: "holders", displayName: "Holders", icon: "address", show: true },
 	{ alias: "transfers", displayName: "Transfers", icon: "tx", show: true },
 ])
@@ -247,7 +247,7 @@ useHead({
 <template>
 	<!-- Show collection view when no instance id is present -->
 	<template v-if="!route.params.id">
-		<Flex direction="column" gap="4" wide>
+		<Flex direction="column" gap="4" wide :class="$style.wrapper">
 			<!-- Invalid Address Error -->
 			<Flex v-if="addressParam && !isAddressValid" direction="column" align="center" justify="center" gap="16" :class="$style.error_container">
 				<Icon name="close" size="32" color="red" />
@@ -368,6 +368,10 @@ useHead({
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .error_container {
 	min-height: 400px;
 	background: var(--card-background);
@@ -435,5 +439,11 @@ useHead({
 .pagination {
 	padding: 16px;
 	border-top: 1px solid var(--op-5);
+}
+
+@media (max-width: 600px) {
+	.wrapper {
+		padding: 12px 12px 32px 12px;
+	}
 }
 </style>

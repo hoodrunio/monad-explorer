@@ -229,7 +229,7 @@ useHead({
 </script>
 
 <template>
-	<Flex direction="column" gap="4" wide>
+	<Flex direction="column" gap="4" wide :class="$style.wrapper">
 		<!-- Invalid Address Error -->
 		<Flex v-if="addressParam && !isAddressValid" direction="column" align="center" justify="center" gap="16" :class="$style.error_container">
 			<Icon name="close" size="32" color="red" />
@@ -357,6 +357,10 @@ useHead({
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
 .error_container {
 	min-height: 400px;
 	background: var(--card-background);
@@ -447,6 +451,12 @@ useHead({
 
 	& + & {
 		margin-top: 8px;
+	}
+}
+
+@media (max-width: 600px) {
+	.wrapper {
+		padding: 12px 12px 32px 12px;
 	}
 }
 </style>
