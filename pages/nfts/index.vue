@@ -10,9 +10,6 @@ import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 /** API */
 import { fetchTokensClient } from "@/services/api/tokens"
 
-const route = useRoute()
-const router = useRouter()
-
 /** State */
 const collections = ref([])
 const isLoading = ref(true)
@@ -30,18 +27,21 @@ const nftTypes = [
 	{ value: 'ERC-1155', label: 'ERC-1155' },
 ]
 
+/** Page size constant */
+const PAGE_SIZE = 20
+
 /**
  * Fetch NFT collections (tokens of type ERC-721 or ERC-1155)
  */
-const getCollections = async (params = {}) => {
+const getCollections = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
 		const queryParams = {
-			items_count: 20,
-			...params,
+			items_count: PAGE_SIZE,
 		}
 
+		// Add search query if present
 		if (searchQuery.value) {
 			queryParams.q = searchQuery.value
 		}
@@ -51,6 +51,16 @@ const getCollections = async (params = {}) => {
 			queryParams.type = selectedType.value
 		} else {
 			queryParams.type = 'ERC-721,ERC-1155'
+		}
+
+		// Add pagination params for cursor-based pagination
+		if (paginationParams) {
+			Object.keys(paginationParams).forEach(key => {
+				// Don't override items_count or type
+				if (key !== 'items_count' && key !== 'type') {
+					queryParams[key] = paginationParams[key]
+				}
+			})
 		}
 
 		const { data } = await fetchTokensClient(queryParams)
@@ -63,6 +73,7 @@ const getCollections = async (params = {}) => {
 			nextPageParams.value = null
 		}
 	} catch (error) {
+		console.error('Error fetching NFT collections:', error)
 		collections.value = []
 		nextPageParams.value = null
 	}
@@ -94,15 +105,16 @@ const handleTypeChange = (type) => {
 /**
  * Pagination handlers
  */
-const handleNext = () => {
+const handleNext = async () => {
 	if (!nextPageParams.value) return
 
+	// Save current state with deep copy to avoid reference issues
 	previousPages.value.push({
-		collections: [...collections.value],
-		params: nextPageParams.value
+		collections: JSON.parse(JSON.stringify(collections.value)),
+		nextParams: JSON.parse(JSON.stringify(nextPageParams.value))
 	})
 
-	getCollections(nextPageParams.value)
+	await getCollections(nextPageParams.value)
 }
 
 const handlePrev = () => {
@@ -110,14 +122,7 @@ const handlePrev = () => {
 
 	const previousState = previousPages.value.pop()
 	collections.value = previousState.collections
-	nextPageParams.value = previousState.params
-}
-
-/**
- * Navigate to collection detail
- */
-const handleCollectionClick = (collection) => {
-	router.push(`/nfts/${collection.address}`)
+	nextPageParams.value = previousState.nextParams
 }
 
 /** Initial load */

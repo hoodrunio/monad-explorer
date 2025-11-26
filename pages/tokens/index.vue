@@ -8,10 +8,7 @@ import Input from "@/components/ui/Input.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 
 /** API */
-import { fetchTokens, fetchTokensClient } from "@/services/api/tokens"
-
-const route = useRoute()
-const router = useRouter()
+import { fetchTokensClient } from "@/services/api/tokens"
 
 /** State */
 const tokens = ref([])
@@ -31,24 +28,38 @@ const tokenTypes = [
 	{ value: 'ERC-1155', label: 'ERC-1155' },
 ]
 
+/** Page size constant */
+const PAGE_SIZE = 20
+
 /**
  * Fetch tokens list
  */
-const getTokens = async (params = {}) => {
+const getTokens = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
 		const queryParams = {
-			items_count: 20,
-			...params,
+			items_count: PAGE_SIZE,
 		}
 
+		// Add search query if present
 		if (searchQuery.value) {
 			queryParams.q = searchQuery.value
 		}
 
+		// Add type filter if not 'all'
 		if (selectedType.value !== 'all') {
 			queryParams.type = selectedType.value
+		}
+
+		// Add pagination params for cursor-based pagination
+		if (paginationParams) {
+			Object.keys(paginationParams).forEach(key => {
+				// Don't override items_count
+				if (key !== 'items_count') {
+					queryParams[key] = paginationParams[key]
+				}
+			})
 		}
 
 		const { data } = await fetchTokensClient(queryParams)
@@ -61,6 +72,7 @@ const getTokens = async (params = {}) => {
 			nextPageParams.value = null
 		}
 	} catch (error) {
+		console.error('Error fetching tokens:', error)
 		tokens.value = []
 		nextPageParams.value = null
 	}
@@ -92,15 +104,16 @@ const handleTypeChange = (type) => {
 /**
  * Pagination handlers
  */
-const handleNext = () => {
+const handleNext = async () => {
 	if (!nextPageParams.value) return
 
+	// Save current state with deep copy to avoid reference issues
 	previousPages.value.push({
-		tokens: [...tokens.value],
-		params: nextPageParams.value
+		tokens: JSON.parse(JSON.stringify(tokens.value)),
+		nextParams: JSON.parse(JSON.stringify(nextPageParams.value))
 	})
 
-	getTokens(nextPageParams.value)
+	await getTokens(nextPageParams.value)
 }
 
 const handlePrev = () => {
@@ -108,7 +121,7 @@ const handlePrev = () => {
 
 	const previousState = previousPages.value.pop()
 	tokens.value = previousState.tokens
-	nextPageParams.value = previousState.params
+	nextPageParams.value = previousState.nextParams
 }
 
 /** Initial load */
