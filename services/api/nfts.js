@@ -341,19 +341,16 @@ export const fetchNFTInstanceTransfers = (tokenAddress, tokenId, params = {}) =>
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params || {}).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 
 		return useFetch(url.href, {
-			key: `nft-instance-transfers-${tokenAddress}-${tokenId}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `nft-instance-transfers-${tokenAddress}-${tokenId}-${JSON.stringify(params || {})}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -387,14 +384,11 @@ export const fetchNFTInstanceTransfersClient = async (tokenAddress, tokenId, par
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params || {}).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 

@@ -86,11 +86,10 @@ const getTransfers = async (params = {}) => {
 	isRefetching.value = true
 
 	try {
-		const queryParams = { items_count: 20, ...params }
 		const { data } = await fetchNFTInstanceTransfersClient(
 			addressParam.value,
 			idParam.value,
-			queryParams
+			params || {}
 		)
 
 		if (data.value?.items) {
