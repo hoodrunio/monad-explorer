@@ -1,6 +1,6 @@
 <script setup>
 /** Services */
-import { shortHex, splitAddress } from "@/services/utils"
+import { shortHex } from "@/services/utils"
 import { resolveIPFSUrl } from "@/services/api/nfts"
 
 /** UI */
@@ -19,6 +19,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['refreshMetadata'])
+
+/** Image loading state */
+const isImageLoading = ref(true)
+const hasImageError = ref(false)
 
 const imageUrl = computed(() => {
 	if (props.nft.image_url) {
@@ -45,6 +49,22 @@ const attributes = computed(() => {
 	}
 	return []
 })
+
+const handleImageLoad = () => {
+	isImageLoading.value = false
+}
+
+const handleImageError = (event) => {
+	isImageLoading.value = false
+	hasImageError.value = true
+	event.target.style.display = 'none'
+}
+
+/** Reset loading state when imageUrl changes */
+watch(imageUrl, () => {
+	isImageLoading.value = true
+	hasImageError.value = false
+})
 </script>
 
 <template>
@@ -52,14 +72,21 @@ const attributes = computed(() => {
 		<!-- Image Section -->
 		<Flex direction="column" gap="12" :class="$style.image_section">
 			<div :class="$style.image_container">
+				<!-- Loading skeleton -->
+				<div v-if="imageUrl && isImageLoading" :class="$style.skeleton" />
+
+				<!-- NFT Image -->
 				<img
-					v-if="imageUrl"
+					v-if="imageUrl && !hasImageError"
 					:src="imageUrl"
 					:alt="nftName"
-					@error="$event.target.style.display = 'none'"
-					:class="$style.image"
+					@load="handleImageLoad"
+					@error="handleImageError"
+					:class="[$style.image, !isImageLoading && $style.loaded]"
 				/>
-				<Flex v-else align="center" justify="center" :class="$style.placeholder">
+
+				<!-- Placeholder when no image or error -->
+				<Flex v-if="!imageUrl || hasImageError" align="center" justify="center" :class="$style.placeholder">
 					<Icon name="grid" size="64" color="tertiary" />
 				</Flex>
 			</div>
@@ -196,12 +223,41 @@ const attributes = computed(() => {
 	border-radius: 12px;
 	overflow: hidden;
 	background: var(--op-8);
+	position: relative;
+}
+
+.skeleton {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		90deg,
+		var(--op-5) 0%,
+		var(--op-10) 50%,
+		var(--op-5) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 .image {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.image.loaded {
+	opacity: 1;
 }
 
 .placeholder {

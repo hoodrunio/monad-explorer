@@ -159,7 +159,7 @@ const getResultMetadata = (target) => {
 			} else {
 				metadata.subtitle = shortHex(target.result.address)
 			}
-			metadata.routerLink = `/token/${target.result.address}`
+			metadata.routerLink = `/tokens/${target.result.address}`
 			break
 
 		case "rollup":

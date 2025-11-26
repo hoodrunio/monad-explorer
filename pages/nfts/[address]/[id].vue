@@ -261,6 +261,14 @@ useHead({
 				</NuxtLink>
 			</Flex>
 
+		<!-- Disclaimer -->
+		<Flex align="center" gap="8" :class="$style.disclaimer">
+			<Icon name="info" size="14" color="yellow" />
+			<Text size="12" weight="500" color="secondary">
+				Data may be delayed due to indexing. Some information might not reflect the latest on-chain state.
+			</Text>
+		</Flex>
+
 		<!-- NFT Overview -->
 		<NFTInstanceOverview
 			v-if="nft"
@@ -373,6 +381,13 @@ useHead({
 	border-radius: 8px 8px 4px 4px;
 	background: var(--card-background);
 	padding: 0 12px;
+}
+
+.disclaimer {
+	background: rgba(234, 179, 8, 0.1);
+	border: 1px solid rgba(234, 179, 8, 0.2);
+	border-radius: 8px;
+	padding: 10px 14px;
 }
 
 .loading_container {

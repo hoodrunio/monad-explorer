@@ -3,6 +3,7 @@
 import TokenOverview from "@/components/modules/tokens/TokenOverview.vue"
 import TokenHoldersTable from "@/components/modules/tokens/TokenHoldersTable.vue"
 import TokenTransfersTable from "@/components/modules/tokens/TokenTransfersTable.vue"
+import NFTGrid from "@/components/modules/nfts/NFTGrid.vue"
 
 /** UI */
 import Button from "@/components/ui/Button.vue"
@@ -151,6 +152,12 @@ const getNFTInstances = async (params = {}) => {
 			nftInstances.value = data.value.items.map(nft => ({
 				...nft,
 				id: nft.id ?? nft.token_id ?? nft.unique_token,
+				token: {
+					address: addressParam.value,
+					name: token.value?.name,
+					symbol: token.value?.symbol,
+					icon_url: token.value?.icon_url,
+				}
 			}))
 			nextPageParams.value = data.value.next_page_params || null
 		}
@@ -276,6 +283,22 @@ useHead({
 				</NuxtLink>
 			</Flex>
 
+		<!-- Disclaimers -->
+		<Flex direction="column" gap="8">
+			<Flex align="center" gap="8" :class="$style.disclaimer">
+				<Icon name="info" size="14" color="yellow" />
+				<Text size="12" weight="500" color="secondary">
+					Data may be delayed due to indexing. Some information might not reflect the latest on-chain state.
+				</Text>
+			</Flex>
+			<Flex align="center" gap="8" :class="$style.disclaimer_price">
+				<Icon name="info" size="14" color="tertiary" />
+				<Text size="12" weight="500" color="tertiary">
+					Price data is sourced from external providers and may not be accurate. Do not use for financial decisions.
+				</Text>
+			</Flex>
+		</Flex>
+
 		<!-- Token Overview -->
 		<TokenOverview v-if="token" :token="token" :counters="counters" />
 
@@ -332,29 +355,12 @@ useHead({
 
 				<!-- Inventory Tab (NFTs) -->
 				<template v-else-if="activeTab === 'inventory'">
-					<Flex v-if="nftInstances.length" wrap="wrap" gap="16" :class="$style.nft_grid">
-						<NuxtLink
-							v-for="nft in nftInstances"
-							:key="nft.id || nft.token_id || nft.unique_token"
-							:to="`/nfts/${addressParam}/${nft.id || nft.token_id || nft.unique_token}`"
-							:class="$style.nft_item"
-						>
-							<div :class="$style.nft_image">
-								<img
-									v-if="nft.image_url"
-									:src="nft.image_url"
-									:alt="`NFT #${nft.id}`"
-									@error="$event.target.style.display = 'none'"
-								/>
-								<Icon v-else name="grid" size="32" color="tertiary" />
-							</div>
-							<Flex direction="column" gap="4" :class="$style.nft_info">
-								<Text size="12" weight="600" color="primary">
-									#{{ nft.id }}
-								</Text>
-							</Flex>
-						</NuxtLink>
-					</Flex>
+					<NFTGrid
+						v-if="nftInstances.length"
+						:nfts="nftInstances"
+						:showCollection="false"
+						:fallbackAddress="addressParam"
+					/>
 					<Flex v-else align="center" justify="center" :class="$style.empty">
 						<Text size="13" weight="600" color="secondary">No NFTs in this collection</Text>
 					</Flex>
@@ -399,6 +405,20 @@ useHead({
 	border-radius: 8px 8px 4px 4px;
 	background: var(--card-background);
 	padding: 0 12px;
+}
+
+.disclaimer {
+	background: rgba(234, 179, 8, 0.1);
+	border: 1px solid rgba(234, 179, 8, 0.2);
+	border-radius: 8px;
+	padding: 10px 14px;
+}
+
+.disclaimer_price {
+	background: var(--op-5);
+	border: 1px solid var(--op-8);
+	border-radius: 8px;
+	padding: 10px 14px;
 }
 
 .tabs_container {
@@ -456,49 +476,9 @@ useHead({
 	border-top: 1px solid var(--op-5);
 }
 
-.nft_grid {
-	padding: 16px;
-}
-
-.nft_item {
-	width: 140px;
-	background: var(--op-5);
-	border-radius: 8px;
-	overflow: hidden;
-	transition: all 0.2s ease;
-
-	&:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	}
-}
-
-.nft_image {
-	width: 100%;
-	height: 140px;
-	background: var(--op-8);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-
-	& img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-}
-
-.nft_info {
-	padding: 8px;
-}
-
 @media (max-width: 600px) {
 	.wrapper {
 		padding: 12px 12px 32px 12px;
-	}
-
-	.nft_grid {
-		justify-content: center;
 	}
 }
 </style>

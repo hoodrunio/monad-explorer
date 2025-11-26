@@ -14,6 +14,10 @@ const props = defineProps({
 	},
 })
 
+/** Image loading state */
+const isImageLoading = ref(true)
+const hasImageError = ref(false)
+
 const imageUrl = computed(() => {
 	if (props.nft.image_url) {
 		return resolveIPFSUrl(props.nft.image_url)
@@ -29,19 +33,43 @@ const nftName = computed(() => {
 	if (props.nft.id) return `#${props.nft.id}`
 	return 'Unknown NFT'
 })
+
+const handleImageLoad = () => {
+	isImageLoading.value = false
+}
+
+const handleImageError = (event) => {
+	isImageLoading.value = false
+	hasImageError.value = true
+	event.target.style.display = 'none'
+}
+
+/** Reset loading state when imageUrl changes */
+watch(imageUrl, () => {
+	isImageLoading.value = true
+	hasImageError.value = false
+})
 </script>
 
 <template>
 	<div :class="$style.card">
 		<div :class="$style.image_container">
+			<!-- Loading skeleton -->
+			<div v-if="imageUrl && isImageLoading" :class="$style.skeleton" />
+
+			<!-- NFT Image -->
 			<img
-				v-if="imageUrl"
+				v-if="imageUrl && !hasImageError"
 				:src="imageUrl"
 				:alt="nftName"
-				@error="$event.target.style.display = 'none'"
-				:class="$style.image"
+				loading="lazy"
+				@load="handleImageLoad"
+				@error="handleImageError"
+				:class="[$style.image, !isImageLoading && $style.loaded]"
 			/>
-			<Flex v-else align="center" justify="center" :class="$style.placeholder">
+
+			<!-- Placeholder when no image or error -->
+			<Flex v-if="!imageUrl || hasImageError" align="center" justify="center" :class="$style.placeholder">
 				<Icon name="grid" size="40" color="tertiary" />
 			</Flex>
 		</div>
@@ -95,17 +123,45 @@ const nftName = computed(() => {
 	aspect-ratio: 1;
 	overflow: hidden;
 	background: var(--op-8);
+	position: relative;
+}
+
+.skeleton {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		90deg,
+		var(--op-5) 0%,
+		var(--op-10) 50%,
+		var(--op-5) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 .image {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-	transition: transform 0.3s ease;
+	transition: transform 0.3s ease, opacity 0.3s ease;
+	opacity: 0;
 
 	.card:hover & {
 		transform: scale(1.05);
 	}
+}
+
+.image.loaded {
+	opacity: 1;
 }
 
 .placeholder {
