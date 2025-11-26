@@ -358,9 +358,13 @@ export function formatTokenAmount(value, decimals = 18, displayDecimals = 4) {
 		const tokenValue = numValue / Math.pow(10, actualDecimals)
 
 		// Format with appropriate decimals
-		// Use more decimals for very small values
-		if (tokenValue < 0.0001 && tokenValue > 0) {
-			return tokenValue.toExponential(2) // Scientific notation for very small values
+		// For very small positive values, show "< 0.01" instead of scientific notation
+		if (tokenValue > 0 && tokenValue < 0.01) {
+			return '< 0.01'
+		}
+		// For very small negative values
+		if (tokenValue < 0 && tokenValue > -0.01) {
+			return '> -0.01'
 		}
 
 		return tokenValue.toLocaleString('en-US', {

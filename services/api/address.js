@@ -56,6 +56,44 @@ export const fetchAddressTransactions = (address, params = {}) => {
 }
 
 /**
+ * Get token transfers for an address - Client-side version
+ * @param {string} address - Ethereum address
+ * @param {Object} params - Query parameters
+ * @returns {Promise} - API response with cursor pagination
+ */
+export const fetchAddressTokenTransfersClient = async (address, params = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const { items_count = 10, ...paginationParams } = params || {}
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/token-transfers`)
+
+		url.searchParams.append("items_count", items_count)
+		if (paginationParams.block_number) url.searchParams.append("block_number", paginationParams.block_number)
+		if (paginationParams.index !== undefined) url.searchParams.append("index", paginationParams.index)
+		if (paginationParams.token) url.searchParams.append("token", paginationParams.token.toLowerCase())
+		if (paginationParams.type) url.searchParams.append("type", paginationParams.type)
+		if (paginationParams.filter) url.searchParams.append("filter", paginationParams.filter)
+
+		const data = await $fetch(url.href)
+
+		return {
+			data: {
+				value: {
+					items: data.items || [],
+					next_page_params: data.next_page_params || null,
+				}
+			}
+		}
+	} catch (error) {
+		throw error
+	}
+}
+
+/**
  * Get transactions for an address (sent or received) - Client-side version
  * MIGRATED: Now uses new Indexer API with cursor pagination
  * @param {string} address - Ethereum address

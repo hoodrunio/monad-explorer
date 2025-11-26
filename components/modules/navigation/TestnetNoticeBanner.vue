@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
 import { isMainnet } from '@/services/utils/general'
+import Button from '@/components/ui/Button.vue'
 
 const showBanner = ref(false)
 const isDismissed = ref(false)
