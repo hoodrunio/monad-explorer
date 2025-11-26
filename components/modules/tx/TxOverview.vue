@@ -12,7 +12,7 @@ import Events from "@/components/shared/tables/Events.vue"
 import TokenFlow from "@/components/modules/tx/TokenFlow.vue"
 
 /** Services */
-import { comma, shortHex } from "@/services/utils"
+import { comma, shortHex, space } from "@/services/utils"
 import { calculateSavings } from "@/services/utils/amounts"
 import { formatTokenAmount } from "@/services/utils/tokenFlow"
 
@@ -264,12 +264,34 @@ const handleDecodeInput = () => {
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">From Address</Text>
-						<BadgeValue :text="tx.fromAddress" />
+						<Flex align="center" gap="8">
+							<NuxtLink :to="`/address/${tx.fromAddress}`" :class="$style.address_link">
+								<Flex :class="$style.address_left">
+									<Text size="12" weight="600" color="secondary" mono>{{ tx.fromAddress ? space(tx.fromAddress.toUpperCase()) : '' }}</Text>
+								</Flex>
+								<div v-for="dot in 3" class="dot" />
+								<Flex justify="end" :class="$style.address_right">
+									<Text size="12" weight="600" color="secondary" mono>{{ tx.fromAddress ? space(tx.fromAddress.toUpperCase()) : '' }}</Text>
+								</Flex>
+							</NuxtLink>
+							<CopyButton :text="tx.fromAddress" size="12" />
+						</Flex>
 					</Flex>
 
 					<Flex v-if="tx.toAddress" direction="column" gap="10" :class="$style.key_value">
 						<Text size="12" weight="600" color="secondary">To Address</Text>
-						<BadgeValue :text="tx.toAddress" />
+						<Flex align="center" gap="8">
+							<NuxtLink :to="`/address/${tx.toAddress}`" :class="$style.address_link">
+								<Flex :class="$style.address_left">
+									<Text size="12" weight="600" color="secondary" mono>{{ tx.toAddress ? space(tx.toAddress.toUpperCase()) : '' }}</Text>
+								</Flex>
+								<div v-for="dot in 3" class="dot" />
+								<Flex justify="end" :class="$style.address_right">
+									<Text size="12" weight="600" color="secondary" mono>{{ tx.toAddress ? space(tx.toAddress.toUpperCase()) : '' }}</Text>
+								</Flex>
+							</NuxtLink>
+							<CopyButton :text="tx.toAddress" size="12" />
+						</Flex>
 					</Flex>
 
 					<Flex direction="column" gap="10" :class="$style.key_value">
@@ -968,6 +990,47 @@ const handleDecodeInput = () => {
 	border-radius: 4px;
 	background: var(--op-5);
 	border: 1px solid var(--op-8);
+}
+
+.address_link {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 8px;
+	border-radius: 5px;
+	background: transparent;
+	border: 1px solid var(--op-10);
+	transition: all 0.2s ease;
+
+	&:hover {
+		background: var(--op-5);
+		border-color: var(--op-15);
+
+		& span {
+			color: var(--txt-primary);
+		}
+	}
+}
+
+.address_left {
+	min-width: 42%;
+	width: 0;
+	overflow: hidden;
+
+	& span {
+		white-space: nowrap;
+	}
+}
+
+.address_right {
+	min-width: 42%;
+	width: 0;
+	overflow: hidden;
+
+	& span {
+		white-space: nowrap;
+	}
 }
 
 @media (max-width: 800px) {

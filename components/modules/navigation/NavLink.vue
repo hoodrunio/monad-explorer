@@ -6,6 +6,10 @@ const route = useRoute()
 const emit = defineEmits(["onClose"])
 const props = defineProps({
 	link: Object,
+	isChild: {
+		type: Boolean,
+		default: false,
+	},
 })
 
 const isExpanded = ref(props.link.children?.some((l) => l.path === route.path))
@@ -78,6 +82,7 @@ const handleClick = () => {
 				$style.link,
 				isActive && (!isAnyChildrenActive || !isExpanded) && $style.active,
 				isAnyChildrenActive && isExpanded && $style.parentActive,
+				isChild && $style.child_link,
 			]"
 		>
 			<Flex align="center" gap="8">
@@ -96,8 +101,8 @@ const handleClick = () => {
 	</NuxtLink>
 
 	<template v-if="isExpanded">
-		<Flex direction="column" gap="2">
-			<NavLink v-for="l in link.children?.filter((l) => l.show)" :link="l" @onClose="handleClick" />
+		<Flex direction="column" gap="2" :class="$style.children_container">
+			<NavLink v-for="l in link.children?.filter((l) => l.show)" :link="l" :isChild="true" @onClose="handleClick" />
 		</Flex>
 	</template>
 </template>
@@ -137,6 +142,36 @@ const handleClick = () => {
 		& .link_icon:first-of-type {
 			fill: var(--brand);
 		}
+	}
+
+	&.child_link {
+		height: 28px;
+
+		& span {
+			font-size: 12px;
+		}
+
+		& svg {
+			width: 12px;
+			height: 12px;
+		}
+	}
+}
+
+.children_container {
+	position: relative;
+	margin-left: 14px;
+	padding-left: 10px;
+
+	&::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 4px;
+		bottom: 4px;
+		width: 1px;
+		background: var(--op-10);
+		border-radius: 1px;
 	}
 }
 
