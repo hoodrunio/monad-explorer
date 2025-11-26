@@ -1,6 +1,6 @@
 <script setup>
 import { useAppKitAccount } from '@reown/appkit/vue'
-import { watchAccount, watchChainId } from '@wagmi/core'
+import { watchAccount, watchChainId, getAccount } from '@wagmi/core'
 import { formatEther } from 'viem'
 import { useStakingStore } from '~/store/staking.store'
 import { monadTestnet, monadMainnet } from '~/config/chains'
@@ -86,6 +86,19 @@ function openModal() {
 onMounted(() => {
 	// Set modal instance from plugin
 	modal.value = $appKitModal
+
+	// Read current wallet state immediately on mount
+	// This handles the case where AppKit has already restored a previous connection
+	const currentAccount = getAccount($wagmiConfig)
+	if (currentAccount.isConnected && currentAccount.address) {
+		stakingStore.address = currentAccount.address
+		stakingStore.isConnected = true
+		stakingStore.chainId = currentAccount.chainId
+
+		// Fetch staking data for restored connection
+		stakingStore.fetchBalance()
+		stakingStore.fetchUserStakingData()
+	}
 
 	// Watch for Wagmi account changes (for staking store sync)
 	const unwatchAccount = watchAccount($wagmiConfig, {
