@@ -207,23 +207,23 @@ const buildChart = () => {
 				.style("opacity", 1)
 
 			tooltip.html(`
-				<div style="color: var(--txt-primary); font-weight: 600; margin-bottom: 8px;">
+				<div style="color: var(--txt-primary); font-weight: 600; font-size: 12px; margin-bottom: 8px;">
 					${d.formattedTime}
 				</div>
 				<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-					<div style="width: 8px; height: 8px; background: var(--green); border-radius: 50%;"></div>
-					<span style="color: var(--txt-secondary);">Tips:</span>
-					<span style="color: var(--txt-primary); font-weight: 600;">${comma(d.totalTipMon, ",", 4)} MON</span>
+					<div style="width: 6px; height: 6px; background: var(--green); border-radius: 50%;"></div>
+					<span style="color: var(--txt-tertiary); font-size: 11px;">Tips:</span>
+					<span style="color: var(--txt-primary); font-weight: 600; font-size: 11px;">${comma(d.totalTipMon, ",", 2)} MON</span>
 				</div>
 				<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-					<div style="width: 8px; height: 8px; background: var(--blue); border-radius: 50%;"></div>
-					<span style="color: var(--txt-secondary);">Blocks:</span>
-					<span style="color: var(--txt-primary); font-weight: 600;">${d.blocksProposed}</span>
+					<div style="width: 6px; height: 6px; background: var(--blue); border-radius: 50%;"></div>
+					<span style="color: var(--txt-tertiary); font-size: 11px;">Blocks:</span>
+					<span style="color: var(--txt-primary); font-weight: 600; font-size: 11px;">${d.blocksProposed}</span>
 				</div>
 				<div style="display: flex; align-items: center; gap: 8px;">
-					<div style="width: 8px; height: 8px; background: var(--orange); border-radius: 50%;"></div>
-					<span style="color: var(--txt-secondary);">Avg/Block:</span>
-					<span style="color: var(--txt-primary); font-weight: 600;">${comma(d.avgTipPerBlockMon, ",", 4)} MON</span>
+					<div style="width: 6px; height: 6px; background: var(--orange); border-radius: 50%;"></div>
+					<span style="color: var(--txt-tertiary); font-size: 11px;">Avg/Block:</span>
+					<span style="color: var(--txt-primary); font-weight: 600; font-size: 11px;">${comma(d.avgTipPerBlockMon, ",", 4)} MON</span>
 				</div>
 			`)
 			.style("left", (event.pageX + 10) + "px")
@@ -267,10 +267,10 @@ const buildChart = () => {
 		.text("Blocks")
 }
 
-const formatMon = (value) => {
+const formatMon = (value, decimals = 2) => {
 	if (!value) return '0'
 	const num = parseFloat(value)
-	return comma(num, ",", 4)
+	return comma(num, ",", decimals)
 }
 
 const debouncedRedraw = () => {
@@ -297,53 +297,52 @@ watch(() => props.tipHistory, () => {
 <template>
 	<Flex direction="column" gap="16">
 		<!-- Summary Cards -->
-		<Flex v-if="tipRevenueData" gap="12" :class="$style.summary_cards">
-			<Flex direction="column" gap="4" :class="$style.card">
-				<Text size="11" color="tertiary">24h Tips</Text>
-				<Text size="16" weight="600" color="green">{{ formatMon(tipRevenueData.total24h) }} MON</Text>
+		<Flex v-if="tipRevenueData" gap="8" :class="$style.summary_cards">
+			<Flex direction="column" gap="6" :class="$style.card">
+				<Text size="11" weight="500" color="tertiary">Tips (24h)</Text>
+				<Text size="14" weight="600" color="green">{{ formatMon(tipRevenueData.total24h) }} MON</Text>
 			</Flex>
-			<Flex direction="column" gap="4" :class="$style.card">
-				<Text size="11" color="tertiary">Rank</Text>
-				<Text size="16" weight="600" color="primary">#{{ tipRevenueData.rank }}</Text>
+			<Flex direction="column" gap="6" :class="$style.card">
+				<Text size="11" weight="500" color="tertiary">Rank</Text>
+				<Text size="14" weight="600" color="primary">#{{ tipRevenueData.rank }}</Text>
 			</Flex>
-			<Flex direction="column" gap="4" :class="$style.card">
-				<Text size="11" color="tertiary">Avg Tip/Block</Text>
-				<Text size="16" weight="600" color="secondary">{{ formatMon(tipRevenueData.avgPerBlock) }} MON</Text>
+			<Flex direction="column" gap="6" :class="$style.card">
+				<Text size="11" weight="500" color="tertiary">Avg / Block</Text>
+				<Text size="14" weight="600" color="secondary">{{ formatMon(tipRevenueData.avgPerBlock, 4) }} MON</Text>
 			</Flex>
-			<Flex direction="column" gap="4" :class="$style.card">
-				<Text size="11" color="tertiary">Avg Tip/Tx</Text>
-				<Text size="16" weight="600" color="secondary">{{ formatMon(tipRevenueData.avgPerTx) }} MON</Text>
+			<Flex direction="column" gap="6" :class="$style.card">
+				<Text size="11" weight="500" color="tertiary">Avg / Tx</Text>
+				<Text size="14" weight="600" color="secondary">{{ formatMon(tipRevenueData.avgPerTx, 4) }} MON</Text>
 			</Flex>
 		</Flex>
 
 		<!-- Chart -->
 		<Flex direction="column" :class="$style.chart_section">
-			<Flex align="center" justify="between" :class="$style.chart_header">
-				<Text size="13" weight="600" color="secondary">Tip Revenue History (24h)</Text>
-				<Text size="11" color="tertiary">{{ chartData.length }} data points</Text>
+			<Flex align="center" :class="$style.chart_header">
+				<Text size="12" weight="600" color="secondary">History (24h)</Text>
 			</Flex>
 			<div ref="chartContainer" :class="$style.chart_container" />
 		</Flex>
 
-		<!-- Cumulative Stats -->
+		<!-- All-Time Stats -->
 		<Flex v-if="tipRevenueData" direction="column" gap="12" :class="$style.cumulative_section">
-			<Text size="12" weight="600" color="secondary">Cumulative Statistics</Text>
-			<Flex gap="12" :class="$style.cumulative_cards">
-				<Flex direction="column" gap="4" :class="$style.cumulative_card">
-					<Text size="11" color="tertiary">All-Time Tips</Text>
-					<Text size="14" weight="600" color="primary">{{ formatMon(tipRevenueData.cumulativeTotal) }} MON</Text>
+			<Text size="12" weight="600" color="secondary">All-Time</Text>
+			<Flex gap="8" :class="$style.cumulative_cards">
+				<Flex direction="column" gap="6" :class="$style.cumulative_card">
+					<Text size="11" weight="500" color="tertiary">Total Tips</Text>
+					<Text size="13" weight="600" color="primary">{{ formatMon(tipRevenueData.cumulativeTotal) }} MON</Text>
 				</Flex>
-				<Flex direction="column" gap="4" :class="$style.cumulative_card">
-					<Text size="11" color="tertiary">Total Blocks</Text>
-					<Text size="14" weight="600" color="primary">{{ comma(tipRevenueData.cumulativeBlocks) }}</Text>
+				<Flex direction="column" gap="6" :class="$style.cumulative_card">
+					<Text size="11" weight="500" color="tertiary">Total Blocks</Text>
+					<Text size="13" weight="600" color="primary">{{ comma(tipRevenueData.cumulativeBlocks) }}</Text>
 				</Flex>
-				<Flex direction="column" gap="4" :class="$style.cumulative_card">
-					<Text size="11" color="tertiary">24h Blocks</Text>
-					<Text size="14" weight="600" color="primary">{{ comma(tipRevenueData.blocksProposed) }}</Text>
+				<Flex direction="column" gap="6" :class="$style.cumulative_card">
+					<Text size="11" weight="500" color="tertiary">Blocks (24h)</Text>
+					<Text size="13" weight="600" color="primary">{{ comma(tipRevenueData.blocksProposed) }}</Text>
 				</Flex>
-				<Flex direction="column" gap="4" :class="$style.cumulative_card">
-					<Text size="11" color="tertiary">24h Transactions</Text>
-					<Text size="14" weight="600" color="primary">{{ comma(tipRevenueData.totalTransactions) }}</Text>
+				<Flex direction="column" gap="6" :class="$style.cumulative_card">
+					<Text size="11" weight="500" color="tertiary">Transactions (24h)</Text>
+					<Text size="13" weight="600" color="primary">{{ comma(tipRevenueData.totalTransactions) }}</Text>
 				</Flex>
 			</Flex>
 		</Flex>
@@ -351,7 +350,7 @@ watch(() => props.tipHistory, () => {
 		<!-- No Data State -->
 		<Flex v-if="!tipRevenueData && !chartData.length" direction="column" gap="12" align="center" :class="$style.no_data">
 			<Icon name="coins" size="24" color="tertiary" />
-			<Text size="12" weight="500" color="tertiary">No tip revenue data available for this validator</Text>
+			<Text size="12" weight="500" color="tertiary">No tip revenue data available</Text>
 		</Flex>
 	</Flex>
 </template>
@@ -360,54 +359,56 @@ watch(() => props.tipHistory, () => {
 .summary_cards {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 12px;
+	gap: 8px;
 }
 
 .card {
 	padding: 12px;
-	border: 1px solid var(--op-8);
+	border: 1px solid var(--op-5);
 	border-radius: 8px;
 	background: var(--op-3);
 }
 
 .chart_section {
 	background: var(--op-3);
-	border: 1px solid var(--op-8);
+	border: 1px solid var(--op-5);
 	border-radius: 8px;
 	padding: 16px;
 }
 
 .chart_header {
-	margin-bottom: 12px;
+	margin-bottom: 8px;
 }
 
 .chart_container {
 	width: 100%;
-	min-height: 280px;
+	min-height: 260px;
 }
 
 .cumulative_section {
-	padding: 16px;
+	padding: 12px;
 	background: var(--op-3);
-	border: 1px solid var(--op-8);
+	border: 1px solid var(--op-5);
 	border-radius: 8px;
 }
 
 .cumulative_cards {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 12px;
+	gap: 8px;
 }
 
 .cumulative_card {
-	padding: 10px;
+	padding: 10px 12px;
 	background: var(--op-5);
 	border-radius: 6px;
 }
 
 .no_data {
-	padding: 40px 20px;
+	padding: 32px 20px;
 	text-align: center;
+	border: 1px dashed var(--op-8);
+	border-radius: 8px;
 }
 
 @media (max-width: 768px) {
@@ -430,7 +431,7 @@ watch(() => props.tipHistory, () => {
 	}
 
 	.chart_container {
-		min-height: 220px;
+		min-height: 200px;
 	}
 }
 </style>
