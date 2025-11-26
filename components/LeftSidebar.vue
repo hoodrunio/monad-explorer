@@ -74,6 +74,16 @@ const mainLinks = reactive([
 		path: "/transactions",
 	},
 	{
+		icon: "coins",
+		name: "Tokens",
+		path: "/tokens",
+	},
+	{
+		icon: "grid",
+		name: "NFTs",
+		path: "/nfts",
+	},
+	{
 		icon: "validator",
 		name: "Validators",
 		path: "/validators",

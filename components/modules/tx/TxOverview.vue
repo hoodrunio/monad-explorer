@@ -49,6 +49,7 @@ const tokenTransfers = computed(() => props.tx?.tokenTransfers || props.tx?.toke
 const internalTransactions = computed(() => props.tx?.internalTransactions || [])
 const decodedLogs = computed(() => props.tx?.decodedLogs || [])
 const stateChanges = computed(() => props.tx?.stateChanges || [])
+const hasStateChanges = computed(() => Array.isArray(stateChanges.value) && stateChanges.value.length > 0)
 
 // Transaction method information
 const { getMethodInfo, formatInputData } = useTransactionMethods()
@@ -462,7 +463,7 @@ const handleDecodeInput = () => {
 
 				<!-- State Tab -->
 				<Flex v-if="activeTab === 'balances'" :class="$style.inner">
-					<Flex v-if="stateChanges.length" direction="column" gap="8" :class="$style.content_padding">
+					<Flex v-if="hasStateChanges" direction="column" gap="8" :class="$style.content_padding">
 						<Flex align="center" gap="6">
 							<Icon name="bar-chart" size="12" color="tertiary" />
 							<Text size="12" weight="600" color="secondary">State</Text>
@@ -473,12 +474,12 @@ const handleDecodeInput = () => {
 							<div
 								v-for="(change, index) in stateChanges"
 								:key="index"
-								:class="[$style.balance_item, change.change?.startsWith('-') ? $style.negative : $style.positive]"
+								:class="[$style.balance_item, String(change.change || '0').startsWith('-') ? $style.negative : $style.positive]"
 							>
 								<!-- Left: Address & Token -->
 								<Flex align="center" gap="12" :class="$style.balance_left">
-									<div :class="[$style.balance_indicator, change.change?.startsWith('-') ? $style.neg : $style.pos]">
-										<Icon :name="change.change?.startsWith('-') ? 'arrow-down' : 'arrow-up'" size="14" color="white" />
+									<div :class="[$style.balance_indicator, String(change.change || '0').startsWith('-') ? $style.neg : $style.pos]">
+										<Icon :name="String(change.change || '0').startsWith('-') ? 'arrow-down' : 'arrow-up'" size="14" color="white" />
 									</div>
 									<Flex direction="column" gap="2">
 										<NuxtLink :to="`/address/${change.address?.hash}`" :class="$style.balance_addr_link">
@@ -513,9 +514,9 @@ const handleDecodeInput = () => {
 									<Text
 										size="14"
 										weight="700"
-										:color="change.change?.startsWith('-') ? 'red' : 'green'"
+										:color="String(change.change || '0').startsWith('-') ? 'red' : 'green'"
 									>
-										{{ change.change?.startsWith('-') ? '' : '+' }}{{ formatTokenAmount(change.change, change.token?.decimals || 18, 2) }}
+										{{ String(change.change || '0').startsWith('-') ? '' : '+' }}{{ formatTokenAmount(change.change, change.token?.decimals || 18, 2) }}
 									</Text>
 								</Flex>
 							</div>

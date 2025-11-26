@@ -9,6 +9,8 @@ import Popover from "@/components/ui/Popover.vue"
 
 /** Components */
 import TransactionsTable from "./tables/TransactionsTable.vue"
+import NFTGrid from "@/components/modules/nfts/NFTGrid.vue"
+import TokenTransfersTable from "@/components/modules/tokens/TokenTransfersTable.vue"
 
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
@@ -18,7 +20,9 @@ import {
 	fetchAddressTransactionsClient,
 	fetchAddressBalanceClient,
 	fetchAddressStatsClient,
+	fetchAddressTokenTransfersClient,
 } from "@/services/api/address"
+import { fetchAddressNFTsClient } from "@/services/api/nfts"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -56,7 +60,29 @@ const tabs = ref([
 		icon: "tx",
 		show: true,
 	},
+	{
+		alias: "tokens",
+		displayName: "Token Transfers",
+		icon: "token",
+		show: true,
+	},
+	{
+		alias: "nfts",
+		displayName: "NFTs",
+		icon: "nft",
+		show: true,
+	},
 ])
+
+/** Token Transfers State */
+const tokenTransfers = ref([])
+const tokenTransfersNextParams = ref(null)
+const tokenTransfersPrevPages = ref([])
+
+/** NFTs State */
+const nfts = ref([])
+const nftsNextParams = ref(null)
+const nftsPrevPages = ref([])
 
 const preselectedTab =
 	route.query.tab && tabs.value.map((tab) => tab.alias).includes(route.query.tab) ? route.query.tab : tabs.value[0].alias
@@ -341,6 +367,92 @@ const getTransactions = async (params = null) => {
 
 const collapseBalances = ref(false)
 
+/** Token Transfers fetch function */
+const getTokenTransfers = async (params = null) => {
+	isRefetching.value = true
+
+	try {
+		const queryParams = params || { items_count: 10 }
+		const { data } = await fetchAddressTokenTransfersClient(props.address.hash, queryParams)
+
+		if (data.value?.items) {
+			tokenTransfers.value = data.value.items
+			tokenTransfersNextParams.value = data.value.next_page_params || null
+		} else {
+			tokenTransfers.value = []
+			tokenTransfersNextParams.value = null
+		}
+	} catch (error) {
+		tokenTransfers.value = []
+		tokenTransfersNextParams.value = null
+	}
+
+	isRefetching.value = false
+}
+
+/** NFTs fetch function */
+const getNFTs = async (params = null) => {
+	isRefetching.value = true
+
+	try {
+		const queryParams = params || { items_count: 12 }
+		const { data } = await fetchAddressNFTsClient(props.address.hash, queryParams)
+
+		if (data.value?.items) {
+			nfts.value = data.value.items
+			nftsNextParams.value = data.value.next_page_params || null
+		} else {
+			nfts.value = []
+			nftsNextParams.value = null
+		}
+	} catch (error) {
+		nfts.value = []
+		nftsNextParams.value = null
+	}
+
+	isRefetching.value = false
+}
+
+/** Token Transfers Pagination */
+const handleTokenTransfersNext = () => {
+	if (!tokenTransfersNextParams.value) return
+
+	tokenTransfersPrevPages.value.push({
+		data: [...tokenTransfers.value],
+		params: tokenTransfersNextParams.value
+	})
+
+	getTokenTransfers(tokenTransfersNextParams.value)
+}
+
+const handleTokenTransfersPrev = () => {
+	if (tokenTransfersPrevPages.value.length === 0) return
+
+	const previousState = tokenTransfersPrevPages.value.pop()
+	tokenTransfers.value = previousState.data
+	tokenTransfersNextParams.value = previousState.params
+}
+
+/** NFTs Pagination */
+const handleNFTsNext = () => {
+	if (!nftsNextParams.value) return
+
+	nftsPrevPages.value.push({
+		data: [...nfts.value],
+		params: nftsNextParams.value
+	})
+
+	getNFTs(nftsNextParams.value)
+}
+
+const handleNFTsPrev = () => {
+	if (nftsPrevPages.value.length === 0) return
+
+	const previousState = nftsPrevPages.value.pop()
+	nfts.value = previousState.data
+	nftsNextParams.value = previousState.params
+}
+
 /** Address Balance & Stats */
 const getAddressBalance = async () => {
 	isLoadingBalance.value = true
@@ -410,6 +522,10 @@ watch(
 		// Reset cursor pagination state
 		nextPageParams.value = null
 		previousPages.value = []
+		tokenTransfersNextParams.value = null
+		tokenTransfersPrevPages.value = []
+		nftsNextParams.value = null
+		nftsPrevPages.value = []
 
 		router.replace({
 			query: {
@@ -419,6 +535,10 @@ watch(
 
 		if (activeTab.value === "transactions") {
 			await getTransactions()
+		} else if (activeTab.value === "tokens") {
+			await getTokenTransfers()
+		} else if (activeTab.value === "nfts") {
+			await getNFTs()
 		}
 	},
 	{ immediate: true },
@@ -732,10 +852,41 @@ const handleViewRawAddress = () => {
 								</Text>
 							</Flex>
 						</template>
+
+						<!-- Token Transfers Table -->
+						<template v-if="activeTab === 'tokens'">
+							<TokenTransfersTable
+								v-if="tokenTransfers.length"
+								:transfers="tokenTransfers"
+								:tokenDecimals="18"
+								tokenSymbol=""
+							/>
+
+							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
+								<Icon name="coins" size="24" color="support" />
+								<Text size="13" weight="600" color="secondary" align="center"> No token transfers </Text>
+								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
+									This address has no token transfer activity
+								</Text>
+							</Flex>
+						</template>
+
+						<!-- NFTs Grid -->
+						<template v-if="activeTab === 'nfts'">
+							<NFTGrid v-if="nfts.length" :nfts="nfts" :showCollection="true" />
+
+							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
+								<Icon name="grid" size="24" color="support" />
+								<Text size="13" weight="600" color="secondary" align="center"> No NFTs </Text>
+								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
+									This address does not own any NFTs
+								</Text>
+							</Flex>
+						</template>
 					</Flex>
 
-					<!-- Pagination -->
-					<Flex align="center" justify="between">
+					<!-- Pagination - Transactions -->
+					<Flex v-if="activeTab === 'transactions'" align="center" justify="between">
 						<Flex align="center" gap="6" :class="$style.pagination">
 							<Button type="secondary" @click="handlePrev" size="mini" :disabled="previousPages.length === 0">
 								<Icon name="arrow-left" size="12" color="primary" />
@@ -746,6 +897,40 @@ const handleViewRawAddress = () => {
 							</Button>
 
 							<Button @click="handleNext" type="secondary" size="mini" :disabled="!nextPageParams">
+								<Icon name="arrow-right" size="12" color="primary" />
+							</Button>
+						</Flex>
+					</Flex>
+
+					<!-- Pagination - Token Transfers -->
+					<Flex v-if="activeTab === 'tokens'" align="center" justify="between">
+						<Flex align="center" gap="6" :class="$style.pagination">
+							<Button type="secondary" @click="handleTokenTransfersPrev" size="mini" :disabled="tokenTransfersPrevPages.length === 0">
+								<Icon name="arrow-left" size="12" color="primary" />
+							</Button>
+
+							<Button type="secondary" size="mini" disabled>
+								<Text size="12" weight="600" color="primary">Page {{ tokenTransfersPrevPages.length + 1 }}</Text>
+							</Button>
+
+							<Button @click="handleTokenTransfersNext" type="secondary" size="mini" :disabled="!tokenTransfersNextParams">
+								<Icon name="arrow-right" size="12" color="primary" />
+							</Button>
+						</Flex>
+					</Flex>
+
+					<!-- Pagination - NFTs -->
+					<Flex v-if="activeTab === 'nfts'" align="center" justify="between">
+						<Flex align="center" gap="6" :class="$style.pagination">
+							<Button type="secondary" @click="handleNFTsPrev" size="mini" :disabled="nftsPrevPages.length === 0">
+								<Icon name="arrow-left" size="12" color="primary" />
+							</Button>
+
+							<Button type="secondary" size="mini" disabled>
+								<Text size="12" weight="600" color="primary">Page {{ nftsPrevPages.length + 1 }}</Text>
+							</Button>
+
+							<Button @click="handleNFTsNext" type="secondary" size="mini" :disabled="!nftsNextParams">
 								<Icon name="arrow-right" size="12" color="primary" />
 							</Button>
 						</Flex>
