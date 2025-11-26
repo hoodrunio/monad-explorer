@@ -38,21 +38,28 @@ export const useGeoMapChart = () => {
 			tooltip.style.left = `${pageX + 10}px`
 			tooltip.style.top = `${pageY - 20}px`
 
+			const container = document.createElement('div')
+			container.className = 'flex items-center gap--8'
+
+			const nameSpan = document.createElement('span')
+			nameSpan.style.color = 'var(--txt-secondary)'
+
+			const amountSpan = document.createElement('span')
+			amountSpan.style.color = 'var(--txt-primary)'
+
 			if (chartView.value === "countries") {
-				tooltip.innerHTML = `
-					<div class="flex items-center gap--8">
-						<span style="color: var(--txt-secondary);">${d.properties.name}:</span>
-						<span style="color: var(--txt-primary);">${d.amount} validators</span>
-					</div>
-				`
+				nameSpan.textContent = `${d.properties.name}:`
+				amountSpan.textContent = `${d.amount} validators`
 			} else if (chartView.value === "cities") {
-				tooltip.innerHTML = `
-					<div class="flex items-center gap--8">
-						<span style="color: var(--txt-secondary);">${d.name}:</span>
-						<span style="color: var(--txt-primary);">${d.amount} validators</span>
-					</div>
-				`
+				nameSpan.textContent = `${d.name}:`
+				amountSpan.textContent = `${d.amount} validators`
 			}
+
+			container.appendChild(nameSpan)
+			container.appendChild(amountSpan)
+
+			tooltip.textContent = ''
+			tooltip.appendChild(container)
 		}
 		
 		const mouseleave = function (event, d) {
