@@ -22,6 +22,9 @@ const showPromoBackground = useCookie("showPromoBackground", { default: () => tr
 					<!-- Testnet Notice Banner -->
 					<ClientOnly>
 						<TestnetNoticeBanner :class="$style.testnet_notice" />
+						<template #fallback>
+							<div :class="$style.testnet_notice"></div>
+						</template>
 					</ClientOnly>
 
 					<slot />
