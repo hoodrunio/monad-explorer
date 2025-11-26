@@ -142,7 +142,7 @@ const mainLinks = reactive([
 			{
 				name: "My Dashboard",
 				path: "/staking/dashboard",
-				icon: "user",
+				icon: "vesting",
 				show: true,
 			},
 		],
