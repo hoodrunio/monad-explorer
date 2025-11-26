@@ -3,7 +3,7 @@
  * Eliminates duplicated network switching logic across components
  */
 
-import { switchChain, getChainId } from '@wagmi/core'
+import { switchChain, getChainId, getConnectorClient } from '@wagmi/core'
 import { monadTestnet, monadMainnet } from '~/config/chains'
 import { formatChainParams } from '~/utils/chain'
 import { isMainnet } from '~/services/utils/general'
@@ -89,8 +89,11 @@ export class NetworkService {
 		try {
 			const chainParams = formatChainParams(targetChain)
 
-			// Request to add the network
-			await window.ethereum.request({
+			// Get the connected wallet's client (ensures correct wallet is used)
+			const client = await getConnectorClient(this.wagmiConfig)
+
+			// Request to add the network using the connected wallet
+			await client.request({
 				method: 'wallet_addEthereumChain',
 				params: [chainParams],
 			})

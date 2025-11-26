@@ -3,7 +3,8 @@ import { useAppKitAccount } from '@reown/appkit/vue'
 import { watchAccount, watchChainId } from '@wagmi/core'
 import { formatEther } from 'viem'
 import { useStakingStore } from '~/store/staking.store'
-import { monadTestnet } from '~/config/chains'
+import { monadTestnet, monadMainnet } from '~/config/chains'
+import { isMainnet } from '~/services/utils/general'
 import { showNetworkSwitchRequiredNotification } from '~/utils/notifications'
 import Button from '@/components/ui/Button.vue'
 
@@ -68,9 +69,12 @@ const formattedBalance = computed(() => {
 	}
 })
 
+// Target chain based on environment (mainnet or testnet)
+const targetChain = computed(() => isMainnet() ? monadMainnet : monadTestnet)
+
 // Network check
 const isCorrectNetwork = computed(() => {
-	return stakingStore.chainId === monadTestnet.id
+	return stakingStore.chainId === targetChain.value.id
 })
 
 // Open AppKit modal
@@ -109,7 +113,7 @@ onMounted(() => {
 				stakingStore.chainId = chainId
 
 				// Show notification if wrong network
-				if (chainId !== monadTestnet.id) {
+				if (chainId !== targetChain.value.id) {
 					showNetworkSwitchRequiredNotification()
 				}
 

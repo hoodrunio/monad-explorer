@@ -1,16 +1,14 @@
 import { createAppKit } from '@reown/appkit/vue'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { monadTestnet } from '~/config/chains'
+import { monadTestnet, monadMainnet } from '~/config/chains'
+import { isMainnet } from '~/services/utils/general'
 
 export default defineNuxtPlugin(() => {
 	const runtimeConfig = useRuntimeConfig()
 
-	// Disable analytics for development to avoid fetch errors
-	// Can be enabled in production if needed
-
-	// Monad Testnet is already properly configured in chains.js
-	// Just use it directly as Wagmi chain format is compatible with AppKit
-	const monadNetwork = monadTestnet
+	// Dynamically select network based on hostname
+	// monad.hoodscan.io → Mainnet, testnet.monad.hoodscan.io → Testnet
+	const monadNetwork = isMainnet() ? monadMainnet : monadTestnet
 
 	// Create Wagmi Adapter with proper configuration
 	const wagmiAdapter = new WagmiAdapter({
