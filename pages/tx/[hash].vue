@@ -3,7 +3,7 @@
 import TxOverview from "@/components/modules/tx/TxOverview.vue"
 
 /** API */
-import { fetchTxByHash, fetchTxInternalTransactions, fetchTxLogs } from "@/services/api/tx"
+import { fetchTxByHash, fetchTxInternalTransactions, fetchTxLogs, fetchTxStateChanges } from "@/services/api/tx"
 
 /** Services */
 import { shortHex } from "@/services/utils"
@@ -35,11 +35,13 @@ const {
 		const [
 			{ data: rawTransaction },
 			{ data: internalTxs },
-			{ data: logs }
+			{ data: logs },
+			{ data: stateChanges }
 		] = await Promise.all([
 			fetchTxByHash(txHash),
 			fetchTxInternalTransactions(txHash, { items_count: 50 }),
-			fetchTxLogs(txHash, { items_count: 50 })
+			fetchTxLogs(txHash, { items_count: 50 }),
+			fetchTxStateChanges(txHash, { items_count: 100 })
 		])
 
 		// New Indexer API returns transaction directly (already transformed)
@@ -52,6 +54,7 @@ const {
 			...rawTransaction.value,
 			internalTransactions: internalTxs.value?.items || [],
 			decodedLogs: (logs.value?.items || []).map(transformLog),
+			stateChanges: stateChanges.value?.items || [],
 		}
 
 		return {

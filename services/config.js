@@ -23,7 +23,7 @@ export const useServerURL = () => {
 
 	switch (requestURL.hostname) {
 		case "monad.hoodscan.io":
-		case "localhost:9090":
+		case "localhost":
 			return Server.API.mainnet
 
 		case "testnet.monad.hoodscan.io":
@@ -33,7 +33,7 @@ export const useServerURL = () => {
 			return Server.API.dev
 
 		default:
-			return Server.API.dev
+			return Server.API.mainnet
 	}
 }
 
@@ -43,7 +43,7 @@ export const useIndexerUrl = () => {
 
 	switch (requestURL.hostname) {
 		case "monad.hoodscan.io":
-		case "localhost:9090":
+		case "localhost":
 			return Server.Indexer.mainnet
 
 		case "testnet.monad.hoodscan.io":
@@ -53,7 +53,7 @@ export const useIndexerUrl = () => {
 			return Server.Indexer.dev
 
 		default:
-			return Server.Indexer.testnet
+			return Server.Indexer.mainnet
 	}
 }
 
@@ -64,7 +64,7 @@ export const useExplorerURL = () => {
 
 	switch (requestURL.hostname) {
 		case "monad.hoodscan.io":
-		case "localhost:9090":
+		case "localhost":
 			return Server.Explorer.mainnet
 
 		case "testnet.monad.hoodscan.io":
@@ -74,7 +74,7 @@ export const useExplorerURL = () => {
 			return Server.Explorer.dev
 
 		default:
-			return Server.Explorer.testnet
+			return Server.Explorer.mainnet
 	}
 }
 

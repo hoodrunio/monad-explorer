@@ -38,7 +38,7 @@ const props = defineProps({
 	},
 })
 
-const preselectedTab = route.query.tab && ["transfers", "internal", "logs"].includes(route.query.tab) ? route.query.tab : "transfers"
+const preselectedTab = route.query.tab && ["transfers", "balances", "internal", "logs"].includes(route.query.tab) ? route.query.tab : "transfers"
 const activeTab = ref(preselectedTab)
 
 // USD Conversion
@@ -48,6 +48,7 @@ const { convertToUsd } = useMonUsdConverter()
 const tokenTransfers = computed(() => props.tx?.tokenTransfers || props.tx?.token_transfers || [])
 const internalTransactions = computed(() => props.tx?.internalTransactions || [])
 const decodedLogs = computed(() => props.tx?.decodedLogs || [])
+const stateChanges = computed(() => props.tx?.stateChanges || [])
 
 // Transaction method information
 const { getMethodInfo, formatInputData } = useTransactionMethods()
@@ -424,7 +425,17 @@ const handleDecodeInput = () => {
 							:class="[$style.tab, activeTab === 'transfers' && $style.active]"
 						>
 							<Icon name="coins" size="12" color="secondary" />
-							<Text size="13" weight="600">Token Transfers</Text>
+							<Text size="13" weight="600">Transfers</Text>
+						</Flex>
+
+						<Flex
+							@click="activeTab = 'balances'"
+							align="center"
+							gap="6"
+							:class="[$style.tab, activeTab === 'balances' && $style.active]"
+						>
+							<Icon name="bar-chart" size="12" color="secondary" />
+							<Text size="13" weight="600">State</Text>
 						</Flex>
 
 						<Flex
@@ -449,6 +460,74 @@ const handleDecodeInput = () => {
 					</Flex>
 				</Flex>
 
+				<!-- State Tab -->
+				<Flex v-if="activeTab === 'balances'" :class="$style.inner">
+					<Flex v-if="stateChanges.length" direction="column" gap="8" :class="$style.content_padding">
+						<Flex align="center" gap="6">
+							<Icon name="bar-chart" size="12" color="tertiary" />
+							<Text size="12" weight="600" color="secondary">State</Text>
+							<Text size="11" weight="500" color="support">({{ stateChanges.length }})</Text>
+						</Flex>
+
+						<div :class="$style.balance_list">
+							<div
+								v-for="(change, index) in stateChanges"
+								:key="index"
+								:class="[$style.balance_item, change.change?.startsWith('-') ? $style.negative : $style.positive]"
+							>
+								<!-- Left: Address & Token -->
+								<Flex align="center" gap="12" :class="$style.balance_left">
+									<div :class="[$style.balance_indicator, change.change?.startsWith('-') ? $style.neg : $style.pos]">
+										<Icon :name="change.change?.startsWith('-') ? 'arrow-down' : 'arrow-up'" size="14" color="white" />
+									</div>
+									<Flex direction="column" gap="2">
+										<NuxtLink :to="`/address/${change.address?.hash}`" :class="$style.balance_addr_link">
+											<Text size="13" weight="600" color="primary" mono>{{ shortHex(change.address?.hash) }}</Text>
+										</NuxtLink>
+										<Text size="11" weight="600" color="secondary">{{ change.token?.symbol || 'MON' }}</Text>
+									</Flex>
+								</Flex>
+
+								<!-- Center: Before → After Flow -->
+								<Flex align="center" gap="8" :class="$style.balance_flow">
+									<Flex direction="column" align="end" gap="2">
+										<Text size="11" weight="600" color="tertiary">Before</Text>
+										<Text size="13" weight="600" color="secondary" mono>
+											{{ formatTokenAmount(change.balance_before, change.token?.decimals || 18, 2) }}
+										</Text>
+									</Flex>
+									<div :class="$style.flow_arrow">
+										<Icon name="arrow-narrow-right" size="16" color="tertiary" />
+									</div>
+									<Flex direction="column" gap="2">
+										<Text size="11" weight="600" color="tertiary">After</Text>
+										<Text size="13" weight="600" color="primary" mono>
+											{{ formatTokenAmount(change.balance_after, change.token?.decimals || 18, 2) }}
+										</Text>
+									</Flex>
+								</Flex>
+
+								<!-- Right: Change Amount -->
+								<Flex direction="column" align="end" gap="2" :class="$style.balance_right">
+									<Text size="11" weight="600" color="tertiary">Change</Text>
+									<Text
+										size="14"
+										weight="700"
+										:color="change.change?.startsWith('-') ? 'red' : 'green'"
+									>
+										{{ change.change?.startsWith('-') ? '' : '+' }}{{ formatTokenAmount(change.change, change.token?.decimals || 18, 2) }}
+									</Text>
+								</Flex>
+							</div>
+						</div>
+					</Flex>
+					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
+						<Icon name="bar-chart" size="24" color="support" />
+						<Text size="13" weight="600" color="secondary">No balance changes</Text>
+					</Flex>
+				</Flex>
+
+				<!-- Token Transfers Tab -->
 				<Flex v-if="activeTab === 'transfers'" :class="$style.inner">
 					<Flex v-if="tokenTransfers.length" direction="column" gap="16" :class="$style.content_padding">
 						<!-- Sankey Flow Visualization -->
@@ -459,34 +538,31 @@ const handleDecodeInput = () => {
 							<Flex align="center" gap="6">
 								<Icon name="list" size="12" color="tertiary" />
 								<Text size="12" weight="600" color="secondary">Transfer Details</Text>
+								<Text size="11" weight="500" color="support">({{ tokenTransfers.length }})</Text>
 							</Flex>
-							<Flex direction="column" gap="12">
-								<div v-for="transfer in tokenTransfers" :key="transfer.log_index || transfer.transaction_hash" :class="$style.transfer_item">
-									<Flex align="center" justify="between" wide>
-										<Flex direction="column" gap="4">
-											<Text size="12" weight="600" color="secondary">{{ transfer.token?.type || 'Token' }} Transfer</Text>
-											<Flex align="center" gap="8">
-												<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.from?.hash || transfer.from) }}</Text>
-												<Icon name="arrow-narrow-right" size="12" color="tertiary" />
-												<Text size="13" weight="600" color="primary" mono>{{ shortHex(transfer.to?.hash || transfer.to) }}</Text>
-											</Flex>
-										</Flex>
-										<Flex direction="column" gap="4" align="end">
-											<Flex align="center" gap="4">
-												<Text size="13" weight="600" color="primary">
-													{{ formatTokenAmount(
-														transfer.total?.value || transfer.value,
-														parseInt(transfer.total?.decimals || transfer.token?.decimals || 18),
-														4
-													) }}
-												</Text>
-												<Text size="13" weight="600" color="brand">{{ transfer.token?.symbol }}</Text>
-											</Flex>
-											<Text size="12" weight="600" color="tertiary" mono>{{ shortHex(transfer.token?.address_hash) }}</Text>
-										</Flex>
+
+							<div :class="$style.transfer_table">
+								<div :class="$style.transfer_row" v-for="(transfer, index) in tokenTransfers" :key="transfer.log_index || transfer.transaction_hash">
+									<Text size="11" weight="600" color="support" :class="$style.transfer_num">{{ index + 1 }}</Text>
+									<NuxtLink :to="`/address/${transfer.from?.hash || transfer.from}`" :class="$style.transfer_addr">
+										<Text size="12" weight="600" color="secondary" mono>{{ shortHex(transfer.from?.hash || transfer.from) }}</Text>
+									</NuxtLink>
+									<Icon name="arrow-narrow-right" size="12" color="support" />
+									<NuxtLink :to="`/address/${transfer.to?.hash || transfer.to}`" :class="$style.transfer_addr">
+										<Text size="12" weight="600" color="secondary" mono>{{ shortHex(transfer.to?.hash || transfer.to) }}</Text>
+									</NuxtLink>
+									<Flex align="center" gap="4" :class="$style.transfer_amount">
+										<Text size="12" weight="600" color="primary">
+											{{ formatTokenAmount(
+												transfer.total?.value || transfer.value,
+												parseInt(transfer.total?.decimals || transfer.token?.decimals || 18),
+												4
+											) }}
+										</Text>
+										<Text size="12" weight="600" color="brand">{{ transfer.token?.symbol || '???' }}</Text>
 									</Flex>
 								</div>
-							</Flex>
+							</div>
 						</Flex>
 					</Flex>
 					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
@@ -496,22 +572,29 @@ const handleDecodeInput = () => {
 				</Flex>
 
 				<Flex v-if="activeTab === 'internal'" :class="$style.inner">
-					<Flex v-if="internalTransactions.length" direction="column" gap="12" :class="$style.content_padding">
-						<div v-for="internal in internalTransactions" :class="$style.transfer_item">
-							<Flex align="center" justify="between" wide>
-								<Flex direction="column" gap="4">
-									<Text size="12" weight="600" color="secondary">{{ internal.type || 'CALL' }}</Text>
-									<Flex align="center" gap="8">
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.from?.hash || internal.from) }}</Text>
-										<Icon name="arrow-narrow-right" size="12" color="tertiary" />
-										<Text size="13" weight="600" color="primary" mono>{{ shortHex(internal.to?.hash || internal.to) }}</Text>
-									</Flex>
+					<Flex v-if="internalTransactions.length" direction="column" gap="8" :class="$style.content_padding">
+						<Flex align="center" gap="6">
+							<Icon name="hash" size="12" color="tertiary" />
+							<Text size="12" weight="600" color="secondary">Internal Transactions</Text>
+							<Text size="11" weight="500" color="support">({{ internalTransactions.length }})</Text>
+						</Flex>
+
+						<div :class="$style.transfer_table">
+							<div :class="$style.transfer_row" v-for="(internal, index) in internalTransactions" :key="index">
+								<Text size="11" weight="600" color="support" :class="$style.transfer_num">{{ index + 1 }}</Text>
+								<Text size="11" weight="500" color="support" :class="$style.token_type">{{ internal.type || 'CALL' }}</Text>
+								<NuxtLink :to="`/address/${internal.from?.hash || internal.from}`" :class="$style.transfer_addr">
+									<Text size="12" weight="600" color="secondary" mono>{{ shortHex(internal.from?.hash || internal.from) }}</Text>
+								</NuxtLink>
+								<Icon name="arrow-narrow-right" size="12" color="support" />
+								<NuxtLink :to="`/address/${internal.to?.hash || internal.to}`" :class="$style.transfer_addr">
+									<Text size="12" weight="600" color="secondary" mono>{{ shortHex(internal.to?.hash || internal.to) }}</Text>
+								</NuxtLink>
+								<Flex align="center" gap="4" :class="$style.transfer_amount">
+									<Text size="12" weight="600" color="primary">{{ formatMonValue(internal.value, 6) }}</Text>
+									<Text size="12" weight="600" color="brand">MON</Text>
 								</Flex>
-								<Flex direction="column" gap="4" align="end">
-									<Text size="13" weight="600" color="primary">{{ formatMonValue(internal.value, 18) }} MON</Text>
-									<Text size="12" weight="600" color="tertiary">Gas: {{ formatGasValue(internal.gas_limit || internal.gas) }}</Text>
-								</Flex>
-							</Flex>
+							</div>
 						</div>
 					</Flex>
 					<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty_state">
@@ -642,11 +725,157 @@ const handleDecodeInput = () => {
 	padding: 16px;
 }
 
-.transfer_item {
-	padding: 12px;
+.transfer_table {
+	display: flex;
+	flex-direction: column;
 	border-radius: 6px;
+	background: var(--op-3);
+	border: 1px solid var(--op-5);
+	overflow: hidden;
+}
+
+.transfer_row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--op-5);
+	transition: background 0.1s ease;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	&:hover {
+		background: var(--op-5);
+	}
+}
+
+.transfer_num {
+	width: 20px;
+	text-align: center;
+	flex-shrink: 0;
+}
+
+.transfer_addr {
+	& span {
+		transition: color 0.1s ease;
+	}
+
+	&:hover span {
+		color: var(--txt-primary);
+	}
+}
+
+.transfer_amount {
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.balance_list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	overflow: hidden;
+}
+
+.balance_item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: var(--op-3);
+	border: 1px solid var(--op-5);
+	transition: all 0.15s ease;
+	min-width: 0;
+
+	&:hover {
+		background: var(--op-5);
+		border-color: var(--op-10);
+	}
+
+	&.positive {
+		border-left: 3px solid var(--green);
+	}
+
+	&.negative {
+		border-left: 3px solid var(--red);
+	}
+}
+
+.balance_indicator {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+
+	&.pos {
+		background: linear-gradient(135deg, var(--green), rgba(46, 204, 113, 0.7));
+		box-shadow: 0 2px 8px rgba(46, 204, 113, 0.3);
+	}
+
+	&.neg {
+		background: linear-gradient(135deg, var(--red), rgba(231, 76, 60, 0.7));
+		box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+	}
+}
+
+.balance_left {
+	min-width: 140px;
+	flex-shrink: 0;
+}
+
+.balance_flow {
+	flex: 1;
+	justify-content: center;
+	padding: 0 12px;
+	border-left: 1px solid var(--op-5);
+	border-right: 1px solid var(--op-5);
+	min-width: 0;
+	overflow: hidden;
+}
+
+.flow_arrow {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
 	background: var(--op-5);
-	border: 1px solid var(--op-8);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.balance_right {
+	min-width: 80px;
+	flex-shrink: 0;
+}
+
+.balance_addr_link {
+	& span {
+		transition: color 0.1s ease;
+	}
+
+	&:hover span {
+		color: var(--brand);
+	}
+}
+
+.token_type {
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: var(--op-8);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.token_contract {
+	padding-top: 8px;
+	border-top: 1px solid var(--op-5);
 }
 
 .empty_state {
