@@ -71,8 +71,9 @@ export default defineNuxtPlugin(() => {
 		// Enable network switching
 		enableNetworkSwitch: true,
 
-		// Enable auto-reconnect
-		enableReconnect: true,
+		// Disable auto-reconnect to prevent wallet connection prompts on every page load
+		// Users will need to manually connect their wallet on staking pages
+		enableReconnect: false,
 	})
 
 	// Make wagmi config globally available (for backward compatibility)
