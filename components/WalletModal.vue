@@ -1,6 +1,6 @@
 <script setup>
 import { useAppKitAccount } from '@reown/appkit/vue'
-import { watchAccount, watchChainId, getAccount } from '@wagmi/core'
+import { watchAccount, watchChainId, getAccount, reconnect } from '@wagmi/core'
 import { formatEther } from 'viem'
 import { useStakingStore } from '~/store/staking.store'
 import { monadTestnet, monadMainnet } from '~/config/chains'
@@ -83,9 +83,17 @@ function openModal() {
 }
 
 // Initialize modal and watchers
-onMounted(() => {
+onMounted(async () => {
 	// Set modal instance from plugin
 	modal.value = $appKitModal
+
+	// Reconnect to previously connected wallet (only triggers on staking pages)
+	// This restores the session without prompting on every page load
+	try {
+		await reconnect($wagmiConfig)
+	} catch (e) {
+		// Silently ignore reconnect errors (no previous session, user rejected, etc.)
+	}
 
 	// Read current wallet state immediately on mount
 	// This handles the case where AppKit has already restored a previous connection
