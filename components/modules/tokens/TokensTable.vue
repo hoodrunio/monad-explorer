@@ -5,16 +5,26 @@ import { DateTime } from "luxon"
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
+import { getProtocolInfoSync, preloadProtocolList } from "@/services/api/protocolList"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
 
 const router = useRouter()
 
-// Preload token registry
+// Preload registries
 onMounted(() => {
 	preloadTokenList()
+	preloadProtocolList()
 })
+
+/**
+ * Get protocol info for a token
+ */
+const getProtocol = (token) => {
+	const address = getTokenAddress(token)
+	return address ? getProtocolInfoSync(address) : null
+}
 
 /**
  * Get token logo URL - prioritizes registry logo over API logo
@@ -119,6 +129,12 @@ const handleRowClick = (token) => {
 									<Text v-if="token.symbol" size="12" weight="500" color="tertiary">
 										{{ token.symbol }}
 									</Text>
+									<Flex v-if="getProtocol(token)" align="center" gap="4" :class="$style.protocol_tag">
+										<div :class="[$style.protocol_dot, $style[`protocol_${getProtocol(token).ctype?.toLowerCase()}`]]" />
+										<Text size="10" weight="600" color="tertiary">
+											{{ getProtocol(token).name }}
+										</Text>
+									</Flex>
 								</Flex>
 								<Tooltip position="start" delay="300">
 									<Text size="11" weight="500" color="tertiary" mono>
@@ -261,4 +277,26 @@ const handleRowClick = (token) => {
 	background: rgba(249, 115, 22, 0.15);
 	& span { color: rgb(251, 146, 60); }
 }
+
+.protocol_tag {
+	padding: 1px 6px;
+	background: var(--op-5);
+	border-radius: 3px;
+}
+
+.protocol_dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--txt-tertiary);
+}
+
+.protocol_defi { background: #3b82f6; }
+.protocol_ai { background: #8b5cf6; }
+.protocol_consumer { background: #10b981; }
+.protocol_gaming { background: #f59e0b; }
+.protocol_depin { background: #06b6d4; }
+.protocol_infra { background: #6b7280; }
+.protocol_nft { background: #ec4899; }
+.protocol_cefi { background: #eab308; }
 </style>

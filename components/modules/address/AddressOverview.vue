@@ -6,6 +6,7 @@ import Checkbox from "@/components/ui/Checkbox.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 import Input from "@/components/ui/Input.vue"
 import Popover from "@/components/ui/Popover.vue"
+import ProtocolBadge from "@/components/ui/ProtocolBadge.vue"
 
 /** Components */
 import TransactionsTable from "./tables/TransactionsTable.vue"
@@ -33,6 +34,7 @@ import {
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
 import { preloadTokenList, getTokenLogoSync } from "@/services/api/tokenList"
+import { preloadProtocolList, getProtocolInfoSync } from "@/services/api/protocolList"
 import { fetchMarketStats } from "@/services/api/stats"
 
 /** Store */
@@ -617,10 +619,16 @@ watch(
 	{ immediate: true },
 )
 
+// Get protocol info for this address
+const protocolInfo = computed(() => {
+	return getProtocolInfoSync(props.address?.hash)
+})
+
 // Load balance, stats and token balances on component mount
 onMounted(async () => {
-	// Preload token list for logos
+	// Preload registries
 	preloadTokenList()
+	preloadProtocolList()
 
 	await Promise.all([
 		getAddressBalance(),
@@ -681,6 +689,13 @@ const handleViewRawAddress = () => {
 					Address <Text color="secondary">{{ splitAddress(address.hash) }}</Text>
 				</Text>
 				<CopyButton :text="address.hash" size="12" />
+				<ProtocolBadge
+					v-if="protocolInfo"
+					:address="address.hash"
+					showCategory
+					showSubcategory
+					linkable
+				/>
 			</Flex>
 
 			<Flex align="center" gap="12">

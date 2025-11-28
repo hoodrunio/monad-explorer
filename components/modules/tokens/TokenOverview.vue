@@ -2,10 +2,12 @@
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
 import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
+import { getProtocolInfoSync, preloadProtocolList } from "@/services/api/protocolList"
 
 /** UI */
 import BookmarkButton from "@/components/BookmarkButton.vue"
 import Button from "@/components/ui/Button.vue"
+import ProtocolBadge from "@/components/ui/ProtocolBadge.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
 
 /** Store */
@@ -15,9 +17,15 @@ import { useModalsStore } from "@/store/modals.store"
 const cacheStore = useCacheStore()
 const modalsStore = useModalsStore()
 
-// Preload token registry
+// Preload registries
 onMounted(() => {
 	preloadTokenList()
+	preloadProtocolList()
+})
+
+// Get protocol info for this token
+const protocolInfo = computed(() => {
+	return getProtocolInfoSync(props.token?.address)
 })
 
 /**
@@ -98,6 +106,12 @@ const handleOpenQRModal = () => {
 						<div :class="[$style.type_badge, $style[getTypeClass(token.type)]]">
 							<Text size="11" weight="600">{{ token.type || 'Unknown' }}</Text>
 						</div>
+						<ProtocolBadge
+							v-if="protocolInfo"
+							:address="token.address"
+							showSubcategory
+							linkable
+						/>
 					</Flex>
 					<Flex align="center" gap="8">
 						<Text v-if="token.symbol" size="13" weight="500" color="secondary">

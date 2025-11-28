@@ -84,6 +84,11 @@ const mainLinks = reactive([
 		path: "/nfts",
 	},
 	{
+		icon: "layers",
+		name: "Protocols",
+		path: "/protocols",
+	},
+	{
 		icon: "validator",
 		name: "Validators",
 		path: "/validators",
