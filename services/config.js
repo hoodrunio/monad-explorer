@@ -101,8 +101,22 @@ export const validatorAnalyticsURL = "https://analytics.monad.io/v1"
 export const quoteServiceURL = "https://quote.monad.io/v1"
 export const tvlServiceURL = "https://tvl.monad.io/v1"
 
+// Blockscout-compatible Indexer API URL (uses Server.Indexer configuration)
 export const useBlockscoutURL = () => {
-	// Blockscout API base URL
-	const config = useRuntimeConfig()
-	return config.public.blockscoutApiUrl || ''
+	const requestURL = useRequestURL()
+
+	switch (requestURL.hostname) {
+		case "monad.hoodscan.io":
+		case "localhost":
+			return Server.Indexer.mainnet
+
+		case "testnet.monad.hoodscan.io":
+			return Server.Indexer.testnet
+
+		case "dev.monad.hoodscan.io":
+			return Server.Indexer.dev
+
+		default:
+			return Server.Indexer.mainnet
+	}
 }

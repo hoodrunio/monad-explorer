@@ -80,7 +80,6 @@ export default defineNuxtConfig({
 	runtimeConfig: {
 		// Private keys (only available on server-side)
 		githubToken: process.env.GITHUB_TOKEN || '',
-		blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
 		mainnetAuthEnabled: process.env.MAINNET_AUTH_ENABLED === 'true',
 		mainnetPassword: process.env.MAINNET_PASSWORD || '',
 		// Public keys (exposed to client-side)
@@ -88,7 +87,6 @@ export default defineNuxtConfig({
 			AMP: process.env.AMP,
 			SENTRY_DSN: process.env.SENTRY_DSN,
 			WALLET_CONNECT_PROJECT_ID: process.env.WALLET_CONNECT_PROJECT_ID || '',
-			blockscoutApiUrl: process.env.BLOCKSCOUT_API_URL || '',
 			version: "1.16.0",
 			// Network Configuration
 			mainnetRpc: process.env.NUXT_PUBLIC_MAINNET_RPC || 'https://rpc1.monad.xyz',

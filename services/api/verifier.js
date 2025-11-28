@@ -24,7 +24,7 @@ export const fetchContractBytecode = async (address) => {
 	}
 
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/${address.toLowerCase()}`
+		const url = `${useBlockscoutURL()}/smart-contracts/${address.toLowerCase()}`
 
 		const response = await $fetch(url, {
 			method: 'GET'
@@ -50,7 +50,7 @@ export const fetchContractBytecode = async (address) => {
  */
 export const fetchVerificationConfig = () => {
 	try {
-		const url = `${useBlockscoutURL()}/api/v2/smart-contracts/verification/config`
+		const url = `${useBlockscoutURL()}/smart-contracts/verification/config`
 
 		return useFetch(url, {
 			key: 'verification-config',
@@ -112,7 +112,7 @@ export const verifySolidityFlattened = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/flattened-code`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/flattened-code`
 
 		const requestBody = {
 			compiler_version: data.compilerVersion,
@@ -180,7 +180,7 @@ export const verifySolidityMultiPart = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/multi-part`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/multi-part`
 
 		const formData = new FormData()
 
@@ -278,7 +278,7 @@ export const verifySolidityStandardJson = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/standard-input`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/standard-input`
 
 		const formData = new FormData()
 
@@ -356,7 +356,7 @@ export const verifyVyperFlattened = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-code`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-code`
 
 		const requestBody = {
 			compiler_version: data.compilerVersion,
@@ -420,7 +420,7 @@ export const verifyVyperMultiPart = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-multi-part`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-multi-part`
 
 		const formData = new FormData()
 
@@ -513,7 +513,7 @@ export const verifyVyperStandardJson = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-standard-input`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/vyper-standard-input`
 
 		const formData = new FormData()
 
@@ -575,7 +575,7 @@ export const verifySourcify = async (contractAddress, data) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}/verification/via/sourcify`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}/verification/via/sourcify`
 
 		const formData = new FormData()
 
@@ -650,7 +650,7 @@ export const pollVerificationStatus = async (contractAddress, options = {}) => {
 	const checkStatus = async () => {
 		try {
 			const baseUrl = validateBlockscoutURL()
-			const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+			const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}`
 
 			const response = await $fetch(url, {
 				method: 'GET'
@@ -745,7 +745,7 @@ export const checkContractVerification = async (contractAddress) => {
 
 	try {
 		const baseUrl = validateBlockscoutURL()
-		const url = `${baseUrl}/api/v2/smart-contracts/${contractAddress.toLowerCase()}`
+		const url = `${baseUrl}/smart-contracts/${contractAddress.toLowerCase()}`
 
 		const response = await $fetch(url, {
 			method: 'GET'
