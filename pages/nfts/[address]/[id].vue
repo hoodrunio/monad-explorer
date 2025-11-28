@@ -68,7 +68,11 @@ const getNFTDetails = async () => {
 		])
 
 		nft.value = nftRes.data?.value || null
-		token.value = tokenRes.data?.value || null
+		const tokenData = tokenRes.data?.value || null
+		token.value = tokenData ? {
+			...tokenData,
+			address: tokenData.address || tokenData.address_hash || addressParam.value,
+		} : null
 	} catch (error) {
 		nft.value = null
 		token.value = null
