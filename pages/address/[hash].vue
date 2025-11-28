@@ -61,11 +61,38 @@ useHead({
 </script>
 
 <template>
-	<AddressOverview :address="address" />
+	<Flex direction="column" gap="32" wide :class="$style.wrapper">
+		<Flex direction="column" gap="16">
+			<Flex align="end" justify="between" :class="$style.breadcrumbs">
+				<Breadcrumbs
+					:items="[
+						{ link: '/', name: 'Dashboard' },
+						{ link: route.fullPath, name: `Address ${splitAddress(route.params.hash)}` },
+					]"
+				/>
+			</Flex>
+
+			<AddressOverview :address="address" />
+		</Flex>
+	</Flex>
 </template>
 
 <style module>
+.wrapper {
+	padding: 20px 24px 60px 24px;
+}
+
+.breadcrumbs {
+	margin-bottom: 16px;
+}
+
 .empty {
 	min-height: 300px;
+}
+
+@media (max-width: 500px) {
+	.wrapper {
+		padding: 32px 12px;
+	}
 }
 </style>

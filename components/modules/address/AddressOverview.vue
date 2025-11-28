@@ -12,6 +12,14 @@ import TransactionsTable from "./tables/TransactionsTable.vue"
 import NFTGrid from "@/components/modules/nfts/NFTGrid.vue"
 import TokenTransfersTable from "@/components/modules/tokens/TokenTransfersTable.vue"
 
+/** Sidebar Widgets */
+import PortfolioValueWidget from "./widgets/PortfolioValueWidget.vue"
+import BalanceBreakdown from "./widgets/BalanceBreakdown.vue"
+import ActivitySummary from "./widgets/ActivitySummary.vue"
+
+/** Analytics */
+import AddressAnalytics from "./AddressAnalytics.vue"
+
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
 
@@ -24,6 +32,7 @@ import {
 	fetchAddressTokenBalancesClient,
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
+import { preloadTokenList, getTokenLogoSync } from "@/services/api/tokenList"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -374,8 +383,6 @@ const getTransactions = async (params = null) => {
 	isRefetching.value = false
 }
 
-const collapseBalances = ref(false)
-
 /** Token Transfers fetch function */
 const getTokenTransfers = async (params = null) => {
 	isRefetching.value = true
@@ -509,6 +516,14 @@ const nativeBalance = computed(() => {
 	return monValue.toFixed(6)
 })
 
+// Native balance in USD (placeholder - would need price API)
+const nativeUsdValue = computed(() => {
+	const balance = parseFloat(nativeBalance.value)
+	// Placeholder: assuming 1 MON = $1 for demo purposes
+	// In production, this should fetch real price from API
+	return balance * 1
+})
+
 const totalTransactions = computed(() => {
 	// New Indexer API uses transactions_count instead of transactionCount.total
 	return addressStats.value?.transactions_count || 0
@@ -519,28 +534,25 @@ const isActive = computed(() => {
 	return (addressStats.value?.transactions_count || 0) > 0
 })
 
-// Format token balance with decimals
-const formatTokenBalance = (value, decimals = 18) => {
+/** Token Balance Helpers */
+const formatTokenBalance = (value, decimals) => {
 	if (!value) return "0"
-	const dec = parseInt(decimals) || 18
-	const num = Number(BigInt(value)) / Math.pow(10, dec)
-
-	if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'
-	if (num >= 1000) return (num / 1000).toFixed(2) + 'K'
-	if (num < 0.0001 && num > 0) return '<0.0001'
-	return num.toFixed(4)
+	const dec = decimals || 18
+	const balance = parseFloat(value) / Math.pow(10, dec)
+	if (balance === 0) return "0"
+	if (balance < 0.000001) return "< 0.000001"
+	if (balance >= 1000000) return comma(balance.toFixed(0))
+	if (balance >= 1) return comma(balance.toFixed(4))
+	return balance.toFixed(6)
 }
 
-// Calculate USD value for token
-const calculateUsdValue = (value, decimals = 18, exchangeRate) => {
+const calculateUsdValue = (value, decimals, exchangeRate) => {
 	if (!value || !exchangeRate) return "0.00"
-	const dec = parseInt(decimals) || 18
-	const tokenAmount = Number(BigInt(value)) / Math.pow(10, dec)
-	const usdValue = tokenAmount * parseFloat(exchangeRate)
-
-	if (usdValue >= 1000000) return (usdValue / 1000000).toFixed(2) + 'M'
-	if (usdValue >= 1000) return (usdValue / 1000).toFixed(2) + 'K'
-	return usdValue.toFixed(2)
+	const dec = decimals || 18
+	const balance = parseFloat(value) / Math.pow(10, dec)
+	const usdValue = balance * parseFloat(exchangeRate)
+	if (usdValue < 0.01) return "< 0.01"
+	return comma(usdValue.toFixed(2))
 }
 
 /** Watchers */
@@ -593,12 +605,29 @@ watch(
 
 // Load balance, stats and token balances on component mount
 onMounted(async () => {
+	// Preload token list for logos
+	preloadTokenList()
+
 	await Promise.all([
 		getAddressBalance(),
 		getAddressStats(),
 		getTokenBalances(),
 	])
 })
+
+/**
+ * Get token logo URL - prioritizes registry logo over API logo
+ */
+const getTokenLogoUrl = (token) => {
+	if (!token?.address_hash) return null
+
+	// First check registry
+	const registryLogo = getTokenLogoSync(token.address_hash)
+	if (registryLogo) return registryLogo
+
+	// Fallback to API logo
+	return token.icon_url || null
+}
 
 // Removed page watcher - using cursor pagination now
 
@@ -675,102 +704,60 @@ const handleViewRawAddress = () => {
 		</Flex>
 
 		<Flex gap="16" :class="$style.content">
-			<Flex direction="column" justify="between" gap="32" :class="$style.data">
-				<Flex direction="column" gap="24" :class="$style.main">
-					<Flex v-if="address.celestials" align="center" gap="12" :class="$style.key_value">
-						<Flex v-if="address.celestials?.image_url" align="center" justify="center" :class="$style.avatar_container">
-							<img :src="address.celestials?.image_url" :class="$style.avatar_image" />
-						</Flex>
-
-						<Flex direction="column" gap="8" :class="$style.key_value">
-							<Text size="14" weight="600" color="secondary"> Address </Text>
-
-							<Flex align="center" gap="10">
-								<Text size="12" weight="600" color="secondary"> {{ splitAddress(address.hash) }} </Text>
-
-								<CopyButton :text="address.hash" />
-							</Flex>
-						</Flex>
+			<Flex direction="column" :class="$style.data">
+				<!-- Address Header with Avatar -->
+				<Flex v-if="address.celestials" align="center" gap="12" :class="$style.address_header">
+					<Flex v-if="address.celestials?.image_url" align="center" justify="center" :class="$style.avatar_container">
+						<img :src="address.celestials?.image_url" :class="$style.avatar_image" />
 					</Flex>
-					<Flex v-else direction="column" gap="8" :class="$style.key_value">
-						<Text size="12" weight="600" color="tertiary"> Address </Text>
-						<Text size="12" weight="600" color="secondary"> {{ splitAddress(address.hash) }} </Text>
-					</Flex>
-
-					<Flex direction="column" gap="16">
-						<Flex @click="collapseBalances = !collapseBalances" align="center" justify="between" style="cursor: pointer">
-							<Text size="12" weight="600" color="secondary">Balance</Text>
-							<Icon
-								name="chevron"
-								size="14"
-								color="secondary"
-								:style="{
-									transform: `rotate(${collapseBalances ? '0' : '180'}deg)`,
-									transition: 'all 400ms ease',
-								}"
-							/>
-						</Flex>
-
-						<Flex v-if="!collapseBalances" direction="column" gap="12" :class="$style.key_value">
-							<Flex align="center" justify="between">
-								<Text size="12" weight="600" color="tertiary"> Native Balance</Text>
-								<Text size="12" weight="600" color="secondary">{{ nativeBalance }} MON</Text>
-							</Flex>
-
-							<!-- Token Balances Summary (first 3 tokens) -->
-							<template v-if="tokenBalances.length > 0">
-								<Flex
-									v-for="(balance, index) in tokenBalances.slice(0, 3)"
-									:key="balance.token?.address_hash || index"
-									align="center"
-									justify="between"
-								>
-									<Flex align="center" gap="6">
-										<img
-											v-if="balance.token?.icon_url"
-											:src="balance.token.icon_url"
-											width="14"
-											height="14"
-											style="border-radius: 50%"
-										/>
-										<Icon v-else name="coins" size="12" color="tertiary" />
-										<Text size="12" weight="600" color="tertiary">
-											{{ balance.token?.symbol || 'Unknown' }}
-										</Text>
-									</Flex>
-									<Text size="12" weight="600" color="secondary">
-										{{ formatTokenBalance(balance.value, balance.token?.decimals) }}
-									</Text>
-								</Flex>
-
-								<Flex
-									v-if="tokenBalances.length > 3"
-									@click="handleSelect('tokenBalances')"
-									align="center"
-									style="cursor: pointer"
-								>
-									<Text size="11" weight="500" color="tertiary">
-										+{{ tokenBalances.length - 3 }} more tokens
-									</Text>
-								</Flex>
-							</template>
-						</Flex>
-					</Flex>
-
-					<Flex direction="column" gap="16">
-						<Text size="12" weight="600" color="secondary">Details</Text>
-
-						<!-- NOTE: First/Last Activity dates removed - not available in new Indexer API -->
-
-						<Flex align="center" justify="between">
-							<Text size="12" weight="600" color="tertiary"> Total Transactions</Text>
-							<Text size="12" weight="600" color="secondary"> {{ comma(totalTransactions) }} </Text>
+					<Flex direction="column" gap="4">
+						<Text size="12" weight="600" color="tertiary">Address</Text>
+						<Flex align="center" gap="6">
+							<Text size="12" weight="600" color="secondary">{{ splitAddress(address.hash) }}</Text>
+							<CopyButton :text="address.hash" />
 						</Flex>
 					</Flex>
 				</Flex>
+				<Flex v-else direction="column" gap="4" :class="$style.address_header">
+					<Text size="12" weight="600" color="tertiary">Address</Text>
+					<Flex align="center" gap="6">
+						<Text size="12" weight="600" color="secondary">{{ splitAddress(address.hash) }}</Text>
+						<CopyButton :text="address.hash" />
+					</Flex>
+				</Flex>
+
+				<!-- Portfolio Value Widget -->
+				<PortfolioValueWidget
+					:nativeBalance="nativeBalance"
+					:nativeUsdValue="nativeUsdValue"
+					:tokenBalances="tokenBalances"
+					:isLoading="isLoadingBalance || isLoadingTokenBalances"
+				/>
+
+				<!-- Balance Breakdown Widget -->
+				<BalanceBreakdown
+					:nativeBalance="nativeBalance"
+					:nativeUsdValue="nativeUsdValue"
+					:tokenBalances="tokenBalances"
+					:isLoading="isLoadingBalance || isLoadingTokenBalances"
+					:maxTokens="4"
+					@viewAllTokens="handleSelect('tokenBalances')"
+				/>
+
+				<!-- Activity Summary Widget -->
+				<ActivitySummary
+					:totalTransactions="totalTransactions"
+					:totalTokenTransfers="tokenTransfers.length"
+					:isLoading="isLoadingStats"
+					@viewTransactions="handleSelect('transactions')"
+					@viewTransfers="handleSelect('tokenTransfers')"
+				/>
 			</Flex>
 
 			<Flex direction="column" gap="4" wide :class="$style.txs_wrapper">
+				<!-- Analytics Section (above tabs) -->
+				<AddressAnalytics :hash="address.hash" />
+
 				<Flex align="center" gap="4" :class="$style.tabs_wrapper" ref="tabsEl">
 					<template v-for="tab in tabs">
 						<Flex
@@ -789,7 +776,7 @@ const handleViewRawAddress = () => {
 					</template>
 				</Flex>
 
-				<Flex direction="column" justify="center" :class="[$style.tables, isRefetching && $style.disabled]">
+				<Flex direction="column" :class="[$style.tables, isRefetching && $style.disabled]">
 					<Flex v-if="activeTab === 'transactions'" wrap="wrap" align="center" gap="8" :class="$style.filters">
 						<Popover :open="isStatusPopoverOpen" @on-close="onStatusPopoverClose" width="200">
 							<Button
@@ -905,7 +892,7 @@ const handleViewRawAddress = () => {
 						</Popover>
 					</Flex>
 
-					<Flex :class="$style.table">
+					<Flex direction="column" :class="$style.table">
 						<!-- Loading State -->
 						<Flex v-if="isRefetching" direction="column" align="center" justify="center" gap="8" :class="$style.empty">
 							<Text size="13" weight="600" color="tertiary">Loading...</Text>
@@ -946,10 +933,10 @@ const handleViewRawAddress = () => {
 
 						<!-- Token Balances Tab -->
 						<template v-else-if="activeTab === 'tokenBalances'">
-							<Flex v-if="tokenBalances.length" direction="column" gap="0" wide>
+							<Flex v-if="tokenBalances.length" direction="column" gap="0" wide :class="$style.token_list">
 								<Flex
 									v-for="(balance, index) in tokenBalances"
-									:key="balance.token?.address_hash || index"
+									:key="`token-${balance.token?.address_hash || 'unknown'}-${index}`"
 									align="center"
 									justify="between"
 									:class="$style.token_row"
@@ -957,8 +944,8 @@ const handleViewRawAddress = () => {
 									<Flex align="center" gap="12">
 										<Flex align="center" justify="center" :class="$style.token_icon">
 											<img
-												v-if="balance.token?.icon_url"
-												:src="balance.token.icon_url"
+												v-if="getTokenLogoUrl(balance.token)"
+												:src="getTokenLogoUrl(balance.token)"
 												width="24"
 												height="24"
 											/>
@@ -998,12 +985,13 @@ const handleViewRawAddress = () => {
 
 						<!-- Token Transfers Table -->
 						<template v-else-if="activeTab === 'tokenTransfers'">
-							<TokenTransfersTable
-								v-if="tokenTransfers.length"
-								:transfers="tokenTransfers"
-								:tokenDecimals="18"
-								tokenSymbol=""
-							/>
+							<div v-if="tokenTransfers.length" :class="$style.transfers_wrapper">
+								<TokenTransfersTable
+									:transfers="tokenTransfers"
+									:tokenDecimals="18"
+									tokenSymbol=""
+								/>
+							</div>
 
 							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
 								<Icon name="arrow-data-transfer-horizontal" size="24" color="support" />
@@ -1016,7 +1004,9 @@ const handleViewRawAddress = () => {
 
 						<!-- NFTs Grid -->
 						<template v-else-if="activeTab === 'nfts'">
-							<NFTGrid v-if="nfts.length" :nfts="nfts" :showCollection="true" />
+							<div v-if="nfts.length" :class="$style.nft_grid_wrapper">
+								<NFTGrid :nfts="nfts" :showCollection="true" />
+							</div>
 
 							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
 								<Icon name="grid" size="24" color="support" />
@@ -1105,28 +1095,26 @@ const handleViewRawAddress = () => {
 
 	border-radius: 4px 4px 4px 8px;
 	background: var(--card-background);
+}
 
-	.main {
-		padding: 16px;
+.address_header {
+	padding: 16px;
+	border-bottom: 1px solid var(--op-5);
+}
 
-		& .key_value {
-			max-width: 100%;
-		}
-	}
+.avatar_container {
+	position: relative;
+	width: 40px;
+	height: 40px;
+	overflow: hidden;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
 
-	.avatar_container {
-		position: relative;
-		width: 50px;
-		height: 50px;
-		overflow: hidden;
-		border-radius: 50%;
-	}
-
-	.avatar_image {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
+.avatar_image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
 .cel_image_container {
@@ -1205,10 +1193,30 @@ const handleViewRawAddress = () => {
 }
 
 .tables {
-	height: 100%;
+	height: 600px;
+	max-height: 600px;
+	overflow-y: auto;
+	overflow-x: hidden;
 
 	border-radius: 4px 4px 8px 4px;
 	background: var(--card-background);
+}
+
+.tables::-webkit-scrollbar {
+	width: 6px;
+}
+
+.tables::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.tables::-webkit-scrollbar-thumb {
+	background: var(--op-10);
+	border-radius: 3px;
+}
+
+.tables::-webkit-scrollbar-thumb:hover {
+	background: var(--op-20);
 }
 
 .tables.disabled {
@@ -1220,12 +1228,35 @@ const handleViewRawAddress = () => {
 	flex: 1;
 	width: 100%;
 	min-width: 0;
+
+	& > * {
+		width: 100%;
+	}
+}
+
+.nft_grid_wrapper {
+	width: 100%;
+	display: block;
+	padding: 16px;
+}
+
+.transfers_wrapper {
+	width: 100%;
 }
 
 .filters {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+
 	border-bottom: 1px dashed var(--op-8);
+	background: var(--card-background);
 
 	padding: 12px 16px 12px 16px;
+}
+
+.token_list {
+	width: 100%;
 }
 
 .token_row {
@@ -1265,6 +1296,7 @@ const handleViewRawAddress = () => {
 
 .empty {
 	flex: 1;
+	min-height: 400px;
 
 	padding-top: 16px;
 	padding-bottom: 16px;
@@ -1334,6 +1366,11 @@ const handleViewRawAddress = () => {
 
 	.txs_wrapper {
 		flex: none;
+	}
+
+	.tables {
+		height: 500px;
+		max-height: 500px;
 	}
 
 	.table {

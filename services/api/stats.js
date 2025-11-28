@@ -1,5 +1,5 @@
 /** Services */
-import { quoteServiceURL, tvlServiceURL, useServerURL } from "@/services/config"
+import { quoteServiceURL, tvlServiceURL, useServerURL, useIndexerUrl } from "@/services/config"
 
 export const fetchGeneralStats = async ({ name }) => {
 	try {
@@ -106,5 +106,25 @@ export const fetchPriceSeries = async ({ from }) => {
 		return data
 	} catch (error) {
 		// Error handling can be added here
+	}
+}
+
+export const fetchAddressCoinBalanceHistory = async ({ hash }) => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/addresses/${hash}/coin-balance-history`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return { items: [] }
+	}
+}
+
+export const fetchAddressCoinBalanceHistoryByDay = async ({ hash }) => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/addresses/${hash}/coin-balance-history-by-day`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return { items: [], days: 0 }
 	}
 }

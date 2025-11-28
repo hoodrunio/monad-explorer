@@ -62,9 +62,19 @@ const handleNFTClick = (nft) => {
 <style module>
 .grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 	gap: 16px;
 	padding: 16px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+@media (max-width: 800px) {
+	.grid {
+		grid-template-columns: repeat(3, 1fr);
+		gap: 12px;
+		padding: 12px;
+	}
 }
 
 @media (max-width: 600px) {
@@ -72,6 +82,14 @@ const handleNFTClick = (nft) => {
 		grid-template-columns: repeat(2, 1fr);
 		gap: 12px;
 		padding: 12px;
+	}
+}
+
+@media (max-width: 400px) {
+	.grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 8px;
+		padding: 8px;
 	}
 }
 </style>
