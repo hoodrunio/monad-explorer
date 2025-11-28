@@ -33,6 +33,7 @@ import {
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
 import { preloadTokenList, getTokenLogoSync } from "@/services/api/tokenList"
+import { fetchMarketStats } from "@/services/api/stats"
 
 /** Store */
 import { useCacheStore } from "@/store/cache.store"
@@ -63,6 +64,7 @@ const isLoadingBalance = ref(false)
 const isLoadingStats = ref(false)
 const tokenBalances = ref([])
 const isLoadingTokenBalances = ref(false)
+const monPrice = ref(0)
 
 /** Tabs */
 const tabs = ref([
@@ -516,13 +518,25 @@ const nativeBalance = computed(() => {
 	return monValue.toFixed(6)
 })
 
-// Native balance in USD (placeholder - would need price API)
+// Native balance in USD using real MON price
 const nativeUsdValue = computed(() => {
 	const balance = parseFloat(nativeBalance.value)
-	// Placeholder: assuming 1 MON = $1 for demo purposes
-	// In production, this should fetch real price from API
-	return balance * 1
+	return balance * monPrice.value
 })
+
+// Fetch MON price from market stats
+const getMonPrice = async () => {
+	try {
+		const data = await fetchMarketStats()
+		// Get latest price from chart_data array
+		if (data?.chart_data?.length > 0) {
+			const latestData = data.chart_data[0]
+			monPrice.value = parseFloat(latestData.closing_price) || 0
+		}
+	} catch (error) {
+		console.error("Failed to fetch MON price:", error)
+	}
+}
 
 const totalTransactions = computed(() => {
 	// New Indexer API uses transactions_count instead of transactionCount.total
@@ -612,6 +626,7 @@ onMounted(async () => {
 		getAddressBalance(),
 		getAddressStats(),
 		getTokenBalances(),
+		getMonPrice(),
 	])
 })
 

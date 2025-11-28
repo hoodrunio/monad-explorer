@@ -128,3 +128,13 @@ export const fetchAddressCoinBalanceHistoryByDay = async ({ hash }) => {
 		return { items: [], days: 0 }
 	}
 }
+
+export const fetchMarketStats = async () => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/stats/charts/market`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return null
+	}
+}
