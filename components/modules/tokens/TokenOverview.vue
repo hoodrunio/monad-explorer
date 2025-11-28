@@ -1,6 +1,7 @@
 <script setup>
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
+import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
 
 /** UI */
 import BookmarkButton from "@/components/BookmarkButton.vue"
@@ -13,6 +14,23 @@ import { useModalsStore } from "@/store/modals.store"
 
 const cacheStore = useCacheStore()
 const modalsStore = useModalsStore()
+
+// Preload token registry
+onMounted(() => {
+	preloadTokenList()
+})
+
+/**
+ * Get token logo URL - prioritizes registry logo over API logo
+ */
+const getTokenLogoUrl = (token) => {
+	if (!token?.address) return token?.icon_url || null
+
+	const registryLogo = getTokenLogoSync(token.address)
+	if (registryLogo) return registryLogo
+
+	return token?.icon_url || null
+}
 
 const props = defineProps({
 	token: {
@@ -65,8 +83,8 @@ const handleOpenQRModal = () => {
 			<Flex align="center" gap="12">
 				<div :class="$style.token_icon">
 					<img
-						v-if="token.icon_url"
-						:src="token.icon_url"
+						v-if="getTokenLogoUrl(token)"
+						:src="getTokenLogoUrl(token)"
 						:alt="token.name"
 						@error="$event.target.style.display = 'none'"
 					/>

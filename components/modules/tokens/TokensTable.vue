@@ -4,11 +4,30 @@ import { DateTime } from "luxon"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
+import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
 
 const router = useRouter()
+
+// Preload token registry
+onMounted(() => {
+	preloadTokenList()
+})
+
+/**
+ * Get token logo URL - prioritizes registry logo over API logo
+ */
+const getTokenLogoUrl = (token) => {
+	const address = getTokenAddress(token)
+	if (!address) return token?.icon_url || null
+
+	const registryLogo = getTokenLogoSync(address)
+	if (registryLogo) return registryLogo
+
+	return token?.icon_url || null
+}
 
 const props = defineProps({
 	tokens: {
@@ -85,8 +104,8 @@ const handleRowClick = (token) => {
 						<Flex align="center" gap="12">
 							<div :class="$style.token_icon">
 								<img
-									v-if="token.icon_url"
-									:src="token.icon_url"
+									v-if="getTokenLogoUrl(token)"
+									:src="getTokenLogoUrl(token)"
 									:alt="token.name"
 									@error="$event.target.style.display = 'none'"
 								/>
