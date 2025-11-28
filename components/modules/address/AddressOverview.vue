@@ -21,6 +21,7 @@ import {
 	fetchAddressBalanceClient,
 	fetchAddressStatsClient,
 	fetchAddressTokenTransfersClient,
+	fetchAddressTokenBalancesClient,
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
 
@@ -51,6 +52,8 @@ const addressBalance = ref(null)
 const addressStats = ref(null)
 const isLoadingBalance = ref(false)
 const isLoadingStats = ref(false)
+const tokenBalances = ref([])
+const isLoadingTokenBalances = ref(false)
 
 /** Tabs */
 const tabs = ref([
@@ -61,9 +64,15 @@ const tabs = ref([
 		show: true,
 	},
 	{
-		alias: "tokens",
-		displayName: "Token Transfers",
+		alias: "tokenBalances",
+		displayName: "Tokens",
 		icon: "coins",
+		show: true,
+	},
+	{
+		alias: "tokenTransfers",
+		displayName: "Token Transfers",
+		icon: "arrow-circle-broken-right",
 		show: true,
 	},
 	{
@@ -413,6 +422,18 @@ const getNFTs = async (params = null) => {
 	isRefetching.value = false
 }
 
+/** Token Balances fetch function */
+const getTokenBalances = async () => {
+	isLoadingTokenBalances.value = true
+	try {
+		const { data } = await fetchAddressTokenBalancesClient(props.address.hash)
+		tokenBalances.value = data.value || []
+	} catch (error) {
+		tokenBalances.value = []
+	}
+	isLoadingTokenBalances.value = false
+}
+
 /** Token Transfers Pagination */
 const handleTokenTransfersNext = () => {
 	if (!tokenTransfersNextParams.value) return
@@ -498,6 +519,30 @@ const isActive = computed(() => {
 	return (addressStats.value?.transactions_count || 0) > 0
 })
 
+// Format token balance with decimals
+const formatTokenBalance = (value, decimals = 18) => {
+	if (!value) return "0"
+	const dec = parseInt(decimals) || 18
+	const num = Number(BigInt(value)) / Math.pow(10, dec)
+
+	if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M'
+	if (num >= 1000) return (num / 1000).toFixed(2) + 'K'
+	if (num < 0.0001 && num > 0) return '<0.0001'
+	return num.toFixed(4)
+}
+
+// Calculate USD value for token
+const calculateUsdValue = (value, decimals = 18, exchangeRate) => {
+	if (!value || !exchangeRate) return "0.00"
+	const dec = parseInt(decimals) || 18
+	const tokenAmount = Number(BigInt(value)) / Math.pow(10, dec)
+	const usdValue = tokenAmount * parseFloat(exchangeRate)
+
+	if (usdValue >= 1000000) return (usdValue / 1000000).toFixed(2) + 'M'
+	if (usdValue >= 1000) return (usdValue / 1000).toFixed(2) + 'K'
+	return usdValue.toFixed(2)
+}
+
 /** Watchers */
 watch(
 	() => props.address.hash,
@@ -535,7 +580,9 @@ watch(
 
 		if (activeTab.value === "transactions") {
 			await getTransactions()
-		} else if (activeTab.value === "tokens") {
+		} else if (activeTab.value === "tokenBalances") {
+			await getTokenBalances()
+		} else if (activeTab.value === "tokenTransfers") {
 			await getTokenTransfers()
 		} else if (activeTab.value === "nfts") {
 			await getNFTs()
@@ -544,11 +591,12 @@ watch(
 	{ immediate: true },
 )
 
-// Load balance and stats on component mount
+// Load balance, stats and token balances on component mount
 onMounted(async () => {
 	await Promise.all([
 		getAddressBalance(),
 		getAddressStats(),
+		getTokenBalances(),
 	])
 })
 
@@ -668,6 +716,44 @@ const handleViewRawAddress = () => {
 								<Text size="12" weight="600" color="tertiary"> Native Balance</Text>
 								<Text size="12" weight="600" color="secondary">{{ nativeBalance }} MON</Text>
 							</Flex>
+
+							<!-- Token Balances Summary (first 3 tokens) -->
+							<template v-if="tokenBalances.length > 0">
+								<Flex
+									v-for="(balance, index) in tokenBalances.slice(0, 3)"
+									:key="balance.token?.address_hash || index"
+									align="center"
+									justify="between"
+								>
+									<Flex align="center" gap="6">
+										<img
+											v-if="balance.token?.icon_url"
+											:src="balance.token.icon_url"
+											width="14"
+											height="14"
+											style="border-radius: 50%"
+										/>
+										<Icon v-else name="coins" size="12" color="tertiary" />
+										<Text size="12" weight="600" color="tertiary">
+											{{ balance.token?.symbol || 'Unknown' }}
+										</Text>
+									</Flex>
+									<Text size="12" weight="600" color="secondary">
+										{{ formatTokenBalance(balance.value, balance.token?.decimals) }}
+									</Text>
+								</Flex>
+
+								<Flex
+									v-if="tokenBalances.length > 3"
+									@click="handleSelect('tokenBalances')"
+									align="center"
+									style="cursor: pointer"
+								>
+									<Text size="11" weight="500" color="tertiary">
+										+{{ tokenBalances.length - 3 }} more tokens
+									</Text>
+								</Flex>
+							</template>
 						</Flex>
 					</Flex>
 
@@ -858,8 +944,60 @@ const handleViewRawAddress = () => {
 							</Flex>
 						</template>
 
+						<!-- Token Balances Tab -->
+						<template v-else-if="activeTab === 'tokenBalances'">
+							<Flex v-if="tokenBalances.length" direction="column" gap="0" wide>
+								<Flex
+									v-for="(balance, index) in tokenBalances"
+									:key="balance.token?.address_hash || index"
+									align="center"
+									justify="between"
+									:class="$style.token_row"
+								>
+									<Flex align="center" gap="12">
+										<Flex align="center" justify="center" :class="$style.token_icon">
+											<img
+												v-if="balance.token?.icon_url"
+												:src="balance.token.icon_url"
+												width="24"
+												height="24"
+											/>
+											<Icon v-else name="coins" size="16" color="tertiary" />
+										</Flex>
+										<Flex direction="column" gap="4">
+											<NuxtLink :to="`/tokens/${balance.token?.address_hash}`">
+												<Text size="13" weight="600" color="primary">
+													{{ balance.token?.name || 'Unknown Token' }}
+												</Text>
+											</NuxtLink>
+											<Text size="12" weight="500" color="tertiary">
+												{{ balance.token?.symbol }}
+											</Text>
+										</Flex>
+									</Flex>
+
+									<Flex direction="column" align="end" gap="4">
+										<Text size="13" weight="600" color="primary">
+											{{ formatTokenBalance(balance.value, balance.token?.decimals) }}
+										</Text>
+										<Text v-if="balance.token?.exchange_rate" size="12" weight="500" color="tertiary">
+											${{ calculateUsdValue(balance.value, balance.token?.decimals, balance.token?.exchange_rate) }}
+										</Text>
+									</Flex>
+								</Flex>
+							</Flex>
+
+							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
+								<Icon name="coins" size="24" color="support" />
+								<Text size="13" weight="600" color="secondary" align="center">No tokens</Text>
+								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
+									This address does not hold any tokens
+								</Text>
+							</Flex>
+						</template>
+
 						<!-- Token Transfers Table -->
-						<template v-else-if="activeTab === 'tokens'">
+						<template v-else-if="activeTab === 'tokenTransfers'">
 							<TokenTransfersTable
 								v-if="tokenTransfers.length"
 								:transfers="tokenTransfers"
@@ -868,7 +1006,7 @@ const handleViewRawAddress = () => {
 							/>
 
 							<Flex v-else direction="column" align="center" justify="center" gap="8" :class="$style.empty">
-								<Icon name="coins" size="24" color="support" />
+								<Icon name="arrow-data-transfer-horizontal" size="24" color="support" />
 								<Text size="13" weight="600" color="secondary" align="center"> No token transfers </Text>
 								<Text size="12" weight="500" height="160" color="tertiary" align="center" style="max-width: 220px">
 									This address has no token transfer activity
@@ -908,7 +1046,7 @@ const handleViewRawAddress = () => {
 					</Flex>
 
 					<!-- Pagination - Token Transfers -->
-					<Flex v-if="activeTab === 'tokens'" align="center" justify="between">
+					<Flex v-if="activeTab === 'tokenTransfers'" align="center" justify="between">
 						<Flex align="center" gap="6" :class="$style.pagination">
 							<Button type="secondary" @click="handleTokenTransfersPrev" size="mini" :disabled="tokenTransfersPrevPages.length === 0">
 								<Icon name="arrow-left" size="12" color="primary" />
@@ -1088,6 +1226,33 @@ const handleViewRawAddress = () => {
 	border-bottom: 1px dashed var(--op-8);
 
 	padding: 12px 16px 12px 16px;
+}
+
+.token_row {
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--op-5);
+
+	&:hover {
+		background: var(--op-3);
+	}
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.token_icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: var(--op-5);
+	overflow: hidden;
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
 }
 
 .badge {

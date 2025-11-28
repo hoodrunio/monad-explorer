@@ -439,6 +439,36 @@ export const fetchAddressNativeBalance = async (address) => {
 }
 
 /**
+ * Get all token balances for an address
+ * @param {string} address - Ethereum address
+ * @returns {Promise} - Token balances array (only tokens with value > 0)
+ */
+export const fetchAddressTokenBalancesClient = async (address) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/token-balances`)
+		const data = await $fetch(url.href)
+
+		// Filter only tokens with balance > 0
+		const filteredData = (data || []).filter(item =>
+			item.value && BigInt(item.value) > 0n
+		)
+
+		return {
+			data: {
+				value: filteredData
+			}
+		}
+	} catch (error) {
+		throw error
+	}
+}
+
+/**
  * Get ERC-20 token balance for an address
  * @param {string} address - Ethereum address
  * @param {string} tokenAddress - ERC-20 token contract address
