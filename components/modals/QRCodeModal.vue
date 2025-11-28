@@ -76,4 +76,8 @@ watch(
 	box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 5%);
 	border-radius: 0 0 12px 12px;
 }
+
+:global(html[theme="light"]) .qrcode {
+	filter: none;
+}
 </style>
