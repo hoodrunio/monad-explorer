@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2025-11-26T12:17:23.880Z",
-  "totalLocations": 72,
+  "generatedAt": "2025-11-29T14:00:58.599Z",
+  "totalLocations": 79,
   "source": "nominatim",
   "locations": {
     "Singapore, Singapore": [
@@ -291,6 +291,34 @@
     "Ogden, United States": [
       -111.9738429,
       41.2230048
+    ],
+    "Warrenton, United States": [
+      -77.795367,
+      38.7135498
+    ],
+    "Cork, Ireland": [
+      -8.4726423,
+      51.8985136
+    ],
+    "Neuquén, Argentina": [
+      -69.832275,
+      -38.8502546
+    ],
+    "Santa Clara, United States": [
+      -121.955174,
+      37.3541132
+    ],
+    "Sandy, United States": [
+      -111.8953815,
+      40.5710454
+    ],
+    "Södertälje, Sweden": [
+      17.6271663,
+      59.1964289
+    ],
+    "Paris, France": [
+      2.320041,
+      48.8588897
     ]
   }
 }

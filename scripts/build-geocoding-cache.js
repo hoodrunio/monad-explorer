@@ -14,7 +14,7 @@ const DELAY_BETWEEN_REQUESTS = 1000 // 1 second to respect rate limits
 const OUTPUT_FILE = path.join(__dirname, '../public/data/geocoding-cache.json')
 
 // Your API endpoints (adjust these URLs to match your actual API)
-const API_BASE = "https://monad-indexer.hoodscan.io" // Update this to your actual API base
+const API_BASE = "https://monad-indexer.mainnet.hoodscan.io" // Update this to your actual API base
 const GEOGRAPHIC_DISTRIBUTION_URL = `${API_BASE}/api/dns/geographic-distribution`
 const NETWORK_TOPOLOGY_URL = `${API_BASE}/api/dns/network-topology`
 
