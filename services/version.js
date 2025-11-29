@@ -5,5 +5,5 @@ export const watchForUpdate = (currentVersion, callback) => {
 			if (currentVersion !== version) callback(version)
 		} catch (error) {
 		}
-	}, 60_000)
+	}, 3_600_000) // 1 hour
 }

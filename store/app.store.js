@@ -56,7 +56,7 @@ export const useAppStore = defineStore("app", () => {
 		if (!priceInterval) {
 			priceInterval = setInterval(() => {
 				updatePrice()
-			}, 60000) // 60 seconds
+			}, 300000) // 5 minutes
 		}
 	}
 

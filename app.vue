@@ -5,7 +5,6 @@ import * as Sentry from "@sentry/vue"
 /** Services */
 import amp from "@/services/amp"
 import { watchForUpdate } from "@/services/version"
-import { Analytics } from '@vercel/analytics/vue';
 
 /** Components */
 import ModalsManager from "@/components/modals/ModalsManager.vue"
@@ -146,7 +145,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<Analytics />
 	<CommandMenu :show="appStore.showCmd" />
 
 	<NuxtLoadingIndicator :height="2" color="#18d2a5" />
