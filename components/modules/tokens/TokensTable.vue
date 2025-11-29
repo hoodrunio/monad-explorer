@@ -4,13 +4,17 @@ import { DateTime } from "luxon"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
-import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
-import { getProtocolInfoSync, preloadProtocolList } from "@/services/api/protocolList"
+import { getTokenLogoSync, preloadTokenList, useCacheVersion } from "@/services/api/tokenList"
+import { getProtocolInfoSync, preloadProtocolList, useCacheVersion as useProtocolCacheVersion } from "@/services/api/protocolList"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
 
 const router = useRouter()
+
+// Reactive cache versions for re-rendering when data loads
+const tokenCacheVersion = useCacheVersion()
+const protocolCacheVersion = useProtocolCacheVersion()
 
 // Preload registries
 onMounted(() => {
@@ -38,6 +42,9 @@ const getTokenLogoUrl = (token) => {
 
 	return token?.icon_url || null
 }
+
+// Combined cache version for reactive re-rendering
+const cacheKey = computed(() => `${tokenCacheVersion.value}-${protocolCacheVersion.value}`)
 
 const props = defineProps({
 	tokens: {
@@ -103,7 +110,7 @@ const handleRowClick = (token) => {
 				</tr>
 			</thead>
 
-			<tbody>
+			<tbody :key="cacheKey">
 				<tr
 					v-for="token in tokens"
 					:key="getTokenAddress(token)"

@@ -1,5 +1,8 @@
 <script setup>
-import { getTokenLogoSync, getNativeMonLogo } from "@/services/api/tokenList"
+import { getTokenLogoSync, getNativeMonLogo, useCacheVersion } from "@/services/api/tokenList"
+
+// Reactive cache version for re-rendering when data loads
+const tokenCacheVersion = useCacheVersion()
 
 const props = defineProps({
 	nativeBalance: {
@@ -91,6 +94,15 @@ const getTokenLogoUrl = (token) => {
 	if (registryLogo) return registryLogo
 	return token.icon_url || null
 }
+
+// Native MON logo (reactive)
+const nativeMonLogoUrl = computed(() => {
+	void tokenCacheVersion.value // Trigger reactivity
+	return getNativeMonLogo()
+})
+
+// Combined cache key for list re-rendering
+const cacheKey = computed(() => tokenCacheVersion.value)
 </script>
 
 <template>
@@ -117,8 +129,8 @@ const getTokenLogoUrl = (token) => {
 					<Flex align="center" gap="8">
 						<Flex align="center" justify="center" :class="$style.token_icon">
 							<img
-								v-if="getNativeMonLogo()"
-								:src="getNativeMonLogo()"
+								v-if="nativeMonLogoUrl"
+								:src="nativeMonLogoUrl"
 								width="16"
 								height="16"
 								:class="$style.token_image"
@@ -144,7 +156,7 @@ const getTokenLogoUrl = (token) => {
 				<!-- Token Balances -->
 				<Flex
 					v-for="(balance, index) in visibleTokens"
-					:key="balance.token?.address_hash || index"
+					:key="`${balance.token?.address_hash || index}-${cacheKey}`"
 					align="center"
 					justify="between"
 					:class="$style.balance_row"

@@ -9,6 +9,7 @@ const addressCache = new Map()        // address -> protocol info
 const protocolsCache = ref([])        // Full protocols list
 const categoriesCache = ref({})       // Categories metadata
 const cacheTimestamp = ref(null)
+const cacheVersion = ref(0)           // Reactive trigger for cache updates
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 // Request deduplication
@@ -70,6 +71,7 @@ export const fetchProtocolList = async () => {
     protocolsCache.value = result.data.protocolsList || []
     categoriesCache.value = result.data.categories || {}
     cacheTimestamp.value = Date.now()
+    cacheVersion.value++ // Trigger reactive updates
 
     return {
       addressMap: addressCache,
@@ -125,6 +127,12 @@ export const getProtocolInfoSync = (address) => {
   if (!address || addressCache.size === 0) return null
   return addressCache.get(address.toLowerCase()) || null
 }
+
+/**
+ * Get cache version ref for reactivity
+ * Use this to trigger re-renders when cache updates
+ */
+export const useCacheVersion = () => cacheVersion
 
 /**
  * Get protocol name by address (sync)
@@ -291,5 +299,6 @@ export default {
   searchProtocols,
   preloadProtocolList,
   getProtocolListStatus,
-  refreshProtocolList
+  refreshProtocolList,
+  useCacheVersion
 }

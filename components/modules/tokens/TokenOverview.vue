@@ -1,8 +1,8 @@
 <script setup>
 /** Services */
 import { comma, splitAddress } from "@/services/utils"
-import { getTokenLogoSync, preloadTokenList } from "@/services/api/tokenList"
-import { getProtocolInfoSync, preloadProtocolList } from "@/services/api/protocolList"
+import { getTokenLogoSync, preloadTokenList, useCacheVersion } from "@/services/api/tokenList"
+import { getProtocolInfoSync, preloadProtocolList, useCacheVersion as useProtocolCacheVersion } from "@/services/api/protocolList"
 
 /** UI */
 import BookmarkButton from "@/components/BookmarkButton.vue"
@@ -17,28 +17,35 @@ import { useModalsStore } from "@/store/modals.store"
 const cacheStore = useCacheStore()
 const modalsStore = useModalsStore()
 
+// Reactive cache versions for re-rendering when data loads
+const tokenCacheVersion = useCacheVersion()
+const protocolCacheVersion = useProtocolCacheVersion()
+
 // Preload registries
 onMounted(() => {
 	preloadTokenList()
 	preloadProtocolList()
 })
 
-// Get protocol info for this token
+// Get protocol info for this token (reactive to cache updates)
 const protocolInfo = computed(() => {
+	void protocolCacheVersion.value // Trigger reactivity
 	return getProtocolInfoSync(props.token?.address)
 })
 
 /**
- * Get token logo URL - prioritizes registry logo over API logo
+ * Get token logo URL - prioritizes registry logo over API logo (reactive)
  */
-const getTokenLogoUrl = (token) => {
+const tokenLogoUrl = computed(() => {
+	void tokenCacheVersion.value // Trigger reactivity
+	const token = props.token
 	if (!token?.address) return token?.icon_url || null
 
 	const registryLogo = getTokenLogoSync(token.address)
 	if (registryLogo) return registryLogo
 
 	return token?.icon_url || null
-}
+})
 
 const props = defineProps({
 	token: {
@@ -91,8 +98,8 @@ const handleOpenQRModal = () => {
 			<Flex align="center" gap="12">
 				<div :class="$style.token_icon">
 					<img
-						v-if="getTokenLogoUrl(token)"
-						:src="getTokenLogoUrl(token)"
+						v-if="tokenLogoUrl"
+						:src="tokenLogoUrl"
 						:alt="token.name"
 						@error="$event.target.style.display = 'none'"
 					/>

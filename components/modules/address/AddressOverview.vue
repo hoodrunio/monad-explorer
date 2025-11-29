@@ -33,8 +33,8 @@ import {
 	fetchAddressTokenBalancesClient,
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
-import { preloadTokenList, getTokenLogoSync } from "@/services/api/tokenList"
-import { preloadProtocolList, getProtocolInfoSync } from "@/services/api/protocolList"
+import { preloadTokenList, getTokenLogoSync, useCacheVersion } from "@/services/api/tokenList"
+import { preloadProtocolList, getProtocolInfoSync, useCacheVersion as useProtocolCacheVersion } from "@/services/api/protocolList"
 import { fetchMarketStats } from "@/services/api/stats"
 
 /** Store */
@@ -57,6 +57,10 @@ const props = defineProps({
 
 // Make address available in template
 const address = computed(() => props.address)
+
+// Reactive cache versions for re-rendering when data loads
+const tokenCacheVersion = useCacheVersion()
+const protocolCacheVersion = useProtocolCacheVersion()
 
 const isRefetching = ref(false)
 const transactions = ref([])
@@ -966,7 +970,7 @@ const handleViewRawAddress = () => {
 							<Flex v-if="tokenBalances.length" direction="column" gap="0" wide :class="$style.token_list">
 								<Flex
 									v-for="(balance, index) in tokenBalances"
-									:key="`token-${balance.token?.address_hash || 'unknown'}-${index}`"
+									:key="`token-${balance.token?.address_hash || 'unknown'}-${index}-${tokenCacheVersion}`"
 									align="center"
 									justify="between"
 									:class="$style.token_row"

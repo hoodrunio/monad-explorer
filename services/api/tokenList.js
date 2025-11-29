@@ -7,6 +7,7 @@ import { ref } from 'vue'
 // Global cache and request state
 const tokenCache = new Map()
 const cacheTimestamp = ref(null)
+const cacheVersion = ref(0) // Reactive trigger for cache updates
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
 // Request deduplication
@@ -53,6 +54,7 @@ export const fetchTokenList = async () => {
       tokenCache.set(address.toLowerCase(), data)
     })
     cacheTimestamp.value = Date.now()
+    cacheVersion.value++ // Trigger reactive updates
 
     return tokenCache
 
@@ -108,6 +110,12 @@ export const getTokenLogoSync = (address) => {
   if (!address || tokenCache.size === 0) return null
   return tokenCache.get(address.toLowerCase())?.logoURI || null
 }
+
+/**
+ * Get cache version ref for reactivity
+ * Use this to trigger re-renders when cache updates
+ */
+export const useCacheVersion = () => cacheVersion
 
 /**
  * Get token info synchronously (from cache only)
@@ -213,5 +221,6 @@ export default {
   refreshTokenList,
   NATIVE_MON_KEY,
   getNativeMonLogo,
-  getNativeMonInfo
+  getNativeMonInfo,
+  useCacheVersion
 }

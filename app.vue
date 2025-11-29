@@ -5,6 +5,8 @@ import * as Sentry from "@sentry/vue"
 /** Services */
 import amp from "@/services/amp"
 import { watchForUpdate } from "@/services/version"
+import { preloadTokenList } from "@/services/api/tokenList"
+import { preloadProtocolList } from "@/services/api/protocolList"
 
 /** Components */
 import ModalsManager from "@/components/modals/ModalsManager.vue"
@@ -90,6 +92,10 @@ onMounted(async () => {
 
 	// Start price fetching for MON/USD conversion
 	appStore.startPriceFetching()
+
+	// Preload token and protocol registries for faster page loads
+	preloadTokenList()
+	preloadProtocolList()
 
 	const runtimeConfig = useRuntimeConfig()
 	amp.init(runtimeConfig.public.AMP)
