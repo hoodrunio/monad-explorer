@@ -1,7 +1,4 @@
 <script setup>
-/** Vendor */
-import { DateTime } from "luxon"
-
 /** Services */
 import { comma, shortHex } from "@/services/utils"
 import { getTokenLogoSync, preloadTokenList, useCacheVersion } from "@/services/api/tokenList"
@@ -51,6 +48,10 @@ const props = defineProps({
 		type: Array,
 		required: true,
 	},
+	routePrefix: {
+		type: String,
+		default: null,
+	},
 })
 
 /**
@@ -66,18 +67,6 @@ const formatNumber = (num) => {
 }
 
 /**
- * Get token type badge color
- */
-const getTypeColor = (type) => {
-	switch (type) {
-		case 'ERC-20': return 'blue'
-		case 'ERC-721': return 'purple'
-		case 'ERC-1155': return 'orange'
-		default: return 'tertiary'
-	}
-}
-
-/**
  * Resolve token address from different API shapes
  */
 const getTokenAddress = (token) => {
@@ -89,11 +78,18 @@ const getTokenAddress = (token) => {
 		null
 }
 
+const getRoutePrefix = (token) => {
+	if (props.routePrefix) return props.routePrefix
+
+	const isNFT = token.type === 'ERC-721' || token.type === 'ERC-1155'
+	return isNFT ? '/nfts' : '/tokens'
+}
+
 const handleRowClick = (token) => {
 	const address = getTokenAddress(token)
 	if (!address) return
 
-	router.push(`/tokens/${address}`)
+	router.push(`${getRoutePrefix(token)}/${address}`)
 }
 </script>
 

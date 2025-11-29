@@ -206,7 +206,7 @@ useHead({
 					<Text size="13" weight="600" color="tertiary">Loading...</Text>
 				</Flex>
 
-				<TokensTable v-else-if="collections.length" :tokens="collections" />
+				<TokensTable v-else-if="collections.length" :tokens="collections" routePrefix="/nfts" />
 
 				<Flex
 					v-else-if="searchQuery"
