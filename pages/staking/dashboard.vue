@@ -72,12 +72,14 @@ const selectedDelegation = ref(null)
 const portfolioSummary = computed(() => {
 	const totalStakedBigInt = stakingStore.totalStaked
 	const totalRewardsBigInt = BigInt(stakingStore.userRewards || '0')
-	const totalValue = totalStakedBigInt + totalRewardsBigInt
-	
+	const availableBalanceBigInt = stakingStore.availableBalance
+	const totalValue = totalStakedBigInt + totalRewardsBigInt + availableBalanceBigInt
+
 	return {
 		totalValue: abbreviate(parseFloat(formatEther(totalValue)), 2) || '0',
 		totalStaked: abbreviate(parseFloat(formatEther(totalStakedBigInt)), 2) || '0',
 		totalRewards: abbreviate(parseFloat(formatEther(totalRewardsBigInt)), 2) || '0',
+		availableBalance: abbreviate(parseFloat(formatEther(availableBalanceBigInt)), 2) || '0',
 		delegationCount: userDelegations.value.length,
 	}
 })
@@ -412,7 +414,7 @@ watch(userDelegations, async (newDelegations) => {
 									<div :class="$style.value_info">
 										<span :class="$style.amount">{{ portfolioSummary.totalValue }}</span>
 										<span :class="$style.unit">MON</span>
-										<div :class="$style.detail">{{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards</div>
+										<div :class="$style.detail">{{ portfolioSummary.availableBalance }} available + {{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards</div>
 									</div>
 								</div>
 								<div :class="$style.table_cell">
