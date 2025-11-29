@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
 			<div :class="$style.stat_card">
 				<Flex align="center" gap="10">
 					<div :class="$style.icon_wrapper">
-						<Icon name="addresses" size="16" color="secondary" />
+						<Icon name="address" size="16" color="secondary" />
 					</div>
 					<Flex direction="column" gap="2">
 						<Text size="11" weight="500" color="tertiary">Total addresses</Text>
