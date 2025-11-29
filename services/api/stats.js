@@ -138,3 +138,13 @@ export const fetchMarketStats = async () => {
 		return null
 	}
 }
+
+export const fetchIndexerStats = async () => {
+	try {
+		const url = new URL(`${useIndexerUrl()}/stats`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return null
+	}
+}
