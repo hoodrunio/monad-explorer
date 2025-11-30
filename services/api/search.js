@@ -98,6 +98,7 @@ const transformBlockscoutResult = (item) => {
 					name: item.name,
 					symbol: item.symbol,
 					type: item.token_type,
+					icon_url: item.icon_url,
 				},
 			}
 

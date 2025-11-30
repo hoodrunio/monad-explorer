@@ -85,7 +85,7 @@ const handleInput = () => {
 }
 
 const getResultMetadata = (target) => {
-	let metadata = { type: null, title: null, subtitle: null, routerLink: null }
+	let metadata = { type: null, title: null, subtitle: null, routerLink: null, iconUrl: null }
 
 	switch (target.type.toLowerCase()) {
 		case "tx":
@@ -159,6 +159,7 @@ const getResultMetadata = (target) => {
 			} else {
 				metadata.subtitle = shortHex(target.result.address)
 			}
+			metadata.iconUrl = target.result.icon_url
 			metadata.routerLink = `/tokens/${target.result.address}`
 			break
 
@@ -228,7 +229,8 @@ const handleSelect = () => {
 						<NuxtLink v-for="result in results" :to="result.routerLink">
 							<Flex align="center" justify="between" gap="4" :class="$style.item">
 								<Flex align="center" gap="8" :class="$style.title_wrapper">
-									<Icon :name="result.type" size="12" color="tertiary" />
+									<img v-if="result.iconUrl" :src="result.iconUrl" :class="$style.token_icon" />
+									<Icon v-else :name="result.type" size="12" color="tertiary" />
 									<Flex direction="column" gap="2">
 										<Text size="13" weight="600" color="primary" :class="$style.title">{{ result.title }}</Text>
 										<Text v-if="result.subtitle" size="11" weight="500" color="tertiary" :class="$style.subtitle">
@@ -280,6 +282,8 @@ const handleSelect = () => {
 .popup {
 	position: absolute;
 	max-width: 600px;
+	max-height: 400px;
+	overflow-y: auto;
 	top: calc(100% + 10px);
 	left: 0;
 	right: 0;
@@ -301,6 +305,14 @@ const handleSelect = () => {
 	line-height: 1;
 	font-weight: 500;
 	color: var(--txt-primary);
+}
+
+.token_icon {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
 }
 
 .item {
@@ -346,6 +358,7 @@ const handleSelect = () => {
 
 	.popup {
 		max-width: initial;
+		max-height: 50vh;
 
 		left: 12px;
 		right: 12px;
