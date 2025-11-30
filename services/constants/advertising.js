@@ -15,16 +15,16 @@ const advertisements = [
 		header: 'Monad Documentation',
 		body: 'Learn about Monad\'s high-performance EVM-compatible blockchain.',
 		footer: 'View Docs',
-		weight: 0.3,
+		weight: 0.2,
 	},
 	{
-		name: 'monad_testnet',
-		link: 'https://testnet.monad.xyz',
+		name: 'monad_app',
+		link: 'https://app.monad.xyz',
 		icon: 'validator',
-		header: 'Monad Testnet',
-		body: 'Experience the speed of Monad on public testnet.',
-		footer: 'Try Testnet',
-		weight: 0.2,
+		header: 'Explore Monad Mainnet',
+		body: 'The first wave of apps launching on Monad.',
+		footer: 'Explore Mainnet',
+		weight: 0.5,
 	},
 ]
 
