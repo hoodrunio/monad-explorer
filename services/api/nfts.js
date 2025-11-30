@@ -31,9 +31,10 @@ export const fetchAddressNFTs = (address, params = {}) => {
 		if (type) url.searchParams.append("type", type)
 
 		// Add pagination params if provided (from next_page_params)
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -72,9 +73,10 @@ export const fetchAddressNFTsClient = async (address, params = {}) => {
 
 		if (type) url.searchParams.append("type", type)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -112,9 +114,10 @@ export const fetchAddressNFTCollections = (address, params = {}) => {
 
 		if (type) url.searchParams.append("type", type)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -153,9 +156,10 @@ export const fetchAddressNFTCollectionsClient = async (address, params = {}) => 
 
 		if (type) url.searchParams.append("type", type)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -247,9 +251,10 @@ export const fetchNFTInstanceHolders = (tokenAddress, tokenId, params = {}) => {
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 
@@ -290,9 +295,10 @@ export const fetchNFTInstanceHoldersClient = async (tokenAddress, tokenId, param
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 
@@ -331,9 +337,10 @@ export const fetchNFTInstanceTransfers = (tokenAddress, tokenId, params = {}) =>
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params || {}).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 
@@ -374,9 +381,10 @@ export const fetchNFTInstanceTransfersClient = async (tokenAddress, tokenId, par
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params || {}).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 

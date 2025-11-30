@@ -28,9 +28,10 @@ export const fetchTokens = (params = {}) => {
 		if (type) url.searchParams.append("type", type)
 
 		// Add pagination params if provided (from next_page_params)
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -65,9 +66,10 @@ export const fetchTokensClient = async (params = {}) => {
 		if (type) url.searchParams.append("type", type)
 
 		// Add pagination params if provided (from next_page_params)
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+			if (paginationParams[key] !== undefined) {
+				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
 			}
 		})
 
@@ -144,9 +146,10 @@ export const fetchTokenHolders = (address, params = {}) => {
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/holders`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 
@@ -182,9 +185,10 @@ export const fetchTokenHoldersClient = async (address, params = {}) => {
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/holders`)
 
+		// Note: null values must be sent as empty string for cursor-based pagination to work
 		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined && params[key] !== null) {
-				url.searchParams.append(key, params[key])
+			if (params[key] !== undefined) {
+				url.searchParams.append(key, params[key] === null ? '' : params[key])
 			}
 		})
 
