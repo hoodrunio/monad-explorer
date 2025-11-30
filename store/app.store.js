@@ -1,5 +1,5 @@
 import { useModalsStore } from "./modals.store"
-import { fetchGasHistoryAnalytics } from "@/services/api/analytics"
+import { fetchIndexerStats } from "@/services/api/stats"
 
 export const useAppStore = defineStore("app", () => {
 	const version = ref()
@@ -27,20 +27,15 @@ export const useAppStore = defineStore("app", () => {
 
 	const updatePrice = async () => {
 		try {
-			// Use market data endpoint to get current price
-			const marketData = await fetchGasHistoryAnalytics({})
+			const stats = await fetchIndexerStats()
 
-			if (marketData?.success && marketData?.data?.data?.length > 0) {
-				// Get the most recent price (first item in array)
-				const latestData = marketData.data.data[0]
-
-				// Map to currentPrice structure
+			if (stats?.coin_price) {
 				currentPrice.value = {
-					time: latestData.date,
-					open: latestData.closingPrice || "0",
-					high: latestData.closingPrice || "0",
-					low: latestData.closingPrice || "0",
-					close: latestData.closingPrice || "0"
+					time: new Date().toISOString(),
+					open: stats.coin_price,
+					high: stats.coin_price,
+					low: stats.coin_price,
+					close: stats.coin_price
 				}
 			}
 		} catch (error) {

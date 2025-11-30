@@ -4,6 +4,7 @@ import { getValidatorById, getDelegatorWithdrawals, getStakingStats } from '~/se
 import { formatEther } from 'viem'
 import { abbreviate } from '~/services/utils/amounts'
 import { isMainnet } from '~/services/utils/general'
+import { useMonUsdConverter } from '~/composables/useMonUsdConverter'
 
 // Components
 import WalletConnect from '@/components/WalletConnect.vue'
@@ -16,6 +17,7 @@ import Button from '@/components/ui/Button.vue'
 const route = useRoute()
 const router = useRouter()
 const stakingStore = useStakingStore()
+const { convertToUsd } = useMonUsdConverter()
 
 // Auth middleware for mainnet
 definePageMeta({
@@ -77,9 +79,13 @@ const portfolioSummary = computed(() => {
 
 	return {
 		totalValue: abbreviate(parseFloat(formatEther(totalValue)), 2) || '0',
+		totalValueUsd: convertToUsd(totalValue.toString()),
 		totalStaked: abbreviate(parseFloat(formatEther(totalStakedBigInt)), 2) || '0',
+		totalStakedUsd: convertToUsd(totalStakedBigInt.toString()),
 		totalRewards: abbreviate(parseFloat(formatEther(totalRewardsBigInt)), 2) || '0',
+		totalRewardsUsd: convertToUsd(totalRewardsBigInt.toString()),
 		availableBalance: abbreviate(parseFloat(formatEther(availableBalanceBigInt)), 2) || '0',
+		availableBalanceUsd: convertToUsd(availableBalanceBigInt.toString()),
 		delegationCount: userDelegations.value.length,
 	}
 })
@@ -412,8 +418,11 @@ watch(userDelegations, async (newDelegations) => {
 								</div>
 								<div :class="$style.table_cell">
 									<div :class="$style.value_info">
-										<span :class="$style.amount">{{ portfolioSummary.totalValue }}</span>
-										<span :class="$style.unit">MON</span>
+										<Flex align="center" gap="6">
+											<span :class="$style.amount">{{ portfolioSummary.totalValue }}</span>
+											<span :class="$style.unit">MON</span>
+											<span v-if="portfolioSummary.totalValueUsd" :class="$style.usd_value">{{ portfolioSummary.totalValueUsd }}</span>
+										</Flex>
 										<div :class="$style.detail">{{ portfolioSummary.availableBalance }} available + {{ portfolioSummary.totalStaked }} staked + {{ portfolioSummary.totalRewards }} rewards</div>
 									</div>
 								</div>
@@ -436,8 +445,11 @@ watch(userDelegations, async (newDelegations) => {
 								</div>
 								<div :class="$style.table_cell">
 									<div :class="$style.value_info">
-										<span :class="$style.amount">{{ stakingStore.abbreviatedAvailableBalance }}</span>
-										<span :class="$style.unit">MON</span>
+										<Flex align="center" gap="6">
+											<span :class="$style.amount">{{ stakingStore.abbreviatedAvailableBalance }}</span>
+											<span :class="$style.unit">MON</span>
+											<span v-if="portfolioSummary.availableBalanceUsd" :class="$style.usd_value">{{ portfolioSummary.availableBalanceUsd }}</span>
+										</Flex>
 										<div :class="$style.detail">Ready to delegate</div>
 									</div>
 								</div>
@@ -460,8 +472,11 @@ watch(userDelegations, async (newDelegations) => {
 								</div>
 								<div :class="$style.table_cell">
 									<div :class="$style.value_info">
-										<span :class="$style.amount">{{ portfolioSummary.totalRewards }}</span>
-										<span :class="$style.unit">MON</span>
+										<Flex align="center" gap="6">
+											<span :class="$style.amount">{{ portfolioSummary.totalRewards }}</span>
+											<span :class="$style.unit">MON</span>
+											<span v-if="portfolioSummary.totalRewardsUsd" :class="$style.usd_value">{{ portfolioSummary.totalRewardsUsd }}</span>
+										</Flex>
 										<div :class="$style.detail">Available to claim</div>
 									</div>
 								</div>
@@ -819,6 +834,12 @@ watch(userDelegations, async (newDelegations) => {
 				.unit {
 					font-size: 10px;
 					color: var(--txt-secondary);
+					font-weight: 500;
+				}
+
+				.usd_value {
+					font-size: 12px;
+					color: var(--txt-tertiary);
 					font-weight: 500;
 				}
 
