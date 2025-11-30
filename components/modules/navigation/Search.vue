@@ -15,6 +15,7 @@ import { search } from "@/services/api/search"
 
 /** Services */
 import { shortHex } from "@/services/utils"
+import { getTokenLogoSync } from "@/services/api/tokenList"
 
 const wrapperEl = ref()
 const inputRef = ref()
@@ -159,7 +160,8 @@ const getResultMetadata = (target) => {
 			} else {
 				metadata.subtitle = shortHex(target.result.address)
 			}
-			metadata.iconUrl = target.result.icon_url
+			// Try Blockscout icon first, then fallback to token list
+			metadata.iconUrl = target.result.icon_url || getTokenLogoSync(target.result.address)
 			metadata.routerLink = `/tokens/${target.result.address}`
 			break
 
