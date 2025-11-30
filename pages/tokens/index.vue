@@ -28,9 +28,6 @@ const tokenTypes = [
 	{ value: 'ERC-1155', label: 'ERC-1155' },
 ]
 
-/** Page size constant */
-const PAGE_SIZE = 20
-
 /**
  * Fetch tokens list
  */
@@ -38,9 +35,7 @@ const getTokens = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
-		const queryParams = {
-			items_count: PAGE_SIZE,
-		}
+		const queryParams = {}
 
 		// Add search query if present
 		if (searchQuery.value) {
@@ -55,10 +50,7 @@ const getTokens = async (paginationParams = null) => {
 		// Add pagination params for cursor-based pagination
 		if (paginationParams) {
 			Object.keys(paginationParams).forEach(key => {
-				// Don't override items_count
-				if (key !== 'items_count') {
-					queryParams[key] = paginationParams[key]
-				}
+				queryParams[key] = paginationParams[key]
 			})
 		}
 

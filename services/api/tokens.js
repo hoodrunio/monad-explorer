@@ -16,20 +16,18 @@ const isValidAddress = (address) => {
  * @param {Object} params - Query parameters
  * @param {string} params.q - Search query (token name/symbol)
  * @param {string} params.type - Token types: "ERC-20", "ERC-721", "ERC-1155" or comma-separated
- * @param {number} params.items_count - Number of items per page
- * @param {Object} params.next_page_params - Cursor pagination params
+ * @param {Object} params - Cursor pagination params from next_page_params
  * @returns {Promise} - API response with cursor pagination
  */
 export const fetchTokens = (params = {}) => {
 	try {
-		const { q, type, items_count = 50, ...paginationParams } = params
+		const { q, type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens`)
 
 		if (q) url.searchParams.append("q", q)
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
-		// Add pagination params if provided
+		// Add pagination params if provided (from next_page_params)
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
 				url.searchParams.append(key, paginationParams[key])
@@ -37,7 +35,7 @@ export const fetchTokens = (params = {}) => {
 		})
 
 		return useFetch(url.href, {
-			key: `tokens-list-${q || 'all'}-${type || 'all'}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `tokens-list-${q || 'all'}-${type || 'all'}-${JSON.stringify(paginationParams)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -60,14 +58,13 @@ export const fetchTokens = (params = {}) => {
  */
 export const fetchTokensClient = async (params = {}) => {
 	try {
-		const { q, type, items_count = 50, ...paginationParams } = params
+		const { q, type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens`)
 
 		if (q) url.searchParams.append("q", q)
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
-		// Add pagination params if provided
+		// Add pagination params if provided (from next_page_params)
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
 				url.searchParams.append(key, paginationParams[key])
@@ -145,19 +142,16 @@ export const fetchTokenHolders = (address, params = {}) => {
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/holders`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 
 		return useFetch(url.href, {
-			key: `token-holders-${address}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `token-holders-${address}-${JSON.stringify(params)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -186,14 +180,11 @@ export const fetchTokenHoldersClient = async (address, params = {}) => {
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/holders`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 

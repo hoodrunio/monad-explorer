@@ -16,7 +16,6 @@ const isValidAddress = (address) => {
  * @param {string} address - Owner address
  * @param {Object} params - Query parameters
  * @param {string} params.type - Token types: "ERC-721", "ERC-404", "ERC-1155" or comma-separated
- * @param {number} params.items_count - Number of items per page
  * @returns {Promise} - API response with cursor pagination
  */
 export const fetchAddressNFTs = (address, params = {}) => {
@@ -26,13 +25,12 @@ export const fetchAddressNFTs = (address, params = {}) => {
 	}
 
 	try {
-		const { type, items_count = 50, ...paginationParams } = params
+		const { type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft`)
 
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
-		// Add pagination params if provided
+		// Add pagination params if provided (from next_page_params)
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
 				url.searchParams.append(key, paginationParams[key])
@@ -40,7 +38,7 @@ export const fetchAddressNFTs = (address, params = {}) => {
 		})
 
 		return useFetch(url.href, {
-			key: `address-nfts-${address}-${type || 'all'}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `address-nfts-${address}-${type || 'all'}-${JSON.stringify(paginationParams)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -69,11 +67,10 @@ export const fetchAddressNFTsClient = async (address, params = {}) => {
 	}
 
 	try {
-		const { type, items_count = 50, ...paginationParams } = params
+		const { type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft`)
 
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
@@ -101,7 +98,6 @@ export const fetchAddressNFTsClient = async (address, params = {}) => {
  * @param {string} address - Owner address
  * @param {Object} params - Query parameters
  * @param {string} params.type - Token types: "ERC-721", "ERC-404", "ERC-1155" or comma-separated
- * @param {number} params.items_count - Number of items per page
  * @returns {Promise} - API response with cursor pagination
  */
 export const fetchAddressNFTCollections = (address, params = {}) => {
@@ -111,11 +107,10 @@ export const fetchAddressNFTCollections = (address, params = {}) => {
 	}
 
 	try {
-		const { type, items_count = 50, ...paginationParams } = params
+		const { type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft_collections`)
 
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
@@ -124,7 +119,7 @@ export const fetchAddressNFTCollections = (address, params = {}) => {
 		})
 
 		return useFetch(url.href, {
-			key: `address-nft-collections-${address}-${type || 'all'}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `address-nft-collections-${address}-${type || 'all'}-${JSON.stringify(paginationParams)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -153,11 +148,10 @@ export const fetchAddressNFTCollectionsClient = async (address, params = {}) => 
 	}
 
 	try {
-		const { type, items_count = 50, ...paginationParams } = params
+		const { type, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft_collections`)
 
 		if (type) url.searchParams.append("type", type)
-		url.searchParams.append("items_count", items_count)
 
 		Object.keys(paginationParams).forEach(key => {
 			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
@@ -251,19 +245,16 @@ export const fetchNFTInstanceHolders = (tokenAddress, tokenId, params = {}) => {
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 
 		return useFetch(url.href, {
-			key: `nft-instance-holders-${tokenAddress}-${tokenId}-${items_count}-${JSON.stringify(paginationParams)}`,
+			key: `nft-instance-holders-${tokenAddress}-${tokenId}-${JSON.stringify(params)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -297,14 +288,11 @@ export const fetchNFTInstanceHoldersClient = async (tokenAddress, tokenId, param
 	}
 
 	try {
-		const { items_count = 50, ...paginationParams } = params
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
 
-		url.searchParams.append("items_count", items_count)
-
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined && paginationParams[key] !== null) {
-				url.searchParams.append(key, paginationParams[key])
+		Object.keys(params).forEach(key => {
+			if (params[key] !== undefined && params[key] !== null) {
+				url.searchParams.append(key, params[key])
 			}
 		})
 

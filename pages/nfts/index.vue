@@ -27,9 +27,6 @@ const nftTypes = [
 	{ value: 'ERC-1155', label: 'ERC-1155' },
 ]
 
-/** Page size constant */
-const PAGE_SIZE = 20
-
 /**
  * Fetch NFT collections (tokens of type ERC-721 or ERC-1155)
  */
@@ -37,9 +34,7 @@ const getCollections = async (paginationParams = null) => {
 	isLoading.value = true
 
 	try {
-		const queryParams = {
-			items_count: PAGE_SIZE,
-		}
+		const queryParams = {}
 
 		// Add search query if present
 		if (searchQuery.value) {
@@ -56,8 +51,8 @@ const getCollections = async (paginationParams = null) => {
 		// Add pagination params for cursor-based pagination
 		if (paginationParams) {
 			Object.keys(paginationParams).forEach(key => {
-				// Don't override items_count or type
-				if (key !== 'items_count' && key !== 'type') {
+				// Don't override type filter
+				if (key !== 'type') {
 					queryParams[key] = paginationParams[key]
 				}
 			})
