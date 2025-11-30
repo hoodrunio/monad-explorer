@@ -70,6 +70,7 @@ const debouncedSearch = useDebounceFn(async () => {
 				title: metadata.title,
 				subtitle: metadata.subtitle,
 				routerLink: metadata.routerLink,
+				iconUrl: metadata.iconUrl,
 			}
 		})
 	} else {
