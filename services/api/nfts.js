@@ -1,5 +1,6 @@
 /** NFT API Services */
 import { useIndexerUrl } from "@/services/config"
+import { appendPaginationParams } from "@/services/utils/pagination"
 
 /**
  * Validate Ethereum address format
@@ -29,14 +30,7 @@ export const fetchAddressNFTs = (address, params = {}) => {
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft`)
 
 		if (type) url.searchParams.append("type", type)
-
-		// Add pagination params if provided (from next_page_params)
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined) {
-				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
-			}
-		})
+		appendPaginationParams(url, paginationParams)
 
 		return useFetch(url.href, {
 			key: `address-nfts-${address}-${type || 'all'}-${JSON.stringify(paginationParams)}`,
@@ -72,13 +66,7 @@ export const fetchAddressNFTsClient = async (address, params = {}) => {
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft`)
 
 		if (type) url.searchParams.append("type", type)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined) {
-				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
-			}
-		})
+		appendPaginationParams(url, paginationParams)
 
 		const data = await $fetch(url.href)
 
@@ -113,13 +101,7 @@ export const fetchAddressNFTCollections = (address, params = {}) => {
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft_collections`)
 
 		if (type) url.searchParams.append("type", type)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined) {
-				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
-			}
-		})
+		appendPaginationParams(url, paginationParams)
 
 		return useFetch(url.href, {
 			key: `address-nft-collections-${address}-${type || 'all'}-${JSON.stringify(paginationParams)}`,
@@ -155,13 +137,7 @@ export const fetchAddressNFTCollectionsClient = async (address, params = {}) => 
 		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/nft_collections`)
 
 		if (type) url.searchParams.append("type", type)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(paginationParams).forEach(key => {
-			if (paginationParams[key] !== undefined) {
-				url.searchParams.append(key, paginationParams[key] === null ? '' : paginationParams[key])
-			}
-		})
+		appendPaginationParams(url, paginationParams)
 
 		const data = await $fetch(url.href)
 
@@ -250,13 +226,7 @@ export const fetchNFTInstanceHolders = (tokenAddress, tokenId, params = {}) => {
 
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined) {
-				url.searchParams.append(key, params[key] === null ? '' : params[key])
-			}
-		})
+		appendPaginationParams(url, params)
 
 		return useFetch(url.href, {
 			key: `nft-instance-holders-${tokenAddress}-${tokenId}-${JSON.stringify(params)}`,
@@ -294,13 +264,7 @@ export const fetchNFTInstanceHoldersClient = async (tokenAddress, tokenId, param
 
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/holders`)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(params).forEach(key => {
-			if (params[key] !== undefined) {
-				url.searchParams.append(key, params[key] === null ? '' : params[key])
-			}
-		})
+		appendPaginationParams(url, params)
 
 		const data = await $fetch(url.href)
 
@@ -336,16 +300,10 @@ export const fetchNFTInstanceTransfers = (tokenAddress, tokenId, params = {}) =>
 
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(params || {}).forEach(key => {
-			if (params[key] !== undefined) {
-				url.searchParams.append(key, params[key] === null ? '' : params[key])
-			}
-		})
+		appendPaginationParams(url, params)
 
 		return useFetch(url.href, {
-			key: `nft-instance-transfers-${tokenAddress}-${tokenId}-${JSON.stringify(params || {})}`,
+			key: `nft-instance-transfers-${tokenAddress}-${tokenId}-${JSON.stringify(params)}`,
 			transform: (response) => {
 				if (response?.items) {
 					return {
@@ -380,13 +338,7 @@ export const fetchNFTInstanceTransfersClient = async (tokenAddress, tokenId, par
 
 	try {
 		const url = new URL(`${useIndexerUrl()}/tokens/${normalizedAddress}/instances/${tokenId}/transfers`)
-
-		// Note: null values must be sent as empty string for cursor-based pagination to work
-		Object.keys(params || {}).forEach(key => {
-			if (params[key] !== undefined) {
-				url.searchParams.append(key, params[key] === null ? '' : params[key])
-			}
-		})
+		appendPaginationParams(url, params)
 
 		const data = await $fetch(url.href)
 

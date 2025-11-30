@@ -4,10 +4,9 @@
 
 /**
  * Creates a cursor pagination state manager
- * @param {number} itemsCount - Default items per page
  * @returns {object} Pagination state and methods
  */
-export const createCursorPagination = (itemsCount = 20) => {
+export const createCursorPagination = () => {
 	const state = {
 		items: ref([]),
 		nextPageParams: ref(null),
@@ -75,4 +74,19 @@ export const mergeItems = (currentItems, newItems, uniqueKey = 'hash') => {
 	const existingKeys = new Set(currentItems.map(item => item[uniqueKey]))
 	const uniqueNewItems = newItems.filter(item => !existingKeys.has(item[uniqueKey]))
 	return [...currentItems, ...uniqueNewItems]
+}
+
+/**
+ * Append pagination params to URL search params
+ * @param {URL} url - URL object to append params to
+ * @param {object} params - Pagination params (typically from next_page_params)
+ */
+export const appendPaginationParams = (url, params) => {
+	if (!params) return
+
+	Object.keys(params).forEach(key => {
+		if (params[key] !== undefined) {
+			url.searchParams.append(key, params[key] === null ? '' : params[key])
+		}
+	})
 }
