@@ -334,7 +334,7 @@ watch(() => chartData.value, () => {
 						:class="[$style.change_badge, priceChange >= 0 ? $style.positive : $style.negative]"
 					>
 						<Icon
-							:name="priceChange >= 0 ? 'arrow-narrow-up' : 'arrow-narrow-down'"
+							:name="priceChange >= 0 ? 'arrow-narrow-up' : 'arrow-down'"
 							size="10"
 							:color="priceChange >= 0 ? 'green' : 'red'"
 						/>
