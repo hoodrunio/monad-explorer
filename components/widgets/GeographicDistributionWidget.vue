@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import * as d3 from 'd3'
 
 /** API */
@@ -165,13 +165,12 @@ const createDonutChart = () => {
 
 watch(
   [geographicData, isLoading],
-  async ([newData, loading]) => {
-    if (!loading && newData.length > 0) {
-      await nextTick()
+  ([newData, loading]) => {
+    if (!loading && newData.length > 0 && chartRef.value) {
       createDonutChart()
     }
   },
-  { immediate: true }
+  { immediate: true, flush: 'post' }
 )
 </script>
 
