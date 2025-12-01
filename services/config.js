@@ -10,6 +10,12 @@ export const Server = {
 		testnet: "https://monad-tn1-indexer.hoodscan.io/api/v2",
 		dev: "https://monad-mainnet-indexer.hoodscan.io/api/v2",
 	},
+	// Stats API (counters, chart lines)
+	Stats: {
+		mainnet: "https://monad-mainnet-indexer.hoodscan.io/stats/api/v1",
+		testnet: "https://monad-tn1-indexer.hoodscan.io/stats/api/v1",
+		dev: "https://monad-mainnet-indexer.hoodscan.io/stats/api/v1",
+	},
 	// Old Explorer API (ONLY for account balance compatibility)
 	Explorer: {
 		mainnet: "https://monad-testnet-api.hoodscan.io",
@@ -93,6 +99,26 @@ export const getStartChainDate = () => {
 
 		default:
 			return "2024-01-01T00:00:00Z"
+	}
+}
+
+// Stats API URL (counters, chart lines)
+export const useStatsApiUrl = () => {
+	const requestURL = useRequestURL()
+
+	switch (requestURL.hostname) {
+		case "monad.hoodscan.io":
+		case "localhost":
+			return Server.Stats.mainnet
+
+		case "testnet.monad.hoodscan.io":
+			return Server.Stats.testnet
+
+		case "dev.monad.hoodscan.io":
+			return Server.Stats.dev
+
+		default:
+			return Server.Stats.mainnet
 	}
 }
 

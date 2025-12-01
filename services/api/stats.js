@@ -1,5 +1,5 @@
 /** Services */
-import { quoteServiceURL, tvlServiceURL, useServerURL, useIndexerUrl } from "@/services/config"
+import { quoteServiceURL, tvlServiceURL, useServerURL, useIndexerUrl, useStatsApiUrl } from "@/services/config"
 
 export const fetchGeneralStats = async ({ name }) => {
 	try {
@@ -142,6 +142,31 @@ export const fetchMarketStats = async () => {
 export const fetchIndexerStats = async () => {
 	try {
 		const url = new URL(`${useIndexerUrl()}/stats`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return null
+	}
+}
+
+// Stats API - Counters (NetworkStats widget için)
+export const fetchStatsCounters = async () => {
+	try {
+		const url = new URL(`${useStatsApiUrl()}/counters`)
+		const data = await $fetch(url.href)
+		return data
+	} catch (error) {
+		return null
+	}
+}
+
+// Stats API - newTxns (TransactionsWidget için)
+export const fetchNewTxnsChart = async ({ from, to, resolution = 'DAY' }) => {
+	try {
+		const url = new URL(`${useStatsApiUrl()}/lines/newTxns`)
+		url.searchParams.append('from', from)
+		url.searchParams.append('to', to)
+		url.searchParams.append('resolution', resolution)
 		const data = await $fetch(url.href)
 		return data
 	} catch (error) {

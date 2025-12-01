@@ -1,6 +1,6 @@
 <script setup>
 /** API */
-import { fetchIndexerStats } from "@/services/api/stats"
+import { fetchStatsCounters } from "@/services/api/stats"
 
 /** Services */
 import { comma } from "@/services/utils"
@@ -16,14 +16,17 @@ const stats = ref({
 const loadStats = async () => {
 	try {
 		isLoading.value = true
-		const data = await fetchIndexerStats()
+		const data = await fetchStatsCounters()
 
-		if (data) {
+		if (data?.counters) {
+			const counters = data.counters
+			const getCounter = (id) => counters.find(c => c.id === id)?.value || "0"
+
 			stats.value = {
-				totalBlocks: parseInt(data.total_blocks || 0),
-				averageBlockTime: parseFloat(data.average_block_time || 0) / 1000, // Convert ms to seconds
-				totalTransactions: parseInt(data.total_transactions || 0),
-				totalAddresses: parseInt(data.total_addresses || 0),
+				totalBlocks: parseInt(getCounter('totalBlocks')),
+				averageBlockTime: parseFloat(getCounter('averageBlockTime')), // Already in seconds
+				totalTransactions: parseInt(getCounter('totalTxns')),
+				totalAddresses: parseInt(getCounter('totalAddresses')),
 			}
 		}
 	} catch (error) {

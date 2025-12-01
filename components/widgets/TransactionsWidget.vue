@@ -9,7 +9,7 @@ import Tooltip from "@/components/ui/Tooltip.vue"
 import { comma, abbreviate } from "@/services/utils"
 
 /** API */
-import { fetchTransactionAnalytics } from "@/services/api/analytics"
+import { fetchNewTxnsChart } from "@/services/api/stats"
 
 const transactionData = ref([])
 const isLoading = ref(true)
@@ -27,14 +27,30 @@ const togglePeriod = () => {
 const fetchTransactionData = async () => {
 	try {
 		isLoading.value = true
-		
-		const limit = period.value === 'daily' ? 7 : 12 // 7 days or 12 weeks
-		const data = await fetchTransactionAnalytics({ period: period.value, limit })
-		
-		if (data?.success && data?.data?.data) {
-			// Get data in natural order (newest to oldest, left to right)
-			transactionData.value = data.data.data.slice(0, limit)
-			
+
+		const now = DateTime.now()
+		let from, to, resolution
+
+		if (period.value === 'daily') {
+			from = now.minus({ days: 7 }).toFormat('yyyy-MM-dd')
+			to = now.toFormat('yyyy-MM-dd')
+			resolution = 'DAY'
+		} else {
+			from = now.minus({ weeks: 12 }).toFormat('yyyy-MM-dd')
+			to = now.toFormat('yyyy-MM-dd')
+			resolution = 'WEEK'
+		}
+
+		const data = await fetchNewTxnsChart({ from, to, resolution })
+
+		if (data?.chart) {
+			transactionData.value = data.chart.map(item => ({
+				date: item.date,
+				weekStart: item.date,
+				weekEnd: item.date_to,
+				transactionCount: parseInt(item.value) || 0
+			}))
+
 			// Calculate min, max for chart scaling
 			const values = transactionData.value.map(item => item.transactionCount)
 			max.value = Math.max(...values)
