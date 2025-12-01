@@ -44,12 +44,13 @@ const fetchTransactionData = async () => {
 		const data = await fetchNewTxnsChart({ from, to, resolution })
 
 		if (data?.chart) {
+			// Reverse to show newest on left
 			transactionData.value = data.chart.map(item => ({
 				date: item.date,
 				weekStart: item.date,
 				weekEnd: item.date_to,
 				transactionCount: parseInt(item.value) || 0
-			}))
+			})).reverse()
 
 			// Calculate min, max for chart scaling
 			const values = transactionData.value.map(item => item.transactionCount)
