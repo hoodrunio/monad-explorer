@@ -1,6 +1,7 @@
 <script setup>
 /** UI */
 import Badge from "@/components/ui/Badge.vue"
+import Button from "@/components/ui/Button.vue"
 import Toggle from "@/components/ui/Toggle.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
 
@@ -12,10 +13,14 @@ import ValidatorLogo from "@/components/ValidatorLogo.vue"
 import { shortHex, comma } from "@/services/utils"
 import { convertUTCToLocal } from "@/services/utils/validator"
 
+/** API */
+import { fetchValidatorStakingEvents } from "@/services/api/validator"
+
 /** Components */
 import ValidatorPerformanceGrid from "./ValidatorPerformanceGrid.vue"
 import ValidatorPerformanceGridDetailed from "./ValidatorPerformanceGridDetailed.vue"
 import ValidatorEventsTable from "./ValidatorEventsTable.vue"
+import ValidatorStakingEventsTable from "./ValidatorStakingEventsTable.vue"
 import ValidatorDelegatorsTable from "./ValidatorDelegatorsTable.vue"
 import ValidatorTransactionAnalytics from "./ValidatorTransactionAnalytics.vue"
 import ValidatorTipRevenueTab from "./ValidatorTipRevenueTab.vue"
@@ -68,6 +73,10 @@ const tabs = ref([
 		icon: "message",
 	},
 	{
+		name: "Staking Events",
+		icon: "coins",
+	},
+	{
 		name: "Delegators",
 		icon: "granters",
 	},
@@ -78,6 +87,12 @@ const activeTab = ref(preselectedTab)
 
 // QC Participation toggle state
 const showQcMetrics = ref(false)
+
+// Staking Events state
+const stakingEvents = ref([])
+const stakingEventsNextParams = ref(null)
+const stakingEventsPrevPages = ref([])
+const isLoadingStakingEvents = ref(false)
 
 // Description expand/collapse state
 const isDescriptionExpanded = ref(false)
@@ -132,14 +147,64 @@ const validatorStatus = computed(() => {
 
 watch(
 	() => activeTab.value,
-	() => {
+	async () => {
 		router.replace({
 			query: {
 				tab: activeTab.value,
 			},
 		})
+
+		// Fetch staking events when tab is selected
+		if (activeTab.value === 'Staking Events') {
+			await getStakingEvents()
+		}
 	},
 )
+
+// Staking Events fetch function
+const getStakingEvents = async (params = null) => {
+	// Use precompile_validator_id if available, otherwise fallback to validator_id
+	const validatorId = props.validator.staking?.precompile_validator_id || props.validator.validator_id
+	if (!validatorId) return
+
+	isLoadingStakingEvents.value = true
+	try {
+		const queryParams = params || { items_count: 20 }
+		const { data } = await fetchValidatorStakingEvents(validatorId, queryParams)
+
+		if (data.value?.items) {
+			stakingEvents.value = data.value.items
+			stakingEventsNextParams.value = data.value.next_page_params || null
+		} else {
+			stakingEvents.value = []
+			stakingEventsNextParams.value = null
+		}
+	} catch (error) {
+		stakingEvents.value = []
+		stakingEventsNextParams.value = null
+	}
+	isLoadingStakingEvents.value = false
+}
+
+// Staking Events pagination
+const handleStakingEventsNext = () => {
+	if (!stakingEventsNextParams.value) return
+
+	stakingEventsPrevPages.value.push({
+		data: [...stakingEvents.value],
+		params: stakingEventsNextParams.value
+	})
+
+	getStakingEvents(stakingEventsNextParams.value)
+}
+
+const handleStakingEventsPrev = () => {
+	if (stakingEventsPrevPages.value.length === 0) return
+
+	const previousState = stakingEventsPrevPages.value.pop()
+	stakingEvents.value = previousState.data
+	stakingEventsNextParams.value = previousState.params
+}
 
 // Computed properties for validator data
 const validatorMetrics = computed(() => {
@@ -685,6 +750,31 @@ const formatMon = (value) => {
 					<!-- Events Tab -->
 					<template v-if="activeTab === 'Events'">
 						<ValidatorEventsTable :validator-id="validator.validator_id" />
+					</template>
+
+					<!-- Staking Events Tab -->
+					<template v-if="activeTab === 'Staking Events'">
+						<Flex direction="column" gap="16">
+							<ValidatorStakingEventsTable
+								:events="stakingEvents"
+								:isLoading="isLoadingStakingEvents"
+							/>
+
+							<!-- Pagination -->
+							<Flex v-if="stakingEvents.length > 0" align="center" justify="center" gap="8">
+								<Button type="secondary" @click="handleStakingEventsPrev" size="mini" :disabled="stakingEventsPrevPages.length === 0">
+									<Icon name="arrow-left" size="12" color="primary" />
+								</Button>
+
+								<Text size="12" weight="600" color="secondary" style="padding: 0 16px;">
+									Page {{ stakingEventsPrevPages.length + 1 }}
+								</Text>
+
+								<Button @click="handleStakingEventsNext" type="secondary" size="mini" :disabled="!stakingEventsNextParams">
+									<Icon name="arrow-right" size="12" color="primary" />
+								</Button>
+							</Flex>
+						</Flex>
 					</template>
 
 					<!-- Delegators Tab -->

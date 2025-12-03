@@ -10,6 +10,7 @@ import ProtocolBadge from "@/components/ui/ProtocolBadge.vue"
 
 /** Components */
 import TransactionsTable from "./tables/TransactionsTable.vue"
+import StakingEventsTable from "./tables/StakingEventsTable.vue"
 import NFTGrid from "@/components/modules/nfts/NFTGrid.vue"
 import TokenTransfersTable from "@/components/modules/tokens/TokenTransfersTable.vue"
 
@@ -17,6 +18,7 @@ import TokenTransfersTable from "@/components/modules/tokens/TokenTransfersTable
 import PortfolioValueWidget from "./widgets/PortfolioValueWidget.vue"
 import BalanceBreakdown from "./widgets/BalanceBreakdown.vue"
 import ActivitySummary from "./widgets/ActivitySummary.vue"
+import StakingWidget from "./widgets/StakingWidget.vue"
 
 /** Analytics */
 import AddressAnalytics from "./AddressAnalytics.vue"
@@ -31,6 +33,8 @@ import {
 	fetchAddressStatsClient,
 	fetchAddressTokenTransfersClient,
 	fetchAddressTokenBalancesClient,
+	fetchAddressStakingStats,
+	fetchAddressStakingEvents,
 } from "@/services/api/address"
 import { fetchAddressNFTsClient } from "@/services/api/nfts"
 import { preloadTokenList, getTokenLogoSync, useCacheVersion } from "@/services/api/tokenList"
@@ -98,6 +102,12 @@ const tabs = ref([
 		icon: "namespace",
 		show: true,
 	},
+	{
+		alias: "staking",
+		displayName: "Staking",
+		icon: "coins",
+		show: true,
+	},
 ])
 
 /** Token Transfers State */
@@ -109,6 +119,14 @@ const tokenTransfersPrevPages = ref([])
 const nfts = ref([])
 const nftsNextParams = ref(null)
 const nftsPrevPages = ref([])
+
+/** Staking State */
+const stakingStats = ref(null)
+const stakingEvents = ref([])
+const stakingEventsNextParams = ref(null)
+const stakingEventsPrevPages = ref([])
+const isLoadingStakingStats = ref(false)
+const isLoadingStakingEvents = ref(false)
 
 const preselectedTab =
 	route.query.tab && tabs.value.map((tab) => tab.alias).includes(route.query.tab) ? route.query.tab : tabs.value[0].alias
@@ -449,6 +467,39 @@ const getTokenBalances = async () => {
 	isLoadingTokenBalances.value = false
 }
 
+/** Staking Stats fetch function */
+const getStakingStats = async () => {
+	isLoadingStakingStats.value = true
+	try {
+		const { data } = await fetchAddressStakingStats(props.address.hash)
+		stakingStats.value = data.value || null
+	} catch (error) {
+		stakingStats.value = null
+	}
+	isLoadingStakingStats.value = false
+}
+
+/** Staking Events fetch function */
+const getStakingEvents = async (params = null) => {
+	isLoadingStakingEvents.value = true
+	try {
+		const queryParams = params || { items_count: 20 }
+		const { data } = await fetchAddressStakingEvents(props.address.hash, queryParams)
+
+		if (data.value?.items) {
+			stakingEvents.value = data.value.items
+			stakingEventsNextParams.value = data.value.next_page_params || null
+		} else {
+			stakingEvents.value = []
+			stakingEventsNextParams.value = null
+		}
+	} catch (error) {
+		stakingEvents.value = []
+		stakingEventsNextParams.value = null
+	}
+	isLoadingStakingEvents.value = false
+}
+
 /** Token Transfers Pagination */
 const handleTokenTransfersNext = () => {
 	if (!tokenTransfersNextParams.value) return
@@ -487,6 +538,26 @@ const handleNFTsPrev = () => {
 	const previousState = nftsPrevPages.value.pop()
 	nfts.value = previousState.data
 	nftsNextParams.value = previousState.params
+}
+
+/** Staking Events Pagination */
+const handleStakingEventsNext = () => {
+	if (!stakingEventsNextParams.value) return
+
+	stakingEventsPrevPages.value.push({
+		data: [...stakingEvents.value],
+		params: stakingEventsNextParams.value
+	})
+
+	getStakingEvents(stakingEventsNextParams.value)
+}
+
+const handleStakingEventsPrev = () => {
+	if (stakingEventsPrevPages.value.length === 0) return
+
+	const previousState = stakingEventsPrevPages.value.pop()
+	stakingEvents.value = previousState.data
+	stakingEventsNextParams.value = previousState.params
 }
 
 /** Address Balance & Stats */
@@ -603,6 +674,8 @@ watch(
 		tokenTransfersPrevPages.value = []
 		nftsNextParams.value = null
 		nftsPrevPages.value = []
+		stakingEventsNextParams.value = null
+		stakingEventsPrevPages.value = []
 
 		router.replace({
 			query: {
@@ -618,6 +691,8 @@ watch(
 			await getTokenTransfers()
 		} else if (activeTab.value === "nfts") {
 			await getNFTs()
+		} else if (activeTab.value === "staking") {
+			await getStakingEvents()
 		}
 	},
 	{ immediate: true },
@@ -639,6 +714,7 @@ onMounted(async () => {
 		getAddressStats(),
 		getTokenBalances(),
 		getMonPrice(),
+		getStakingStats(),
 	])
 })
 
@@ -785,6 +861,13 @@ const handleViewRawAddress = () => {
 					:isLoading="isLoadingStats"
 					@viewTransactions="handleSelect('transactions')"
 					@viewTransfers="handleSelect('tokenTransfers')"
+				/>
+
+				<!-- Staking Widget -->
+				<StakingWidget
+					:stakingStats="stakingStats"
+					:isLoading="isLoadingStakingStats"
+					@viewStaking="handleSelect('staking')"
 				/>
 			</Flex>
 
@@ -1050,6 +1133,14 @@ const handleViewRawAddress = () => {
 								</Text>
 							</Flex>
 						</template>
+
+						<!-- Staking Events Table -->
+						<template v-else-if="activeTab === 'staking'">
+							<StakingEventsTable
+								:events="stakingEvents"
+								:isLoading="isLoadingStakingEvents"
+							/>
+						</template>
 					</Flex>
 
 					<!-- Pagination - Transactions -->
@@ -1098,6 +1189,23 @@ const handleViewRawAddress = () => {
 							</Button>
 
 							<Button @click="handleNFTsNext" type="secondary" size="mini" :disabled="!nftsNextParams">
+								<Icon name="arrow-right" size="12" color="primary" />
+							</Button>
+						</Flex>
+					</Flex>
+
+					<!-- Pagination - Staking Events -->
+					<Flex v-if="activeTab === 'staking'" align="center" justify="between">
+						<Flex align="center" gap="6" :class="$style.pagination">
+							<Button type="secondary" @click="handleStakingEventsPrev" size="mini" :disabled="stakingEventsPrevPages.length === 0">
+								<Icon name="arrow-left" size="12" color="primary" />
+							</Button>
+
+							<Button type="secondary" size="mini" disabled>
+								<Text size="12" weight="600" color="primary">Page {{ stakingEventsPrevPages.length + 1 }}</Text>
+							</Button>
+
+							<Button @click="handleStakingEventsNext" type="secondary" size="mini" :disabled="!stakingEventsNextParams">
 								<Icon name="arrow-right" size="12" color="primary" />
 							</Button>
 						</Flex>

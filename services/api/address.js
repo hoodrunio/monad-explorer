@@ -581,3 +581,85 @@ export const fetchAddressOverviewClient = async (address) => {
 		throw error
 	}
 }
+
+/**
+ * Get staking statistics for an address
+ * @param {string} address - Ethereum address
+ * @returns {Promise} - Staking stats (positions, totals, event counts)
+ */
+export const fetchAddressStakingStats = async (address) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/monad/staking-stats`)
+		const data = await $fetch(url.href)
+		return { data: { value: data } }
+	} catch (error) {
+		// Return empty stats if endpoint fails (address may have no staking activity)
+		if (error?.response?.status === 404) {
+			return {
+				data: {
+					value: {
+						positions: [],
+						event_counts: { claim: 0, delegate: 0 },
+						total_delegated: "0",
+						total_rewards_claimed: "0",
+						total_unclaimed_rewards: "0"
+					}
+				}
+			}
+		}
+		throw error
+	}
+}
+
+/**
+ * Get staking events for an address
+ * @param {string} address - Ethereum address
+ * @param {Object} params - Query parameters
+ * @param {number} params.items_count - Number of items per page (default: 20)
+ * @param {number} params.block_number - Block number cursor for pagination
+ * @param {number} params.log_index - Log index cursor for pagination
+ * @returns {Promise} - Staking events with cursor pagination
+ */
+export const fetchAddressStakingEvents = async (address, params = {}) => {
+	const normalizedAddress = address?.toLowerCase()
+	if (!isValidAddress(normalizedAddress)) {
+		throw new Error('Invalid address format')
+	}
+
+	try {
+		const { items_count = 20, block_number, log_index } = params
+		const url = new URL(`${useIndexerUrl()}/addresses/${normalizedAddress}/monad/staking-events`)
+
+		url.searchParams.append("items_count", items_count)
+		if (block_number) url.searchParams.append("block_number", block_number)
+		if (log_index !== undefined) url.searchParams.append("log_index", log_index)
+
+		const data = await $fetch(url.href)
+		return {
+			data: {
+				value: {
+					items: data.items || [],
+					next_page_params: data.next_page_params || null
+				}
+			}
+		}
+	} catch (error) {
+		// Return empty list if endpoint fails
+		if (error?.response?.status === 404) {
+			return {
+				data: {
+					value: {
+						items: [],
+						next_page_params: null
+					}
+				}
+			}
+		}
+		throw error
+	}
+}
