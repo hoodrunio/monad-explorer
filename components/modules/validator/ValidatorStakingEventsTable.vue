@@ -44,7 +44,7 @@ const getEventTypeColor = (eventType) => {
 			return "blue"
 		case "undelegate":
 			return "orange"
-		case "validator_rewarded":
+		case "withdraw":
 			return "yellow"
 		default:
 			return "secondary"
@@ -53,7 +53,6 @@ const getEventTypeColor = (eventType) => {
 
 // Format event type for display
 const formatEventType = (eventType) => {
-	if (eventType === "validator_rewarded") return "rewarded"
 	return eventType?.replace(/_/g, " ") || "Unknown"
 }
 </script>
@@ -66,7 +65,6 @@ const formatEventType = (eventType) => {
 					<th><Text size="12" weight="600" color="tertiary">Time</Text></th>
 					<th><Text size="12" weight="600" color="tertiary">Type</Text></th>
 					<th><Text size="12" weight="600" color="tertiary">Amount</Text></th>
-					<th><Text size="12" weight="600" color="tertiary">Epoch</Text></th>
 					<th><Text size="12" weight="600" color="tertiary">Delegator</Text></th>
 					<th><Text size="12" weight="600" color="tertiary">Transaction</Text></th>
 				</tr>
@@ -78,14 +76,13 @@ const formatEventType = (eventType) => {
 					<td><Skeleton w="100" h="14" /></td>
 					<td><Skeleton w="60" h="20" /></td>
 					<td><Skeleton w="80" h="14" /></td>
-					<td><Skeleton w="40" h="14" /></td>
 					<td><Skeleton w="100" h="14" /></td>
 					<td><Skeleton w="100" h="14" /></td>
 				</tr>
 
 				<!-- Empty state -->
 				<tr v-else-if="events.length === 0">
-					<td colspan="6" :class="$style.empty_cell">
+					<td colspan="5" :class="$style.empty_cell">
 						<Flex align="center" justify="center" gap="8" :class="$style.empty">
 							<Icon name="coins" size="16" color="tertiary" />
 							<Text size="13" weight="500" color="tertiary">No staking events found</Text>
@@ -119,10 +116,6 @@ const formatEventType = (eventType) => {
 							<Text size="12" weight="600" color="primary">{{ formatMON(event.amount) }}</Text>
 							<Text size="11" weight="500" color="tertiary">MON</Text>
 						</Flex>
-					</td>
-					<td>
-						<Text v-if="event.epoch" size="12" weight="600" color="secondary">{{ event.epoch }}</Text>
-						<Text v-else size="12" weight="500" color="tertiary">-</Text>
 					</td>
 					<td>
 						<NuxtLink v-if="event.delegator?.hash" :to="`/address/${event.delegator.hash}`">

@@ -196,6 +196,7 @@ export const fetchValidatorUptime = ({ id, limit }) => {
  * @param {number|string} validatorId - Validator ID
  * @param {Object} params - Query parameters
  * @param {number} params.items_count - Number of items per page (default: 20)
+ * @param {string} params.type - Event types to filter (comma-separated: delegate,undelegate,withdraw,claim)
  * @param {number} params.block_number - Block number cursor for pagination
  * @param {number} params.log_index - Log index cursor for pagination
  * @returns {Promise} - Staking events with cursor pagination
@@ -206,10 +207,11 @@ export const fetchValidatorStakingEvents = async (validatorId, params = {}) => {
 	}
 
 	try {
-		const { items_count = 20, block_number, log_index } = params
+		const { items_count = 20, type = 'delegate,undelegate,withdraw,claim', block_number, log_index } = params
 		const url = new URL(`${useIndexerUrl()}/monad/validators/${validatorId}/staking-events`)
 
 		url.searchParams.append("items_count", items_count)
+		if (type) url.searchParams.append("type", type)
 		if (block_number) url.searchParams.append("block_number", block_number)
 		if (log_index !== undefined) url.searchParams.append("log_index", log_index)
 

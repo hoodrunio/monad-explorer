@@ -44,6 +44,8 @@ const getEventTypeColor = (eventType) => {
 			return "blue"
 		case "undelegate":
 			return "orange"
+		case "withdraw":
+			return "yellow"
 		default:
 			return "secondary"
 	}
@@ -116,12 +118,16 @@ const formatEventType = (eventType) => {
 						</Flex>
 					</td>
 					<td>
-						<NuxtLink :to="`/validator/${event.validator_id}`">
+						<NuxtLink v-if="event.secp_pubkey" :to="`/validator/${event.secp_pubkey}`">
 							<Flex align="center" gap="6" :class="$style.validator_link">
 								<Icon name="validator" size="14" color="secondary" />
 								<Text size="12" weight="600" color="primary">#{{ event.validator_id }}</Text>
 							</Flex>
 						</NuxtLink>
+						<Flex v-else align="center" gap="6" :class="$style.validator_link">
+							<Icon name="validator" size="14" color="secondary" />
+							<Text size="12" weight="600" color="primary">#{{ event.validator_id }}</Text>
+						</Flex>
 					</td>
 					<td>
 						<NuxtLink :to="`/tx/${event.transaction_hash}`">
