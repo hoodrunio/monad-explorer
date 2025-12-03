@@ -148,8 +148,30 @@ const formatEventType = (eventType) => {
 .wrapper {
 	min-width: 100%;
 	width: 0;
-	height: 100%;
+	max-height: 500px;
 	overflow-x: auto;
+	overflow-y: auto;
+	border: 1px solid var(--op-8);
+	border-radius: 8px;
+}
+
+.wrapper::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+.wrapper::-webkit-scrollbar-track {
+	background: var(--op-3);
+	border-radius: 3px;
+}
+
+.wrapper::-webkit-scrollbar-thumb {
+	background: var(--op-10);
+	border-radius: 3px;
+}
+
+.wrapper::-webkit-scrollbar-thumb:hover {
+	background: var(--op-15);
 }
 
 .table {
