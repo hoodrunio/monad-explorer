@@ -5,9 +5,6 @@ import { DateTime } from "luxon"
 /** Services */
 import { shortHex } from "@/services/utils"
 
-/** UI */
-import Badge from "@/components/ui/Badge.vue"
-
 const props = defineProps({
 	events: {
 		type: Array,
@@ -32,22 +29,6 @@ const formatMON = (weiValue) => {
 		return mon.toFixed(4)
 	} catch {
 		return "0"
-	}
-}
-
-// Get event type badge color
-const getEventTypeColor = (eventType) => {
-	switch (eventType) {
-		case "delegate":
-			return "green"
-		case "claim":
-			return "blue"
-		case "undelegate":
-			return "orange"
-		case "withdraw":
-			return "yellow"
-		default:
-			return "secondary"
 	}
 }
 
@@ -107,9 +88,12 @@ const formatEventType = (eventType) => {
 						</NuxtLink>
 					</td>
 					<td>
-						<Badge :color="getEventTypeColor(event.event_type)">
-							{{ formatEventType(event.event_type) }}
-						</Badge>
+						<Flex
+							align="center"
+							:class="[$style.event_badge, $style[`event_${event.event_type}`]]"
+						>
+							<Text size="11" weight="600">{{ formatEventType(event.event_type) }}</Text>
+						</Flex>
 					</td>
 					<td>
 						<Flex align="center" gap="4">
@@ -224,5 +208,48 @@ const formatEventType = (eventType) => {
 
 .empty {
 	padding: 20px;
+}
+
+.event_badge {
+	padding: 4px 10px;
+	border-radius: 6px;
+	text-transform: capitalize;
+	width: fit-content;
+}
+
+.event_delegate {
+	background: rgba(34, 197, 94, 0.15);
+	border: 1px solid rgba(34, 197, 94, 0.3);
+
+	& span {
+		color: var(--green);
+	}
+}
+
+.event_undelegate {
+	background: rgba(249, 115, 22, 0.15);
+	border: 1px solid rgba(249, 115, 22, 0.3);
+
+	& span {
+		color: var(--orange);
+	}
+}
+
+.event_withdraw {
+	background: rgba(234, 179, 8, 0.15);
+	border: 1px solid rgba(234, 179, 8, 0.3);
+
+	& span {
+		color: var(--yellow);
+	}
+}
+
+.event_claim {
+	background: rgba(59, 130, 246, 0.15);
+	border: 1px solid rgba(59, 130, 246, 0.3);
+
+	& span {
+		color: var(--blue);
+	}
 }
 </style>
