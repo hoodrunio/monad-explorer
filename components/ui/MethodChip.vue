@@ -16,9 +16,9 @@ const props = defineProps({
 const methodIcon = computed(() => {
 	const method = props.method?.toLowerCase() || ""
 
-	// Special system transactions
-	if (method === "syscall reward") {
-		return "coins_down"
+	// Special system transactions (Monad syscallReward)
+	if (method === "syscallreward" || method === "syscall reward") {
+		return "monad"
 	}
 
 	// Transaction type specific icons (from transaction_types array)
@@ -90,9 +90,9 @@ const methodIcon = computed(() => {
 const methodColor = computed(() => {
 	const method = props.method?.toLowerCase() || ""
 
-	// System transactions - purple/violet
-	if (method === "syscall reward") {
-		return "purple"
+	// Monad system transactions - Monad purple
+	if (method === "syscallreward" || method === "syscall reward") {
+		return "monad"
 	}
 
 	// Transfers - blue
@@ -292,5 +292,23 @@ const displayName = computed(() => {
 .gray:hover {
 	background: var(--op-08);
 	border-color: var(--op-15);
+}
+
+.monad {
+	background: rgba(131, 93, 246, 0.1);
+	border-color: rgba(131, 93, 246, 0.3);
+}
+
+.monad .text {
+	color: rgb(161, 128, 255);
+}
+
+.monad .icon {
+	color: rgb(161, 128, 255);
+}
+
+.monad:hover {
+	background: rgba(131, 93, 246, 0.15);
+	border-color: rgba(131, 93, 246, 0.4);
 }
 </style>
