@@ -13,24 +13,24 @@ export const formatTransactionType = (type) => {
 
 /**
  * Get display information for transaction type/method
- * Uses priority: syscall reward check > transaction_types > method > fallback
+ * Uses priority: method (when decoded_input exists or non-hex) > transaction_types > fallback
  * @param {Object} tx - Transaction object
  * @returns {Object} Display info with display, hasMultiple, additionalCount, allTypes, source
  */
 export const getTransactionDisplayInfo = (tx) => {
-	// Priority 0: Check for Syscall Reward (special case)
-	// gas_used = 0 AND to.hash = 0x0000000000000000000000000000000000001000
-	if (tx.gas_used === "0" && tx.to?.hash?.toLowerCase() === "0x0000000000000000000000000000000000001000") {
+	// Priority 1: Use method if decoded_input exists (method field contains clean method name when decoded)
+	// Or use method if it's not a hex string (meaningful method name)
+	if (tx.method && (tx.decoded_input || !tx.method.startsWith('0x'))) {
 		return {
-			display: "Syscall Reward",
+			display: tx.method,
 			hasMultiple: false,
 			additionalCount: 0,
-			allTypes: ["Syscall Reward"],
-			source: 'syscall'
+			allTypes: [tx.method],
+			source: tx.decoded_input ? 'decoded' : 'method'
 		}
 	}
 
-	// Priority 1: Use transaction_types if available and not empty
+	// Priority 2: Use transaction_types if available and not empty
 	if (tx.transaction_types && tx.transaction_types.length > 0) {
 		const types = tx.transaction_types
 		const primaryType = formatTransactionType(types[0])
@@ -44,17 +44,6 @@ export const getTransactionDisplayInfo = (tx) => {
 			additionalCount,
 			allTypes,
 			source: 'types'
-		}
-	}
-
-	// Priority 2: Use method if available
-	if (tx.method) {
-		return {
-			display: tx.method,
-			hasMultiple: false,
-			additionalCount: 0,
-			allTypes: [tx.method],
-			source: 'method'
 		}
 	}
 

@@ -192,6 +192,9 @@ export const transformTransaction = (tx) => {
 		decodedLogs: tx.decoded_logs || [],
 		decoded_logs: tx.decoded_logs || [],
 
+		// Decoded input for method display
+		decoded_input: tx.decoded_input || null,
+
 		// Type information normalization
 		type: typeof tx.type === 'number' ? tx.type : 0, // Transaction type (0=legacy, 2=EIP-1559)
 		transaction_types: normalizedTransactionTypes, // Transaction categories array
