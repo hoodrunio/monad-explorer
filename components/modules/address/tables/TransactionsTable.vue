@@ -4,13 +4,11 @@ import { DateTime } from "luxon"
 
 /** Services */
 import { comma, space, shortHex } from "@/services/utils"
+import { getTransactionDisplayInfo } from "@/services/utils/transactions"
 
 /** UI */
 import Tooltip from "@/components/ui/Tooltip.vue"
 import MethodChip from "@/components/ui/MethodChip.vue"
-
-/** Shared Components */
-import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 
 /** Composables */
 import { useMonUsdConverter } from "@/composables/useMonUsdConverter"
@@ -108,18 +106,7 @@ const props = defineProps({
 					</td>
 					<td>
 						<NuxtLink :to="`/tx/${tx.hash}`">
-							<Tooltip v-if="tx.transaction_types && tx.transaction_types.length > 0" position="start" textAlign="left">
-								<MessageTypeBadge :types="tx.transaction_types" />
-
-								<template #content>
-									<Flex direction="column" gap="8">
-										<Text v-for="type in tx.transaction_types" color="primary">
-											{{ type.replace(/_/g, " ") }}
-										</Text>
-									</Flex>
-								</template>
-							</Tooltip>
-							<Text v-else size="12" weight="500" color="tertiary">No type</Text>
+							<MethodChip :method="getTransactionDisplayInfo(tx).display" />
 						</NuxtLink>
 					</td>
 					<td>

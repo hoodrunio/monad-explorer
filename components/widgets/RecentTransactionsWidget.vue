@@ -8,6 +8,7 @@ import MethodChip from "@/components/ui/MethodChip.vue"
 
 /** Services */
 import { comma, shortHex } from "@/services/utils"
+import { getTransactionDisplayInfo } from "@/services/utils/transactions"
 
 /** API */
 import { fetchTransactions } from "@/services/api/tx"
@@ -33,9 +34,7 @@ const formatGasValue = (value) => {
 
 const getTransactionType = (tx) => {
 	if (!tx) return "Unknown"
-	if (tx.isContractCreation) return "Create"
-	if (tx.isContractInteraction) return "Call"
-	return "Transfer"
+	return getTransactionDisplayInfo(tx).display
 }
 
 // Use client-side non-blocking data fetching

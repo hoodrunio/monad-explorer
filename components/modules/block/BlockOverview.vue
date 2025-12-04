@@ -3,18 +3,15 @@
 import { DateTime } from "luxon"
 
 /** UI */
-import AmountInCurrency from "@/components/AmountInCurrency.vue"
 import Badge from "@/components/ui/Badge.vue"
 import BookmarkButton from "@/components/BookmarkButton.vue"
 import Button from "@/components/ui/Button.vue"
 import Checkbox from "@/components/ui/Checkbox.vue"
 import { Dropdown, DropdownItem } from "@/components/ui/Dropdown"
-import Input from "@/components/ui/Input.vue"
 import Popover from "@/components/ui/Popover.vue"
 import Tooltip from "@/components/ui/Tooltip.vue"
 
 /** Shared Components */
-import MessageTypeBadge from "@/components/shared/MessageTypeBadge.vue"
 import Events from "@/components/shared/tables/Events.vue"
 
 /** Services */
