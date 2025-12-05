@@ -25,7 +25,7 @@ const loadStats = async () => {
 			stats.value = {
 				totalBlocks: parseInt(getCounter('totalBlocks')),
 				averageBlockTime: parseFloat(getCounter('averageBlockTime')), // Already in seconds
-				totalTransactions: parseInt(getCounter('completedTxns')),
+				totalTransactions: parseInt(getCounter('totalTxns')),
 				totalAddresses: parseInt(getCounter('totalAddresses')),
 			}
 		}
@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
 						<Icon name="tx" size="16" color="secondary" />
 					</div>
 					<Flex direction="column" gap="2">
-						<Text size="11" weight="500" color="tertiary">Completed txns</Text>
+						<Text size="11" weight="500" color="tertiary">Total txns</Text>
 						<template v-if="isLoading">
 							<Skeleton w="90" h="16" />
 						</template>
